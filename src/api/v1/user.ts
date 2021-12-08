@@ -1,0 +1,231 @@
+import { Request, Response } from "express";
+import { auth } from "firebase-admin";
+import shortUUID from "short-uuid";
+import { userLog } from "../../modules/logger";
+import { db, getCollection, getRawDb } from "../../modules/mongo";
+import { sendDocument } from "../../util";
+import { validateSchema } from "../../util/validation";
+import { generateUserReport } from "./user/generateReport";
+import { update122 } from "./user/updates/update112";
+
+export const generateReport = async (req: Request, res: Response) => {
+	const htmlFile = await generateUserReport(req.query, res.locals.uid);
+	res.status(200).send(htmlFile);
+}
+
+export const get = async (req: Request, res: Response) => {
+	// todo: remove fields for friends
+	const document = await db.getDocument(req.params.id, req.params.id, "users");
+	sendDocument(req, res, "users", document);
+}
+
+export const update = async (req: Request, res: Response) => {
+	const result = await db.updateOne(req.params.id, req.params.id, "users", req.body);
+	if (result.result.n === 0) {
+		res.status(404).send();
+		return;
+	}
+	res.status(200).send();
+}
+
+export const SetUsername = async (req: Request, res: Response) => {
+	const newUsername: string = req.body["newUsername"].trim();
+
+	console.log("Attempt to set username to: " + newUsername);
+
+	if (newUsername.length < 3) {
+		res.status(200).send({ success: false, msg: "Username must be at least 3 characters" });
+		return;
+	}
+
+	const potentiallyAlreadyTakenUserDoc = await db.findDocument("users", { username: { $regex: "^" + newUsername + "$", $options: "i" }, uid: { $ne: res.locals.uid } });
+
+	if (potentiallyAlreadyTakenUserDoc === null) {
+		db.update(res.locals.uid, res.locals.uid, "users", { uid: res.locals.uid, _id: res.locals.uid, username: newUsername });
+		res.status(200).send({ success: true });
+		userLog(res.locals.uid, "Updated username to: " + newUsername);
+		return;
+	} else {
+		res.status(200).send({ success: false, msg: "This username is already taken" });
+		return;
+	}
+};
+
+export const deleteAccount = async (req: Request, res: Response) => {
+	const perform: boolean = req.body["performDelete"];
+
+	if (!perform) {
+		res.status(202).send();
+		return;
+	}
+
+	const collections = await getRawDb().listCollections().toArray();
+
+	collections.forEach(async (collection) => {
+		const name: string = collection.name;
+		const split = name.split(".");
+		const actualName = split[split.length - 1];
+
+		await getCollection(actualName).deleteMany({ uid: res.locals.uid });
+	});
+
+	await getCollection("friends").deleteMany({ frienduid: res.locals.uid });
+	await getCollection("pendingFriendRequests")
+		.deleteMany({ receiver: { $eq: res.locals.uid } });
+	await getCollection("pendingFriendRequests")
+		.deleteMany({ sender: { $eq: res.locals.uid } });
+
+	auth().deleteUser(res.locals.uid);
+
+	userLog(res.locals.uid, "Deleted user");
+
+	res.status(200).send();
+};
+
+export const exportUserData = async (_req: Request, res: Response) => {
+	const collections = await getRawDb().listCollections().toArray();
+
+	const allData: Array<any> = [];
+
+	collections.forEach(async (collection) => {
+		const name: string = collection.name;
+		const split = name.split(".");
+		const actualName = split[split.length - 1];
+
+		const collectionData = await db.getMultiple({ uid: res.locals.uid }, res.locals.uid, actualName);
+		allData.concat(collectionData);
+	});
+
+	// TODO: Send email to user at registered user address with a plain json file of all data
+	res.status(200).send({});
+	userLog(res.locals.uid, "Exported user data.");
+};
+
+export const setupNewUser = async (_req: Request, res: Response) => {
+
+	const fields: any = {};
+	fields[shortUUID.generate().toString() + "0"] = { name: "Birthday", order: 0, private: false, preventTrusted: false, type: 5 };
+	fields[shortUUID.generate().toString() + "1"] = { name: "Favorite Color", order: 1, private: false, preventTrusted: false, type: 1 };
+	fields[shortUUID.generate().toString() + "2"] = { name: "Favorite Food", order: 2, private: false, preventTrusted: false, type: 0 };
+	fields[shortUUID.generate().toString() + "3"] = { name: "System Role", order: 3, private: false, preventTrusted: false, type: 0 };
+	fields[shortUUID.generate().toString() + "4"] = { name: "Likes", order: 4, private: false, preventTrusted: false, type: 0 };
+	fields[shortUUID.generate().toString() + "5"] = { name: "Dislikes", order: 5, private: false, preventTrusted: false, type: 0 };
+	fields[shortUUID.generate().toString() + "6"] = { name: "Age", order: 6, private: false, preventTrusted: false, type: 0 };
+
+	await getCollection("users").updateOne({
+		_id: res.locals.uid,
+		uid: res.locals.uid,
+		fields: { $exists: false }
+	}, { $set: { "fields": fields } }, { upsert: true });
+
+	userLog(res.locals.uid, "Setup new user account");
+
+	res.status(200).send();
+};
+
+export const initializeCustomFields = async (req: Request, res: Response) => {
+	const userDoc = await getCollection("users").findOne({ uid: res.locals.uid });
+	if (userDoc["fields"]) {
+		// Already have fields, don't setup!
+		res.status(200).send();
+		return;
+	}
+
+	const memberWithFields = await getCollection("members").findOne({ uid: res.locals.uid, info: { $exists: true } });
+	if (memberWithFields) {
+		update122(req, res);
+	}
+	else {
+		setupNewUser(req, res);
+	}
+};
+
+export const validateUserSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			shownMigration: { type: "boolean" },
+			desc: { type: "string" },
+			fromFirebase: { type: "boolean" },
+			isAsystem: { type: "boolean" },
+			avatarUuid: { type: "string" },
+			color: { type: "string" },
+			fields: {
+				type: "object",
+				patternProperties: {
+					"^[0-9A-z]{22}$": {
+						type: "object",
+						properties: {
+							name: { type: "string" },
+							order: { type: "number" },
+							private: { type: "boolean" },
+							preventTrusted: { type: "boolean" },
+							type: { type: "number" },
+						},
+						required: ["name", "order", "private", "preventTrusted", "type"]
+					}
+				},
+				additionalProperties: false
+			}
+		},
+		nullable: false,
+		additionalProperties: false,
+	};
+
+	return validateSchema(schema, body);
+}
+
+
+export const validateUsernameSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			username: { type: "string" },
+		},
+		nullable: false,
+		additionalProperties: false,
+	};
+
+	return validateSchema(schema, body);
+}
+
+export const validateUserReportSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			frontHistory: {
+				nullable: true,
+				type: "object",
+				properties: {
+					start: { type: "number" },
+					end: { type: "number" },
+					includeMembers: { type: "boolean" },
+					includeCustomFronts: { type: "boolean" },
+					privacyLevel: { type: "number" },
+				},
+				required: ["privacyLevel", "includeMembers", "includeCustomFronts", "start", "end"]
+			},
+			members: {
+				nullable: true,
+				type: "object",
+				properties: {
+					includeCustomFields: { type: "boolean" },
+					privacyLevel: { type: "number" },
+				},
+				required: ["privacyLevel", "includeCustomFields"]
+			},
+			customFronts: {
+				nullable: true,
+				type: "object",
+				properties: {
+					privacyLevel: { type: "number" },
+				},
+				required: ["privacyLevel"]
+			}
+		},
+		nullable: false,
+		additionalProperties: false,
+	};
+
+	return validateSchema(schema, body);
+}

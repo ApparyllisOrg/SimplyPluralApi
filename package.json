@@ -1,0 +1,100 @@
+{
+	"name": "simplypluralapi",
+	"version": "1.2.0",
+	"main": "index.ts",
+	"scripts": {
+		"dev": "DEVELOPMENT=1 npm run start",
+		"start": "node --inspect=5858 -r ts-node/register src/index.ts",
+		"start:watch": "nodemon --watch 'src/**' --ext 'ts,json' --ignore 'src/**/*.spec.ts' --exec ts-node src/index.ts",
+		"build": "tsc",
+		"lint": "eslint src/**/**/*",
+		"test": "mocha --require ts-node/register src/tests/**/*.ts -r dotenv/config"
+	},
+	"dependencies": {
+		"@sentry/node": "^6.10.0",
+		"@sentry/tracing": "^6.10.0",
+		"@types/ajv": "^1.0.0",
+		"@types/aws-sdk": "^2.7.0",
+		"@types/express-rate-limit": "^5.1.3",
+		"@types/express-serve-static-core": "^4.17.21",
+		"@types/jsonwebtoken": "^8.5.1",
+		"@types/jwt-decode": "^3.1.0",
+		"@types/lru-cache": "^5.1.0",
+		"@types/moment": "^2.13.0",
+		"@types/moment-timezone": "^0.5.30",
+		"@types/mongodb": "^3.6.17",
+		"@types/redis": "^2.8.32",
+		"@typescript-eslint/eslint-plugin": "^4.28.2",
+		"@typescript-eslint/parser": "^4.28.2",
+		"ajv": "^8.6.3",
+		"aws-sdk": "^2.935.0",
+		"axios": "^0.21.4",
+		"dotenv": "^10.0.0",
+		"express": "^4.17.1",
+		"express-rate-limit": "^5.3.0",
+		"express-validator": "^6.10.1",
+		"firebase": "^8.4.2",
+		"firebase-admin": "^9.7.0",
+		"helmet": "^4.6.0",
+		"lru-cache": "^6.0.0",
+		"mongodb": "^3.6.6",
+		"redis": "^4.0.0-rc.4",
+		"short-uuid": "^4.2.0",
+		"vhost": "^3.0.2",
+		"winston": "^3.3.3",
+		"winston-logzio": "^5.1.2",
+		"ws": "^7.4.6"
+	},
+	"devDependencies": {
+		"@types/chai": "^4.2.22",
+		"@types/mocha": "^9.0.0",
+		"@types/node": "^15.12.1",
+		"@types/ws": "^7.4.4",
+		"chai": "^4.3.4",
+		"eslint": "^7.30.0",
+		"eslint-plugin-import": "^2.23.4",
+		"mocha": "^9.1.3",
+		"nodemon": "^2.0.7",
+		"ts-node": "^10.4.0",
+		"typescript": "^4.4.4"
+	},
+	"eslintConfig": {
+		"parser": "@typescript-eslint/parser",
+		"plugins": [
+			"@typescript-eslint"
+		],
+		"env": {
+			"es6": true,
+			"node": true
+		},
+		"extends": "eslint:recommended",
+		"parserOptions": {
+			"sourceType": "module",
+			"ecmaVersion": 2020
+		},
+		"rules": {
+			"indent": [
+				"error",
+				"tab",
+				{
+					"SwitchCase": 1
+				}
+			],
+			"quotes": [
+				"error",
+				"double"
+			],
+			"semi": [
+				"error",
+				"always"
+			],
+			"no-prototype-builtins": "off",
+			"max-len": [
+				"warn",
+				{
+					"code": 150
+				}
+			]
+		}
+	}
+}
