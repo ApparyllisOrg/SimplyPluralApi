@@ -25,8 +25,8 @@ export const del = async (req: Request, res: Response) => {
 // Todo: write migration code from old poll schema to new poll schema for user data
 export const validatePollSchema = (body: any): { success: boolean, msg: string } => {
 
-	const voteType =  
-	{ 	
+	const voteType =
+	{
 		type: "object",
 		parameters: {
 			id: "string",
@@ -43,8 +43,13 @@ export const validatePollSchema = (body: any): { success: boolean, msg: string }
 			desc: { type: "string" },
 			allowAbstain: { type: "boolean" },
 			allowVeto: { type: "boolean" },
+			endTime: { type: "number" },
+			custom: {
+				type: "boolean",
+				"enum": [false]
+			},
 			votes: {
-				type: "array", 
+				type: "array",
 				items: voteType
 			}
 		},
@@ -57,10 +62,15 @@ export const validatePollSchema = (body: any): { success: boolean, msg: string }
 		properties: {
 			name: { type: "string" },
 			desc: { type: "string" },
+			endTime: { type: "number" },
+			custom: {
+				type: "boolean",
+				"enum": [true]
+			},
 			options: {
-				type: "array", 
-				items:{ 
-					type: "object", 
+				type: "array",
+				items: {
+					type: "object",
 					properties: {
 						name: { type: "string" },
 						color: { type: "string" },
@@ -70,7 +80,7 @@ export const validatePollSchema = (body: any): { success: boolean, msg: string }
 				}
 			},
 			votes: {
-				type: "array", 
+				type: "array",
 				items: voteType
 			},
 			nullable: false,
@@ -79,10 +89,10 @@ export const validatePollSchema = (body: any): { success: boolean, msg: string }
 	}
 
 	const schema = {
-	 anyOf: [
-		 normalVote,
-		 customVote
-	 ]
+		anyOf: [
+			normalVote,
+			customVote
+		]
 	};
 
 	const result = validateSchema(schema, body);
