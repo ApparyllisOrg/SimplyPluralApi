@@ -4,6 +4,7 @@ import { FriendLevel, getFriendLevel } from "../../security";
 import { notifyUser } from "../../util";
 import { validateSchema } from "../../util/validation";
 
+// Todo: Add schema
 export const AddFriend = async (req: Request, res: Response) => {
 	const target = req.params.id;
 

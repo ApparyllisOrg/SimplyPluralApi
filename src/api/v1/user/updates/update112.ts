@@ -5,16 +5,11 @@ import { userLog } from "../../../../modules/logger";
 import { getCollection } from "../../../../modules/mongo";
 
 
-export const update122 = async (_req: Request, res: Response) => {
+export const update122 = async (uid: string) => {
 	const membersCollection = getCollection("members");
 	const users = getCollection("users");
-	const members = membersCollection.find({ uid: res.locals.uid });
-	const user = await users.findOne({ uid: res.locals.uid });
-
-	if (user.fields) {
-		res.status(200).send();
-		return;
-	}
+	const members = membersCollection.find({ uid: uid});
+	const user = await users.findOne({ uid: uid });
 
 	const infoFields: Map<string, any> = new Map<string, any>();
 	const infoFieldConversions: Map<string, any> = new Map<string, any>();
@@ -55,7 +50,6 @@ export const update122 = async (_req: Request, res: Response) => {
 		}
 	});
 
-	userLog(res.locals.uid, "Updated to 122");
-	await users.updateOne({ uid: res.locals.uid }, { $set: { fields: infoFields } });
-	res.status(200).send();
+	userLog(uid, "Updated to 122");
+	await users.updateOne({ uid: uid}, { $set: { fields: infoFields } });
 };

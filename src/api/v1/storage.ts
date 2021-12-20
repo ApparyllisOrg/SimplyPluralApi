@@ -1,6 +1,7 @@
 import * as AWS from "aws-sdk";
 import { Request, Response } from "express";
 import { userLog } from "../../modules/logger";
+import { validateSchema } from "../../util/validation";
 
 const spacesEndpoint = new AWS.Endpoint("sfo3.digitaloceanspaces.com");
 const s3 = new AWS.S3({
@@ -10,9 +11,9 @@ const s3 = new AWS.S3({
 });
 
 export function Store(req: Request, res: Response) {
-	const path = `avatars/${res.locals.uid}/${req.body["fileName"]}`;
+	const path = `avatars/${res.locals.uid}/${req.params.id}`;
 
-	const buffer = Buffer.from(req.body["file"]);
+	const buffer = Buffer.from(req.body["buffer"]);
 
 	const params = {
 		Bucket: "simply-plural",
@@ -32,8 +33,21 @@ export function Store(req: Request, res: Response) {
 	userLog(res.locals.uid, "Stored avatar with size: " + buffer.length);
 }
 
+export const validateStoreAvatarSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			buffer: { ttype: "array", items: { type: "number", minimum: 0, maximum: 255 }  },
+		},
+		nullable: false,
+		additionalProperties: false,
+	};
+
+	return validateSchema(schema, body);
+}
+
 export function Delete(req: Request, res: Response) {
-	const path = `avatars/${res.locals.uid}/${req.body["fileName"]}`;
+	const path = `avatars/${res.locals.uid}/${req.params.id}`;
 
 	const params = {
 		Bucket: "simply-plural",

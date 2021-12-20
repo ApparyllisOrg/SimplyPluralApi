@@ -29,9 +29,10 @@ export const validateCommentSchema = (body: any): { success: boolean, msg: strin
 		type: "object",
 		properties: {
 			time: { type: "number" },
-			collection: { type: "string" },
+			text: { type: "string" },
 			documentId: { type: "string" },
-			text: { type: "string" }
+			collection: { type: "string" }
+
 		},
 		nullable: false,
 		additionalProperties: false,

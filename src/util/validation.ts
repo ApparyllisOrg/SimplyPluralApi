@@ -2,6 +2,8 @@ import { validationResult } from "express-validator";
 import { NextFunction, Request, Response } from "express";
 
 import Ajv from "ajv";
+import { ObjectId } from "mongodb";
+import moment from "moment";
 const ajv = new Ajv({ allErrors: true, $data: true })
 
 export async function validateData(req: Request, res: Response, next: any) {
@@ -83,4 +85,41 @@ export const validateGetQuery = (req: Request, res: Response, next: NextFunction
 		return;
 	}
 	next();
+}
+
+export const validateId = async (req: Request, res: Response, next: any) => {
+	if (req.params.id && req.params.id.match(/^[0-9a-fA-F]{24}$/))
+	{
+		if (ObjectId.isValid(req.params.id))
+		{
+			res.locals.useId = new ObjectId(req.params.id);
+			next();
+			return;
+		}
+	}
+
+	res.status(400).send("Id does not resolve to a mongo id");
+}
+
+export const validateOperationTime = async (req: Request, res: Response, next: any) => {
+	// Expects milliseconds since epoch
+	const operationTime = req.header("Operation-Time");
+	if (operationTime)
+	{
+		const parsedInt = parseInt(operationTime);
+		if (!isNaN(parsedInt))
+		{
+			res.locals.operationTime = parsedInt;
+			next();
+			return;
+		}
+	}
+	else
+	{
+		res.locals.operationTime = moment.now();
+		next();
+		return;
+	}
+
+	res.status(400).send("Operation-Time header is not a valid number");
 }

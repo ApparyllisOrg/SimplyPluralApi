@@ -104,23 +104,30 @@ export const sendDocuments = async (req: Request, res: Response, collection: str
 	res.status(200).send(returnDocuments);
 }
 
-
 export const sendDocument = async (req: Request, res: Response, collection: string, document: documentObject) => {
+	if (!document)
+	{
+		res.status(400).send();
+		return;
+	}
+
 	const access = await getDocumentAccess(req, res, document, collection);
 	if (access.access === true) {
 		res.status(200).send(transformResultForClientRead(document, res.locals.uid));
 		return;
 	}
-	return res.status(access.statusCode).send(access.message);
+	res.status(access.statusCode).send(access.message);
 }
 
 export const fetchSimpleDocument = async (req: Request, res: Response, collection: string) => {
+	
 	const document = await db.getDocument(req.params.id, req.params.system, collection);
 	sendDocument(req, res, collection, document);
 }
 
 export const deleteSimpleDocument = async (req: Request, res: Response, collection: string) => {
-	const result = await db.delete(req.params.id, res.locals.uid, collection);
+	
+	const result = await db.delete(req.params.id, res.locals.uid, collection, res.locals.operationTime);
 	if (result.deletedCount && result.deletedCount > 0) {
 		publishDbEvent({ uid: res.locals.uid, documentId: req.params.id, collection: collection, operationType: OperationType.Delete });
 	}
@@ -128,13 +135,15 @@ export const deleteSimpleDocument = async (req: Request, res: Response, collecti
 }
 
 export const fetchCollection = async (req: Request, res: Response, collection: string) => {
-	const documents = await db.getMultiple({ uid: req.params.system }, req.params.system, collection).toArray();
+	const documents = await db.getMultiple({ uid: req.params.system }, req.params.system, collection)
+		.sort({name: 1})
+		.toArray();
 	sendDocuments(req, res, collection, documents);
 }
 
 export const addSimpleDocument = async (req: Request, res: Response, collection: string) => {
 	const dataObj: documentObject = req.body;
-	dataObj._id = new ObjectID();
+	dataObj._id = res.locals.useId ?? new ObjectID();
 	dataObj.uid = res.locals.uid;
 	const result = await db.add(collection, dataObj);
 	result.connection
@@ -143,7 +152,7 @@ export const addSimpleDocument = async (req: Request, res: Response, collection:
 		return;
 	}
 	else {
-		publishDbEvent({ uid: res.locals.uid, documentId: dataObj._id.toHexString(), collection: collection, operationType: OperationType.Add });
+		publishDbEvent({ uid: res.locals.uid, documentId: dataObj._id.toString(), collection: collection, operationType: OperationType.Add });
 	}
 
 	res.status(200).send();
@@ -153,7 +162,7 @@ export const updateSimpleDocument = async (req: Request, res: Response, collecti
 	const dataObj: documentObject = req.body;
 	dataObj._id = parseId(req.params.id);
 	dataObj.uid = res.locals.uid;
-	const result = await db.update(req.params.id, res.locals.uid, collection, dataObj);
+	const result = await db.update(req.params.id, res.locals.uid, collection, dataObj, res.locals.operationTime);
 	if (result.result.n === 0) {
 		res.status(404).send();
 		return;

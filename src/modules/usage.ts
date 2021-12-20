@@ -3,11 +3,8 @@
 // the usage stats, where otherwise we wouldn't know who actually did what on the API, other than an IP which is not really useful, especially when behind a VPN.
 // The stats aren't meant to keep track of normal usage, only there for abuse of API.
 
-// TODO #20 Automatically delete usage older than 14 days
-// TODO #19:Log usage per day
-
-// todo: all of this should be in a global middleware, really
 import { Request, Response, NextFunction } from "express";
+import moment from "moment";
 import * as Mongo from "./mongo";
 
 const collectedUsage: Map<string, Map<string, number>> = new Map<string, Map<string, number>>();
@@ -17,6 +14,7 @@ export const startCollectingUsage = () => {
 }
 
 const collectUsage = () => {
+	const expirationDate = moment().add(14, "days").startOf("day").toDate();
 	collectedUsage.forEach((value, key) => {
 		const updateObj: Map<string, unknown> = new Map<string, unknown>();
 
@@ -24,7 +22,7 @@ const collectUsage = () => {
 			updateObj.set(method, { $add: count });
 		});
 
-		Mongo.db().collection("usage").updateOne({ uid: key }, updateObj);
+		Mongo.db().collection("usage").updateOne({ uid: key, expireAt: expirationDate }, updateObj, {upsert: true});
 	});
 
 	collectedUsage.clear();

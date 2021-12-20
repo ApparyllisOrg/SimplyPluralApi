@@ -23,7 +23,12 @@ export const getCollection = (target: string) => _db.collection(target);
 export const isLive = () => _client.isConnected();
 export const parseId = (id: string): string | MongoDb.ObjectId => {
 	if (id.match(/^[0-9a-fA-F]{24}$/))
-		return new MongoDb.ObjectId(id);
+	{
+		if (ObjectId.isValid(id))
+		{
+			return new MongoDb.ObjectId(id);
+		}
+	}
 
 	return id;
 }
@@ -65,17 +70,17 @@ db.getMultiple = (query: queryObject, owningId: string, collection: string) => {
 db.add = (collection: string, obj: documentObject) =>
 	db().collection(collection).insertOne(obj);
 
-db.update = async (documentId: string, owningId: string, collection: string, obj: documentObject) => {
-	return await db().collection(collection).updateOne({ uid: owningId, _id: parseId(documentId) }, { $set: obj });
+db.update = async (documentId: string, owningId: string, collection: string, obj: documentObject, operationTime: number) => {
+	return await db().collection(collection).updateOne({ uid: owningId, _id: parseId(documentId), lastUpdate : { $le: operationTime } }, { $set: obj });
 }
 
-db.updateOne = async (documentId: string, owningId: string, collection: string, obj: documentObject) => {
-	return await db().collection(collection).updateOne({ uid: owningId, _id: parseId(documentId) }, { $set: obj });
+db.updateOne = async (documentId: string, owningId: string, collection: string, obj: documentObject, operationTime: number) => {
+	return await db().collection(collection).updateOne({ uid: owningId, _id: parseId(documentId), lastUpdate : { $le: operationTime } }, { $set: obj });
 }
 
 
-db.delete = (documentId: string, owningId: string, collection: string) =>
-	db().collection(collection).deleteOne({ uid: owningId, _id: parseId(documentId) });
+db.delete = (documentId: string, owningId: string, collection: string, operationTime: number) =>
+	db().collection(collection).deleteOne({ uid: owningId, _id: parseId(documentId), lastUpdate : { $le: operationTime } });
 
 db.deleteMatching = (owningId: string, collection: string, query: any) => {
 	const queryObj = query;

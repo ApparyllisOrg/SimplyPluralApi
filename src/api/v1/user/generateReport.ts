@@ -46,6 +46,7 @@ const getAvatarString = (data: any, uid: string): string => {
 	}
 
 	if (avatar.length == 0) {
+		// Todo: Make this a better link
 		avatar = "https://apparyllis.com/wp-content/uploads/2021/03/cropped-Apparyllis_Square.png";
 	}
 

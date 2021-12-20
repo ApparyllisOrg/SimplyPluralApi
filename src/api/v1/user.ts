@@ -6,6 +6,7 @@ import { db, getCollection, getRawDb } from "../../modules/mongo";
 import { sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
+import { createUser } from "./user/migrate";
 import { update122 } from "./user/updates/update112";
 
 export const generateReport = async (req: Request, res: Response) => {
@@ -14,13 +15,30 @@ export const generateReport = async (req: Request, res: Response) => {
 }
 
 export const get = async (req: Request, res: Response) => {
-	// todo: remove fields for friends
-	const document = await db.getDocument(req.params.id, req.params.id, "users");
+	// todo: remove private fields for friends
+	let document = await db.getDocument(req.params.id, req.params.id, "users");
+
+	const ownDocument = req.params.id === res.locals.uid;
+
+	// create the user 
+	if (!document && ownDocument)
+	{
+		await createUser(res.locals.uid);
+		document = await db.getDocument(req.params.id, req.params.id, "users");
+	}
+
+	// initialize custom fields for the user
+	if (!document.fields && ownDocument)
+	{
+		await initializeCustomFields(res.locals.uid);
+		document = await db.getDocument(req.params.id, req.params.id, "users");
+	}
+
 	sendDocument(req, res, "users", document);
 }
 
 export const update = async (req: Request, res: Response) => {
-	const result = await db.updateOne(req.params.id, req.params.id, "users", req.body);
+	const result = await db.updateOne(req.params.id, req.params.id, "users", req.body, res.locals.operationTime);
 	if (result.result.n === 0) {
 		res.status(404).send();
 		return;
@@ -41,7 +59,7 @@ export const SetUsername = async (req: Request, res: Response) => {
 	const potentiallyAlreadyTakenUserDoc = await db.findDocument("users", { username: { $regex: "^" + newUsername + "$", $options: "i" }, uid: { $ne: res.locals.uid } });
 
 	if (potentiallyAlreadyTakenUserDoc === null) {
-		db.update(res.locals.uid, res.locals.uid, "users", { uid: res.locals.uid, _id: res.locals.uid, username: newUsername });
+		db.update(res.locals.uid, res.locals.uid, "users", { uid: res.locals.uid, _id: res.locals.uid, username: newUsername }, res.locals.operationTime);
 		res.status(200).send({ success: true });
 		userLog(res.locals.uid, "Updated username to: " + newUsername);
 		return;
@@ -101,7 +119,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 	userLog(res.locals.uid, "Exported user data.");
 };
 
-export const setupNewUser = async (_req: Request, res: Response) => {
+export const setupNewUser = async (uid: string) => {
 
 	const fields: any = {};
 	fields[shortUUID.generate().toString() + "0"] = { name: "Birthday", order: 0, private: false, preventTrusted: false, type: 5 };
@@ -113,30 +131,27 @@ export const setupNewUser = async (_req: Request, res: Response) => {
 	fields[shortUUID.generate().toString() + "6"] = { name: "Age", order: 6, private: false, preventTrusted: false, type: 0 };
 
 	await getCollection("users").updateOne({
-		_id: res.locals.uid,
-		uid: res.locals.uid,
+		_id: uid,
+		uid: uid,
 		fields: { $exists: false }
 	}, { $set: { "fields": fields } }, { upsert: true });
 
-	userLog(res.locals.uid, "Setup new user account");
-
-	res.status(200).send();
+	userLog(uid, "Setup new user account");
 };
 
-export const initializeCustomFields = async (req: Request, res: Response) => {
-	const userDoc = await getCollection("users").findOne({ uid: res.locals.uid });
+export const initializeCustomFields = async (uid: string) => {
+	const userDoc = await getCollection("users").findOne({ uid: uid });
 	if (userDoc["fields"]) {
 		// Already have fields, don't setup!
-		res.status(200).send();
 		return;
 	}
 
-	const memberWithFields = await getCollection("members").findOne({ uid: res.locals.uid, info: { $exists: true } });
+	const memberWithFields = await getCollection("members").findOne({ uid: uid, info: { $exists: true } });
 	if (memberWithFields) {
-		update122(req, res);
+		update122(uid);
 	}
 	else {
-		setupNewUser(req, res);
+		setupNewUser(uid);
 	}
 };
 

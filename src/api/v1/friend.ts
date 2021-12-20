@@ -26,7 +26,7 @@ export const getOutgoingFriendRequests = async (req: Request, res: Response) => 
 }
 
 export const updateFriend = async (req: Request, res: Response) => {
-	const result = await getCollection("friends").updateOne({ uid: res.locals.uid, friendUuid: req.params.id }, { $set: req.body })
+	const result = await getCollection("friends").updateOne({ uid: res.locals.uid, friendUuid: req.params.id, lastUpdate: { $le: res.locals.operationTime } }, { $set: req.body })
 	if (result.result.n === 0) {
 		res.status(404).send();
 		return;
@@ -70,11 +70,14 @@ export const getAllFriendFrontValues = async (_req: Request, res: Response) => {
 		}
 	}
 
+	// TODO: Only send uid, frontString and customFrontString
 	res.status(200).send({ "results": friendFrontValues });
 };
 
 export const getFriendFront = async (req: Request, res: Response) => {
 	const friendFronts = await db.getMultiple({ uid: req.params.id }, req.params.id, "front").toArray();
+
+	//TODO: Remove startTime and uuid, basically only send a list of document ids
 	sendDocuments(req, res, "front", friendFronts);
 };
 

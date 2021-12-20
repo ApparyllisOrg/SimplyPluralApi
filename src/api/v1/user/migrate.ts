@@ -15,36 +15,36 @@ const convertTime = (data: { [field: string]: any }) => {
 	}
 };
 
-export const migrateUser = async (_req: Request, res: Response) => {
-	const serverUser = await getCollection("serverData").findOne({ uid: res.locals.uid });
+export const createUser = async (uid: string) => {
+	const serverUser = await getCollection("serverData").findOne({ uid: uid });
 	if (!serverUser || !serverUser.migrated) {
-		const pubMembers = await firestore().collection("users").doc(res.locals.uid).collection("publicMembers").get();
+		const pubMembers = await firestore().collection("users").doc(uid).collection("publicMembers").get();
 
-		const privMembers = await firestore().collection("users").doc(res.locals.uid).collection("privateMembers").get();
+		const privMembers = await firestore().collection("users").doc(uid).collection("privateMembers").get();
 
-		const notes = await firestore().collection("users").doc(res.locals.uid).collection("notes").get();
-		const frontHistory = await firestore().collection("users").doc(res.locals.uid).collection("frontHistory").get();
+		const notes = await firestore().collection("users").doc(uid).collection("notes").get();
+		const frontHistory = await firestore().collection("users").doc(uid).collection("frontHistory").get();
 
-		const polls = await firestore().collection("users").doc(res.locals.uid).collection("polls").get();
+		const polls = await firestore().collection("users").doc(uid).collection("polls").get();
 
-		const frontStatuses = await firestore().collection("users").doc(res.locals.uid).collection("frontStatuses").get();
+		const frontStatuses = await firestore().collection("users").doc(uid).collection("frontStatuses").get();
 
-		const fronters = await firestore().collection("users").doc(res.locals.uid).collection("fronters").get();
+		const fronters = await firestore().collection("users").doc(uid).collection("fronters").get();
 
-		const groups = await firestore().collection("users").doc(res.locals.uid).collection("groups").get();
+		const groups = await firestore().collection("users").doc(uid).collection("groups").get();
 
-		const shared = await firestore().collection("users").doc(res.locals.uid).collection("shared").doc("fronters").get();
+		const shared = await firestore().collection("users").doc(uid).collection("shared").doc("fronters").get();
 
-		const privateDoc = await firestore().collection("users").doc(res.locals.uid).collection("private").doc("data").get();
+		const privateDoc = await firestore().collection("users").doc(uid).collection("private").doc("data").get();
 
-		const user = await firestore().collection("users").doc(res.locals.uid).get();
+		const user = await firestore().collection("users").doc(uid).get();
 
 		const membersBatch: any[] = [];
 		{
 			privMembers.docs.forEach((doc): any => {
 				const data = doc.data();
 				data._id = doc.id;
-				data.uid = res.locals.uid;
+				data.uid = uid;
 				data["private"] = true;
 				convertTime(data);
 				membersBatch.push(data);
@@ -55,7 +55,7 @@ export const migrateUser = async (_req: Request, res: Response) => {
 				data._id = doc.id;
 
 				if (!membersBatch.includes({ _id: doc.id })) {
-					data.uid = res.locals.uid;
+					data.uid = uid;
 					data["private"] = false;
 					convertTime(data);
 					membersBatch.push(data);
@@ -67,7 +67,7 @@ export const migrateUser = async (_req: Request, res: Response) => {
 			notes.docs.forEach((doc) => {
 				const data = doc.data();
 				data._id = doc.id;
-				data.uid = res.locals.uid;
+				data.uid = uid;
 				convertTime(data);
 				notesBatch.push(data);
 			});
@@ -77,7 +77,7 @@ export const migrateUser = async (_req: Request, res: Response) => {
 			frontHistory.docs.forEach((doc) => {
 				const data = doc.data();
 				data._id = doc.id;
-				data.uid = res.locals.uid;
+				data.uid = uid;
 				convertTime(data);
 				frontHistoryBatch.push(data);
 			});
@@ -87,7 +87,7 @@ export const migrateUser = async (_req: Request, res: Response) => {
 			polls.docs.forEach((doc) => {
 				const data = doc.data();
 				data._id = doc.id;
-				data.uid = res.locals.uid;
+				data.uid = uid;
 				convertTime(data);
 				pollsBatch.push(data);
 			});
@@ -98,7 +98,7 @@ export const migrateUser = async (_req: Request, res: Response) => {
 			frontStatuses.docs.forEach((doc) => {
 				const data = doc.data();
 				data._id = doc.id;
-				data.uid = res.locals.uid;
+				data.uid = uid;
 				convertTime(data);
 				frontStatusesBatch.push(data);
 			});
@@ -108,7 +108,7 @@ export const migrateUser = async (_req: Request, res: Response) => {
 			fronters.docs.forEach((doc) => {
 				const data = doc.data();
 				data._id = doc.id;
-				data.uid = res.locals.uid;
+				data.uid = uid;
 				convertTime(data);
 				frontersBatch.push(data);
 			});
@@ -118,7 +118,7 @@ export const migrateUser = async (_req: Request, res: Response) => {
 			groups.docs.forEach((doc) => {
 				const data = doc.data();
 				data._id = doc.id;
-				data.uid = res.locals.uid;
+				data.uid = uid;
 				convertTime(data);
 				groupsBatch.push(data);
 			});
@@ -130,8 +130,8 @@ export const migrateUser = async (_req: Request, res: Response) => {
 		}
 
 		data["latestVersion"] = 76;
-		data["uid"] = res.locals.uid;
-		data["_id"] = res.locals.uid;
+		data["uid"] = uid;
+		data["_id"] = uid;
 
 		if (membersBatch.length > 0) getCollection("members").insertMany(membersBatch);
 		if (notesBatch.length > 0) getCollection("notes").insertMany(notesBatch);
@@ -141,7 +141,7 @@ export const migrateUser = async (_req: Request, res: Response) => {
 		if (frontersBatch.length > 0) getCollection("fronters").insertMany(frontersBatch);
 		if (groupsBatch.length > 0) getCollection("groups").insertMany(groupsBatch);
 
-		await getCollection("private").updateOne({ _id: res.locals.uid, uid: res.locals.uid }, { $set: data }, { upsert: true });
+		await getCollection("private").updateOne({ _id: uid, uid: uid }, { $set: data }, { upsert: true });
 
 		let userData: { [field: string]: any } = user.data()!;
 		if (!userData) {
@@ -150,36 +150,36 @@ export const migrateUser = async (_req: Request, res: Response) => {
 
 		userData["isAsystem"] = data["isAsystem"] != null ? data["isAsystem"] : true;
 		userData["fromFirebase"] = true;
-		userData["uid"] = res.locals.uid;
-		userData["_id"] = res.locals.uid;
+		userData["uid"] = uid;
+		userData["_id"] = uid;
 
 		let sharedData: { [field: string]: any } = shared.data()!;
 		if (!sharedData) {
 			sharedData = {};
 		}
 
-		sharedData["uid"] = res.locals.uid;
-		sharedData["_id"] = res.locals.uid;
+		sharedData["uid"] = uid;
+		sharedData["_id"] = uid;
 
 		await getCollection("sharedFront")
-			.updateOne({ _id: res.locals.uid, uid: res.locals.uid }, { $set: sharedData }, { upsert: true });
-		await getCollection("users").updateOne({ _id: res.locals.uid, uid: res.locals.uid }, { $set: userData }, { upsert: true });
+			.updateOne({ _id: uid, uid: uid }, { $set: sharedData }, { upsert: true });
+		await getCollection("users").updateOne({ _id: uid, uid: uid }, { $set: userData }, { upsert: true });
 
-		const friends = await firestore().collection("users").doc(res.locals.uid).collection("friends").get();
+		const friends = await firestore().collection("users").doc(uid).collection("friends").get();
 
 		for (let i = 0; i < friends.size; ++i) {
 			const friend = friends.docs[i];
 			const foundUser = await getCollection("users").findOne({ uid: friend.id });
 			if (foundUser) {
-				const otherFriendSettings = await firestore().collection("users").doc(friend.id).collection("friends").doc(res.locals.uid).get();
+				const otherFriendSettings = await firestore().collection("users").doc(friend.id).collection("friends").doc(uid).get();
 				if (!otherFriendSettings) {
 					await getCollection("friends")
 						.updateOne(
-							{ uid: friend.id, frienduid: res.locals.uid },
+							{ uid: friend.id, frienduid: uid },
 							{
 								$set: {
 									uid: friend.id,
-									frienduid: res.locals.uid,
+									frienduid: uid,
 									getFrontNotif: false,
 									getTheirFrontNotif: false,
 									seeFront: false,
@@ -194,11 +194,11 @@ export const migrateUser = async (_req: Request, res: Response) => {
 						const { getFrontNotif, getTheirFrontNotif, seeFront, seeMembers } = otherFriendSettings.data()!;
 						await getCollection("friends")
 							.updateOne(
-								{ uid: friend.id, frienduid: res.locals.uid },
+								{ uid: friend.id, frienduid: uid },
 								{
 									$set: {
 										uid: friend.id,
-										frienduid: res.locals.uid,
+										frienduid: uid,
 										getFrontNotif: getFrontNotif,
 										getTheirFrontNotif: getTheirFrontNotif,
 										seeFront: seeFront,
@@ -215,10 +215,10 @@ export const migrateUser = async (_req: Request, res: Response) => {
 
 					await getCollection("friends")
 						.updateOne(
-							{ uid: res.locals.uid, frienduid: friend.id },
+							{ uid: uid, frienduid: friend.id },
 							{
 								$set: {
-									uid: res.locals.uid,
+									uid: uid,
 									frienduid: friend.id,
 									getFrontNotif: getFrontNotif,
 									getTheirFrontNotif: getTheirFrontNotif,
@@ -236,10 +236,8 @@ export const migrateUser = async (_req: Request, res: Response) => {
 		}
 	}
 
-	userLog(res.locals.uid, "Migrated");
+	userLog(uid, "Migrated");
 
 	getCollection("serverData")
-		.updateOne({ uid: res.locals.uid }, { $set: { migrated: true } }, { upsert: true });
-
-	res.status(200).send();
+		.updateOne({ uid: uid }, { $set: { migrated: true } }, { upsert: true });
 };

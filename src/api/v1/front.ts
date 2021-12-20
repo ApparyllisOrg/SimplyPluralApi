@@ -1,7 +1,4 @@
 import { Request, Response } from "express";
-import { ObjectID } from "mongodb";
-import { db } from "../../modules/mongo";
-import { documentObject } from "../../modules/mongo/baseTypes";
 import { addSimpleDocument, deleteSimpleDocument, fetchCollection, fetchSimpleDocument, updateSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 
@@ -15,23 +12,6 @@ export const get = async (req: Request, res: Response) => {
 }
 
 export const add = async (req: Request, res: Response) => {
-	const dataObj: documentObject = req.body;
-	dataObj._id = new ObjectID();
-	dataObj.uid = res.locals.uid;
-	dataObj.startTime = req.body.startTime;
-	dataObj.member = req.params.member;
-
-	const result = await db.add("frontHistory", dataObj);
-
-	result.connection
-	if (result.result.n === 0) {
-		res.status(500).send("Server processed your request, however was unable to enter a document into the database");
-		return;
-	}
-	else {
-		publishDbEvent({ uid: res.locals.uid, documentId: dataObj._id.toHexString(), collection: collection, operationType: OperationType.Add });
-	}
-
 	addSimpleDocument(req, res, "fronters");
 }
 
