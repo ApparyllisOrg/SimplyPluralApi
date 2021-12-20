@@ -1,3 +1,10 @@
+<div align="center">
+  <img src="https://apparyllis.com/wp-content/uploads/2021/12/SimplyPlural-NoBg.png" style="width:250px; height:250px"/>
+</div>  
+
+[![Docker](https://github.com/ApparyllisOrg/SimplyPluralApi/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/ApparyllisOrg/SimplyPluralApi/actions/workflows/docker.yml)
+[![Run lint](https://github.com/ApparyllisOrg/SimplyPluralApi/actions/workflows/lint.yml/badge.svg)](https://github.com/ApparyllisOrg/SimplyPluralApi/actions/workflows/lint.yml)
+[![Run tests](https://github.com/ApparyllisOrg/SimplyPluralApi/actions/workflows/test.yml/badge.svg)](https://github.com/ApparyllisOrg/SimplyPluralApi/actions/workflows/test.yml)
 
 Simply Plural API is the backend for the app "Simply Plural". Simply Plural is created and managed by [Apparyllis](https://apparyllis.com/).
 
