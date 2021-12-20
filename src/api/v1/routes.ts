@@ -1,6 +1,4 @@
 
-
-import { NextFunction, Request, Response } from 'express';
 import * as core from 'express-serve-static-core';
 import { ApiKeyAccessType } from '../../modules/api/keys';
 import { isUserAuthenticated, isUserAppJwtAuthenticated } from '../../security/auth';
@@ -20,11 +18,7 @@ import * as poll from './poll';
 import * as storage from './storage';
 import * as friendActions from './friendActions';
 import * as frontHistrory from './frontHistory';
-
-const placeholderRoute = (_req: Request, res: Response, next: NextFunction) => {
-	res.status(418).send();
-	next();
-}
+import * as pk from './pk';
 
 // Todo: Verify all access types are setup correctly before moving to procuction
 export const setupV1routes = (app: core.Express) => {
@@ -94,7 +88,7 @@ export const setupV1routes = (app: core.Express) => {
 	// Groups
 	app.get("/v1/group/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), group.get)
 	app.get("/v1/groups/:system", isUserAuthenticated(ApiKeyAccessType.Read), group.getGroups)
-	app.post("/v1/group/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(group.validateGroupSchema),  validateId, group.add)
+	app.post("/v1/group/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(group.validateGroupSchema), validateId, group.add)
 	app.patch("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(group.validateGroupSchema), group.update)
 	app.delete("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Delete), group.del)
 
@@ -128,14 +122,8 @@ export const setupV1routes = (app: core.Express) => {
 	app.delete("/v1/avatar/:id", isUserAppJwtAuthenticated, storage.Delete)
 
 	// Sync members
-	app.patch("/v1/integrations/pluralkit/sync/members/to/pk", isUserAuthenticated(ApiKeyAccessType.Write), placeholderRoute)
-	app.patch("/v1/integrations/pluralkit/sync/members/from/pk", isUserAuthenticated(ApiKeyAccessType.Write | ApiKeyAccessType.Delete), placeholderRoute)
-
-	// Sync front history
-	app.patch("/v1/integrations/pluralkit/sync/frontHistory/to/pk", isUserAuthenticated(ApiKeyAccessType.Write), placeholderRoute)
-	app.patch("/v1/integrations/pluralkit/sync/frontHistory/from/pk", isUserAuthenticated(ApiKeyAccessType.Write | ApiKeyAccessType.Delete), placeholderRoute)
-
-	// Sync groups
-	app.patch("/v1/integrations/pluralkit/sync/groups/to/pk", isUserAuthenticated(ApiKeyAccessType.Write), placeholderRoute)
-	app.patch("/v1/integrations/pluralkit/sync/groups/from/pk", isUserAuthenticated(ApiKeyAccessType.Write | ApiKeyAccessType.Delete), placeholderRoute)
+	app.patch("/v1/integrations/pluralkit/sync/member/to/pk", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(pk.validateSyncMemberSchema), pk.performSyncMemberToPk)
+	app.patch("/v1/integrations/pluralkit/sync/member/from/pk", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(pk.validateSyncMemberSchema), pk.performSyncMemberFromPk)
+	app.patch("/v1/integrations/pluralkit/sync/members/to/pk", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(pk.validateSyncMembersSchema), pk.performSyncAllMemberToPk)
+	app.patch("/v1/integrations/pluralkit/sync/members/from/pk", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(pk.validateSyncMembersSchema), pk.performSyncAllMemberFromPk)
 }
