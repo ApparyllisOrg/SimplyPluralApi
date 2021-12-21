@@ -22,7 +22,6 @@ export const update = async (req: Request, res: Response) => {
 		if (group.private !== req.body.private || req.body.preventTrusted != group.preventTrusted) {
 			privateGroupRecursive(req.params.id, res.locals.uid, req.body.private, req.body.preventTrusted)
 		}
-
 	}
 
 	updateSimpleDocument(req, res, "groups")
@@ -65,24 +64,9 @@ export const validateGroupSchema = (body: any): { success: boolean, msg: string 
 		},
 		nullable: false,
 		additionalProperties: false,
-		if: {
-			anyOf: [{
-				properties: {
-					private: {
-						const: true
-					}
-				}
-			},
-			{
-				properties: {
-					private: {
-						const: false
-					}
-				}
-			}]
-		},
-		then: {
-			required: ["private", "preventTrusted"]
+		dependencies: {
+			private: { required: ["preventTrusted"] },
+			preventTrusted: { required: ["private"] },
 		}
 	};
 

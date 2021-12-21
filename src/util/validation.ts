@@ -59,7 +59,7 @@ export const validateSchema = (schema: any, body: any): { success: boolean, msg:
 	}
 }
 
-export const validateGetQuery = (req: Request, res: Response, next: NextFunction) => {
+export const validateGetParams = (req: Request, res: Response, next: NextFunction) => {
 	if (req.method === "GET") {
 		const schema = {
 			type: "object",
@@ -70,6 +70,39 @@ export const validateGetQuery = (req: Request, res: Response, next: NextFunction
 			},
 			nullable: false,
 			additionalProperties: false,
+		};
+
+		const validate = ajv.compile(schema)
+
+		const valid = validate(req.params);
+		if (valid) {
+			next();
+		}
+		else {
+			res.status(400).send(ajv.errorsText(validate.errors));
+		}
+
+		return;
+	}
+	next();
+}
+
+export const validateGetQuery = (req: Request, res: Response, next: NextFunction) => {
+	if (req.method === "GET") {
+		const schema = {
+			type: "object",
+			properties: {
+				sortBy: { type: "string" },
+				sortUp: { type: "boolean" },
+				limit: { type: "number" },
+				start: { type: "number" },
+			},
+			nullable: false,
+			additionalProperties: false,
+			dependencies: {
+				sortBy: { required: ["sortUp"] },
+				sortUp: { required: ["sortBy"] },
+			}
 		};
 
 		const validate = ajv.compile(schema)
@@ -88,10 +121,8 @@ export const validateGetQuery = (req: Request, res: Response, next: NextFunction
 }
 
 export const validateId = async (req: Request, res: Response, next: any) => {
-	if (req.params.id && req.params.id.match(/^[0-9a-fA-F]{24}$/))
-	{
-		if (ObjectId.isValid(req.params.id))
-		{
+	if (req.params.id && req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+		if (ObjectId.isValid(req.params.id)) {
 			res.locals.useId = new ObjectId(req.params.id);
 			next();
 			return;
@@ -104,18 +135,15 @@ export const validateId = async (req: Request, res: Response, next: any) => {
 export const validateOperationTime = async (req: Request, res: Response, next: any) => {
 	// Expects milliseconds since epoch
 	const operationTime = req.header("Operation-Time");
-	if (operationTime)
-	{
+	if (operationTime) {
 		const parsedInt = parseInt(operationTime);
-		if (!isNaN(parsedInt))
-		{
+		if (!isNaN(parsedInt)) {
 			res.locals.operationTime = parsedInt;
 			next();
 			return;
 		}
 	}
-	else
-	{
+	else {
 		res.locals.operationTime = moment.now();
 		next();
 		return;

@@ -32,10 +32,10 @@ export const validateCommentSchema = (body: any): { success: boolean, msg: strin
 			text: { type: "string" },
 			documentId: { type: "string" },
 			collection: { type: "string" }
-
 		},
 		nullable: false,
 		additionalProperties: false,
+		required: ["time", "text", "documentId", "collection"]
 	};
 
 	return validateSchema(schema, body);

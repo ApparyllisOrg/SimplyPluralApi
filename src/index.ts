@@ -13,7 +13,7 @@ import helmet from "helmet";
 import http from "http";
 import dotenv from "dotenv";
 import express from "express";
-import { validateGetQuery, validateOperationTime } from "./util/validation";
+import { validateGetParams, validateOperationTime } from "./util/validation";
 import { startPkController } from "./modules/integrations/pk/controller";
 
 const app = express();
@@ -36,7 +36,7 @@ startCollectingUsage();
 
 app.use(express.json({ limit: "15mb" }));
 // Verify get query
-app.use(validateGetQuery);
+app.use(validateGetParams);
 // Verify the operation time of this request
 app.use(validateOperationTime);
 setupV1routes(app);

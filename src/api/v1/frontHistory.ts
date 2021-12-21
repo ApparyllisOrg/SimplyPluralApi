@@ -6,7 +6,7 @@ import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocum
 import { validateSchema } from "../../util/validation";
 
 export const getFrontHistoryInRange = async (req: Request, res: Response) => {
-	const documents : documentObject[] = await getCollection("frontHistory").find({
+	const documents: documentObject[] = await getCollection("frontHistory").find({
 		$or: [
 			{ startTime: { $gte: req.query.start }, endTime: { $lte: req.query.end } },
 			{ startTime: { $lte: req.query.start }, endTime: { $gte: req.query.end } },
@@ -15,27 +15,22 @@ export const getFrontHistoryInRange = async (req: Request, res: Response) => {
 		]
 	}).toArray()
 
-	const documentIds : (string | ObjectId)[] = documents.map((doc) => doc._id);
+	const documentIds: (string | ObjectId)[] = documents.map((doc) => doc._id);
 	const documentComments = await getCollection("frontHistory").find({
 		documnetId: { $in: documentIds }, collection: "frontHistory"
 	}).toArray()
 
-	// Fill every document with its comments. 
+	// Fill every document with its comments.
 	// TODO: check if there's a better way/faster way to do this
-	documentComments.forEach((doc : documentObject) => 
-	{
-		for (let i = 0; i < documents.length; ++i)
-		{
+	documentComments.forEach((doc: documentObject) => {
+		for (let i = 0; i < documents.length; ++i) {
 			// todo: Check if this works with both object ids and random ids
-			if (documents[i]._id === doc._id)
-			{
-				if (documents[i].comments)
-				{
+			if (documents[i]._id === doc._id) {
+				if (documents[i].comments) {
 					const comments: any[] = doc.comments;
 					comments.push(doc)
 				}
-				else
-				{
+				else {
 					documents[i].comments = [doc];
 				}
 
@@ -52,7 +47,13 @@ export const get = async (req: Request, res: Response) => {
 }
 
 export const add = async (req: Request, res: Response) => {
-	addSimpleDocument(req, res, "frontHistory");
+	const potentiallyFrontingDoc = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.body.member, live: true })
+	if (potentiallyFrontingDoc) {
+		res.status(409).send("This member is already set to be fronting. Remove them from front prior to adding them to front")
+	}
+	else {
+		addSimpleDocument(req, res, "frontHistory");
+	}
 }
 
 export const update = async (req: Request, res: Response) => {
@@ -68,12 +69,14 @@ export const validatefrontHistorySchema = (body: any): { success: boolean, msg: 
 		type: "object",
 		properties: {
 			custom: { type: "boolean" },
+			live: { type: "boolean" },
 			startTime: { type: "number" },
 			endTime: { type: "number" },
 			member: { type: "string" }
 		},
 		nullable: false,
 		additionalProperties: false,
+		required: ["custom", "live", "startTime", "member"]
 	};
 
 	return validateSchema(schema, body);

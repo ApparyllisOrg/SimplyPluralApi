@@ -3,14 +3,11 @@ import LRU from "lru-cache";
 const users = "users";
 const groups = "groups";
 const members = "members";
-const fronters = "fronters";
 const frontStatuses = "frontStatuses";
-const friends = "friends";
-const friendReqs = "pendingFriendRequests";
 const sharedFront = "sharedFront";
 const privateFront = "privateFront";
 
-export const friendReadCollections = [users, members, fronters, frontStatuses, friends, friendReqs, groups, sharedFront, privateFront];
+export const friendReadCollections = [users, members, frontStatuses, groups, sharedFront, privateFront];
 
 export enum FriendLevel {
 	None = 0x00,

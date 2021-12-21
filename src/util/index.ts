@@ -127,9 +127,26 @@ export const deleteSimpleDocument = async (req: Request, res: Response, collecti
 }
 
 export const fetchCollection = async (req: Request, res: Response, collection: string) => {
-	const documents = await Mongo.getCollection(collection).find({ uid: req.params.system })
-		.sort({ name: 1 })
-		.toArray();
+	const query = Mongo.getCollection(collection).find({ uid: req.params.system })
+
+	if (req.params.limit) {
+		query.limit(Number(req.params.limit))
+	}
+
+	if (req.params.sortBy && req.params.sortOrder) {
+		const sortQuery: any = {}
+		sortQuery[req.params.sortBy] = req.params.sortOrder
+		query.sort(sortQuery)
+	}
+	else {
+		query.sort({ name: 1 })
+	}
+
+	if (req.params.start) {
+		query.skip(Number(req.params.start))
+	}
+
+	const documents = await query.toArray();
 	sendDocuments(req, res, collection, documents);
 }
 
@@ -144,7 +161,7 @@ export const addSimpleDocument = async (req: Request, res: Response, collection:
 		return;
 	}
 
-	res.status(200).send();
+	res.status(200).send(result.insertedId);
 }
 
 export const updateSimpleDocument = async (req: Request, res: Response, collection: string) => {
