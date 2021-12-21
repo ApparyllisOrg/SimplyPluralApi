@@ -28,10 +28,10 @@ export const getFriendLevel = async (a: string, b: string): Promise<FriendLevel>
 		return cacheLevel;
 	}
 
-	const friendDoc = await Mongo.db().collection("friends").findOne({ uid: b, frienduid: a });
+	const friendDoc = await Mongo.getCollection("friends").findOne({ uid: b, frienduid: a });
 	if (!friendDoc) {
 
-		const pendingDoc = await Mongo.db().collection("pendingFriendRequests").findOne({
+		const pendingDoc = await Mongo.getCollection("pendingFriendRequests").findOne({
 			$or: [
 				{ sender: a, receiver: b },
 				{ sender: b, receiver: a },

@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { auth } from "firebase-admin";
 import shortUUID from "short-uuid";
 import { userLog } from "../../modules/logger";
-import { db, getCollection, getRawDb } from "../../modules/mongo";
+import { db, getCollection } from "../../modules/mongo";
 import { sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
@@ -16,29 +16,29 @@ export const generateReport = async (req: Request, res: Response) => {
 
 export const get = async (req: Request, res: Response) => {
 	// todo: remove private fields for friends
-	let document = await db.getDocument(req.params.id, req.params.id, "users");
+	let document = await getCollection("users").findOne({ uid: res.locals.uid })
 
 	const ownDocument = req.params.id === res.locals.uid;
 
-	// create the user 
-	if (!document && ownDocument)
-	{
+	// create the user
+	if (!document && ownDocument) {
 		await createUser(res.locals.uid);
-		document = await db.getDocument(req.params.id, req.params.id, "users");
+		document = await getCollection("users").findOne({ uid: res.locals.uid })
 	}
 
 	// initialize custom fields for the user
-	if (!document.fields && ownDocument)
-	{
+	if (!document.fields && ownDocument) {
 		await initializeCustomFields(res.locals.uid);
-		document = await db.getDocument(req.params.id, req.params.id, "users");
+		document = await getCollection("users").findOne({ uid: res.locals.uid })
 	}
 
 	sendDocument(req, res, "users", document);
 }
 
 export const update = async (req: Request, res: Response) => {
-	const result = await db.updateOne(req.params.id, req.params.id, "users", req.body, res.locals.operationTime);
+	const setBody = req.body;
+	setBody.lastOperationTime = res.locals.operationTime
+	const result = await getCollection("users").updateOne({ uid: res.locals.uid, lastOperationTime: { $lte: res.locals.operationTime } }, { $set: setBody });
 	if (result.result.n === 0) {
 		res.status(404).send();
 		return;
@@ -56,10 +56,10 @@ export const SetUsername = async (req: Request, res: Response) => {
 		return;
 	}
 
-	const potentiallyAlreadyTakenUserDoc = await db.findDocument("users", { username: { $regex: "^" + newUsername + "$", $options: "i" }, uid: { $ne: res.locals.uid } });
+	const potentiallyAlreadyTakenUserDoc = await getCollection("users").findOne({ username: { $regex: "^" + newUsername + "$", $options: "i" }, uid: { $ne: res.locals.uid } });
 
 	if (potentiallyAlreadyTakenUserDoc === null) {
-		db.update(res.locals.uid, res.locals.uid, "users", { uid: res.locals.uid, _id: res.locals.uid, username: newUsername }, res.locals.operationTime);
+		getCollection("users").updateOne({ uid: res.locals.uid, lastOperationTime: { $lte: res.locals.operationTime } }, { $set: { username: newUsername, lastOperationTime: res.locals.operationTime } });
 		res.status(200).send({ success: true });
 		userLog(res.locals.uid, "Updated username to: " + newUsername);
 		return;
@@ -77,7 +77,7 @@ export const deleteAccount = async (req: Request, res: Response) => {
 		return;
 	}
 
-	const collections = await getRawDb().listCollections().toArray();
+	const collections = await db()!.listCollections().toArray();
 
 	collections.forEach(async (collection) => {
 		const name: string = collection.name;
@@ -101,7 +101,7 @@ export const deleteAccount = async (req: Request, res: Response) => {
 };
 
 export const exportUserData = async (_req: Request, res: Response) => {
-	const collections = await getRawDb().listCollections().toArray();
+	const collections = await db()!.listCollections().toArray();
 
 	const allData: Array<any> = [];
 
@@ -110,7 +110,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 		const split = name.split(".");
 		const actualName = split[split.length - 1];
 
-		const collectionData = await db.getMultiple({ uid: res.locals.uid }, res.locals.uid, actualName);
+		const collectionData = await getCollection(actualName).find({ uid: res.locals.uid }).toArray();
 		allData.concat(collectionData);
 	});
 

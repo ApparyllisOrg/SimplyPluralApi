@@ -52,7 +52,7 @@ export async function dispatch(event: any) {
 	if (!DatabaseAccess.friendReadCollections.includes(event.ns.coll))
 		return dispatchInner(owner, event);
 
-	const friends = await Mongo.db().collection("friends").find({ uid: owner }).toArray();
+	const friends = await Mongo.getCollection("friends").find({ uid: owner }).toArray();
 	const trustedFriends = friends.filter(f => f.trusted);
 
 	if (event.operationType == "delete")

@@ -1,13 +1,11 @@
 import { Request, Response } from "express";
-import { publishDbEvent } from "../../modules/dispatcher/dispatch";
-import { db, getCollection } from "../../modules/mongo";
-import { OperationType } from "../../modules/socket";
+import { getCollection } from "../../modules/mongo";
 import { fetchCollection, sendDocument, sendDocuments, transformResultForClientRead } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 
 export const getFriend = async (req: Request, res: Response) => {
-	const document = await db.findDocument("friends", { uid: res.locals.uid, friendUuid: req.params.id });
+	const document = await getCollection("friends").findOne({ uid: res.locals.uid, friendUuid: req.params.id });
 	sendDocument(req, res, "friends", document);
 }
 
@@ -26,13 +24,12 @@ export const getOutgoingFriendRequests = async (req: Request, res: Response) => 
 }
 
 export const updateFriend = async (req: Request, res: Response) => {
-	const result = await getCollection("friends").updateOne({ uid: res.locals.uid, friendUuid: req.params.id, lastUpdate: { $le: res.locals.operationTime } }, { $set: req.body })
+	const setBody = req.body
+	setBody.lastOperationTime = res.locals.operationTime;
+	const result = await getCollection("friends").updateOne({ uid: res.locals.uid, friendUuid: req.params.id, lastUpdate: { $le: res.locals.operationTime } }, { $set: setBody })
 	if (result.result.n === 0) {
 		res.status(404).send();
 		return;
-	}
-	else {
-		publishDbEvent({ uid: res.locals.uid, documentId: req.params.id, collection: "friends", operationType: OperationType.Update });
 	}
 	res.status(200).send();
 }
@@ -75,7 +72,7 @@ export const getAllFriendFrontValues = async (_req: Request, res: Response) => {
 };
 
 export const getFriendFront = async (req: Request, res: Response) => {
-	const friendFronts = await db.getMultiple({ uid: req.params.id }, req.params.id, "front").toArray();
+	const friendFronts = await getCollection("front").find({ uid: req.params.id }).toArray();
 
 	//TODO: Remove startTime and uuid, basically only send a list of document ids
 	sendDocuments(req, res, "front", friendFronts);

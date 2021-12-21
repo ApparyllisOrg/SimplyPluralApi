@@ -1,5 +1,5 @@
 import { randomBytes } from "crypto";
-import { db, getCollection } from "../mongo";
+import { getCollection } from "../mongo";
 
 export enum ApiKeyAccessType {
 	Read = 0x01, // 0001
@@ -36,13 +36,11 @@ export const revokeApiKey = async (token: string, uid: string) => {
 }
 
 export const revokeAllUserApiKeys = async (uid: string) => {
-	await db.deleteMatching(uid, "tokens", {
-		"uid": uid
-	});
+	await getCollection("tokens").deleteMany({ uid });
 }
 
 export const validateApiKey = async (token: string): Promise<{ valid: boolean, accessType: number, uid: string }> => {
-	const doc = await db.findDocument("tokens", { "token": token });
+	const doc = await getCollection("tokens").findOne({ "token": token });
 	if (doc && doc.token) {
 		return { valid: false, accessType: doc.permission, uid: doc.uid };
 	}
@@ -55,6 +53,6 @@ export const hasAccess = (access: number, accessToCheck: ApiKeyAccessType) => {
 }
 
 export const getUserApiKeys = async (uid: string): Promise<{ uid: string, token: string, permission: number }[]> => {
-	const doc = await db.getMultiple({ uid: uid }, uid, "tokens").toArray();
+	const doc = await getCollection("tokens").find({ uid: uid },).toArray();
 	return doc;
 }

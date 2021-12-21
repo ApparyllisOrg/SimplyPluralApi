@@ -10,20 +10,17 @@ export const get = async (req: Request, res: Response) => {
 }
 
 export const update = async (req: Request, res: Response) => {
-	const previousDocument = await getCollection("private").findOne({uid: res.locals.uid, _id: parseId(req.params.id)})
-	if (previousDocument)
-	{
-		if (previousDocument.latestVersion && previousDocument.latestVersion < req.body.latestVersion)
-		{
+	const previousDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) })
+	if (previousDocument) {
+		if (previousDocument.latestVersion && previousDocument.latestVersion < req.body.latestVersion) {
 			await updateUser(previousDocument.latestVersion, req.body.latestVersion, res.locals.uid)
 		}
 		updateSimpleDocument(req, res, "private")
 	}
-	else
-	{
+	else {
 		await setupNewUser(res.locals.uid)
 		addSimpleDocument(req, res, "private")
-	}	
+	}
 }
 
 export const validatePrivateSchema = (body: any): { success: boolean, msg: string } => {
@@ -34,7 +31,7 @@ export const validatePrivateSchema = (body: any): { success: boolean, msg: strin
 			lastUpdate: { type: "number" },
 			latestVersion: { type: "number" },
 			location: { type: "string" },
-			termsOfServiceAccepted: { type: "boolean" , enum: [true]},
+			termsOfServiceAccepted: { type: "boolean", enum: [true] },
 			whatsNew: { type: "number" },
 		},
 		nullable: false,

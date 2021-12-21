@@ -1,4 +1,3 @@
-import { Request, Response } from "express";
 import { firestore } from "firebase-admin";
 import { logger, userLog } from "../../../modules/logger";
 import { getCollection } from "../../../modules/mongo";

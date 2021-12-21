@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
-import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
+import { getCollection, parseId } from "../../modules/mongo";
+import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 export const getGroups = async (req: Request, res: Response) => {
@@ -15,11 +16,38 @@ export const add = async (req: Request, res: Response) => {
 }
 
 export const update = async (req: Request, res: Response) => {
+	const group = await getCollection("groups").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) })
+
+	if (req.body.private === true && req.body.preventTrusted !== null && req.body.preventTrusted !== null) {
+		if (group.private !== req.body.private || req.body.preventTrusted != group.preventTrusted) {
+			privateGroupRecursive(req.params.id, res.locals.uid, req.body.private, req.body.preventTrusted)
+		}
+
+	}
+
 	updateSimpleDocument(req, res, "groups")
 }
 
 export const del = async (req: Request, res: Response) => {
-	deleteSimpleDocument(req, res, "groups");
+	await delGroupRecursive(req.params.id, res.locals.uid)
+	res.status(200).send()
+}
+
+const delGroupRecursive = async (groupId: string, uid: string) => {
+	const groups = await getCollection("groups").find({ uid, parent: groupId }).toArray()
+	for (let i = 0; i < groups.length; i++) {
+		await delGroupRecursive(groupId, uid)
+	}
+	await getCollection("groups").deleteOne({ uid, _id: groupId })
+}
+
+const privateGroupRecursive = async (groupId: string, uid: string, priv: boolean, preventTrusted: boolean) => {
+	const groups = await getCollection("groups").find({ uid, parent: groupId }).toArray()
+	for (let i = 0; i < groups.length; i++) {
+		await privateGroupRecursive(groupId, uid, priv, preventTrusted)
+	}
+
+	await getCollection("groups").updateOne({ uid, _id: groupId }, { $set: { "private": priv, preventTrusted } })
 }
 
 export const validateGroupSchema = (body: any): { success: boolean, msg: string } => {
@@ -37,6 +65,25 @@ export const validateGroupSchema = (body: any): { success: boolean, msg: string 
 		},
 		nullable: false,
 		additionalProperties: false,
+		if: {
+			anyOf: [{
+				properties: {
+					private: {
+						const: true
+					}
+				}
+			},
+			{
+				properties: {
+					private: {
+						const: false
+					}
+				}
+			}]
+		},
+		then: {
+			required: ["private", "preventTrusted"]
+		}
 	};
 
 	return validateSchema(schema, body);

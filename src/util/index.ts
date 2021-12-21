@@ -2,11 +2,9 @@ import * as Sentry from "@sentry/node";
 import { Request, Response } from "express";
 import { messaging } from "firebase-admin";
 import { ObjectID } from "mongodb";
-import { publishDbEvent } from "../modules/dispatcher/dispatch";
 import * as Mongo from "../modules/mongo";
-import { db, parseId } from "../modules/mongo";
+import { parseId } from "../modules/mongo";
 import { documentObject } from "../modules/mongo/baseTypes";
-import { OperationType } from "../modules/socket";
 import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
 import { parseForAllowedReadValues } from "../security/readRules";
 
@@ -23,7 +21,7 @@ export function transformResultForClientRead(value: documentObject, requestorUid
 }
 
 export const notifyUser = async (uid: string, title: string, message: string) => {
-	const privateCollection = Mongo.db().collection("private");
+	const privateCollection = Mongo.getCollection("private");
 	const privateFriendData = await privateCollection.findOne({ uid: uid });
 	if (privateFriendData) {
 		const token = privateFriendData["notificationToken"];
@@ -105,8 +103,7 @@ export const sendDocuments = async (req: Request, res: Response, collection: str
 }
 
 export const sendDocument = async (req: Request, res: Response, collection: string, document: documentObject) => {
-	if (!document)
-	{
+	if (!document) {
 		res.status(400).send();
 		return;
 	}
@@ -120,23 +117,18 @@ export const sendDocument = async (req: Request, res: Response, collection: stri
 }
 
 export const fetchSimpleDocument = async (req: Request, res: Response, collection: string) => {
-	
-	const document = await db.getDocument(req.params.id, req.params.system, collection);
+	const document = await Mongo.getCollection(collection).findOne({ _id: parseId(req.params.id), uid: req.params.system });
 	sendDocument(req, res, collection, document);
 }
 
 export const deleteSimpleDocument = async (req: Request, res: Response, collection: string) => {
-	
-	const result = await db.delete(req.params.id, res.locals.uid, collection, res.locals.operationTime);
-	if (result.deletedCount && result.deletedCount > 0) {
-		publishDbEvent({ uid: res.locals.uid, documentId: req.params.id, collection: collection, operationType: OperationType.Delete });
-	}
+	await Mongo.getCollection(collection).deleteOne({ _id: parseId(req.params.id), uid: res.locals.uid, lastOperationTime: { $lte: res.locals.operationTime } });
 	res.status(200).send();
 }
 
 export const fetchCollection = async (req: Request, res: Response, collection: string) => {
-	const documents = await db.getMultiple({ uid: req.params.system }, req.params.system, collection)
-		.sort({name: 1})
+	const documents = await Mongo.getCollection(collection).find({ uid: req.params.system })
+		.sort({ name: 1 })
 		.toArray();
 	sendDocuments(req, res, collection, documents);
 }
@@ -145,14 +137,11 @@ export const addSimpleDocument = async (req: Request, res: Response, collection:
 	const dataObj: documentObject = req.body;
 	dataObj._id = res.locals.useId ?? new ObjectID();
 	dataObj.uid = res.locals.uid;
-	const result = await db.add(collection, dataObj);
-	result.connection
+	dataObj.lastOperationTime = res.locals.operationTime;
+	const result = await Mongo.getCollection(collection).insertOne(dataObj);
 	if (result.result.n === 0) {
 		res.status(500).send("Server processed your request, however was unable to enter a document into the database");
 		return;
-	}
-	else {
-		publishDbEvent({ uid: res.locals.uid, documentId: dataObj._id.toString(), collection: collection, operationType: OperationType.Add });
 	}
 
 	res.status(200).send();
@@ -162,13 +151,11 @@ export const updateSimpleDocument = async (req: Request, res: Response, collecti
 	const dataObj: documentObject = req.body;
 	dataObj._id = parseId(req.params.id);
 	dataObj.uid = res.locals.uid;
-	const result = await db.update(req.params.id, res.locals.uid, collection, dataObj, res.locals.operationTime);
+	dataObj.lastOperationTime = res.locals.operationTime;
+	const result = await Mongo.getCollection(collection).updateOne({ _id: parseId(req.params.id), uid: res.locals.uid, lastOperationTime: { $lte: res.locals.operationTime } }, { $set: dataObj });
 	if (result.result.n === 0) {
 		res.status(404).send();
 		return;
-	}
-	else {
-		publishDbEvent({ uid: res.locals.uid, documentId: req.params.id, collection: collection, operationType: OperationType.Update });
 	}
 
 	res.status(200).send();

@@ -1,5 +1,3 @@
-
-import { Request, Response } from "express";
 import shortUUID from "short-uuid";
 import { userLog } from "../../../../modules/logger";
 import { getCollection } from "../../../../modules/mongo";
@@ -8,8 +6,7 @@ import { getCollection } from "../../../../modules/mongo";
 export const update122 = async (uid: string) => {
 	const membersCollection = getCollection("members");
 	const users = getCollection("users");
-	const members = membersCollection.find({ uid: uid});
-	const user = await users.findOne({ uid: uid });
+	const members = membersCollection.find({ uid: uid });
 
 	const infoFields: Map<string, any> = new Map<string, any>();
 	const infoFieldConversions: Map<string, any> = new Map<string, any>();
@@ -51,5 +48,5 @@ export const update122 = async (uid: string) => {
 	});
 
 	userLog(uid, "Updated to 122");
-	await users.updateOne({ uid: uid}, { $set: { fields: infoFields } });
+	await users.updateOne({ uid: uid }, { $set: { fields: infoFields } });
 };

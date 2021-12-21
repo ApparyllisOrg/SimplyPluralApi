@@ -22,7 +22,7 @@ const collectUsage = () => {
 			updateObj.set(method, { $add: count });
 		});
 
-		Mongo.db().collection("usage").updateOne({ uid: key, expireAt: expirationDate }, updateObj, {upsert: true});
+		Mongo.getCollection("usage").updateOne({ uid: key, expireAt: expirationDate }, updateObj, { upsert: true });
 	});
 
 	collectedUsage.clear();

@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
-import { db } from "../../modules/mongo";
+import { getCollection } from "../../modules/mongo";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 export const getNotesForMember = async (req: Request, res: Response) => {
-	const documents = await db.getMultiple({ uid: req.params.system, member: req.params.member }, req.params.system, "notes").toArray();
+	const documents = await getCollection("notes").find({ uid: req.params.system, member: req.params.member }).toArray();
 	sendDocuments(req, res, "notes", documents)
 }
 
