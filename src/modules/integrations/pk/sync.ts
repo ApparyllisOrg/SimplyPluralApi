@@ -1,5 +1,5 @@
-import axios from "axios"
 import { getCollection, parseId } from "../../mongo"
+import { addPendingRequest, PkRequest, PkRequestType } from "./controller"
 
 export interface syncOptions {
 	name: boolean,
@@ -18,12 +18,18 @@ export interface syncAllOptions {
 // Simply Plural colors are supported in a wide variety.
 // We officially support: #ffffff, ffffff, #ffffffff
 const spColorToPkColor = (color: string): string | undefined => {
+	let pkColor = "";
+
 	if (color.length === 7) {
-		return color.substring(0, 6);
+		pkColor = color.substring(0, 6);
 	} else if (color.length === 9) {
-		return color.substring(0, 6);
+		pkColor = color.substring(0, 6);
 	} else if (color.length === 6) {
-		return color;
+		pkColor = color;
+	}
+
+	if (RegExp(/^([a-fA-F0-9]{6})$/).test(pkColor)) {
+		return pkColor;
 	}
 
 	return undefined;
@@ -40,52 +46,120 @@ const limitStringLength = (value: string | undefined, length: number) => {
 export const syncMemberToPk = async (options: syncOptions, spMemberId: string, token: string, userId: string): Promise<{ success: boolean, msg: string }> => {
 	const spMemberResult = await getCollection("members").findOne({ uid: userId, _id: parseId(spMemberId) })
 
-	if (spMemberResult && spMemberResult.pkId) {
+	const { name, avatarUrl, pronouns, desc, color } = spMemberResult;
 
-		const { name, avatarUrl, pronouns, desc, color } = spMemberResult;
+	limitStringLength(name, 100)
+	limitStringLength(avatarUrl, 256)
+	limitStringLength(pronouns, 100)
+	limitStringLength(desc, 1000)
 
-		limitStringLength(name, 100)
-		limitStringLength(avatarUrl, 256)
-		limitStringLength(pronouns, 100)
-		limitStringLength(desc, 1000)
+	const memberDataToSync: any = {}
+	if (options.name) {
+		if (options.useDisplayName) {
+			memberDataToSync.display_name = name;
+		} else {
+			memberDataToSync.name = name;
+		}
+	}
+	if (options.avatar) memberDataToSync.avatar_url = avatarUrl;
+	if (options.pronouns) memberDataToSync.pronouns = pronouns;
+	if (options.description) memberDataToSync.description = desc;
+	if (options.color) {
+		const updateColor = spColorToPkColor(color)
+		if (updateColor) {
+			memberDataToSync.color = updateColor;
+		}
+	}
 
-		const memberDataToSync: any = {}
-		if (options.name) {
-			if (options.useDisplayName) {
-				memberDataToSync.display_name = name;
-			} else {
-				memberDataToSync.name = name;
+	if (spMemberResult) {
+		if (spMemberResult.pkId) {
+			const getRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${spMemberResult.pkId}`, token, response: null, data: undefined, type: PkRequestType.Get }
+			const pkMemberResult = await addPendingRequest(getRequest)
+			if (pkMemberResult) {
+				if (pkMemberResult.status == 200) {
+
+					const patchRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${spMemberResult.pkId}`, token, response: null, data: memberDataToSync, type: PkRequestType.Patch }
+					const patchResult = await addPendingRequest(patchRequest)
+					if (patchResult) {
+						if (patchResult.status === 200) {
+							return { success: true, msg: "Member updated on Plural Kit" }
+						}
+						else {
+							return { success: false, msg: `${patchResult.status.toString()} - ${patchResult.statusText}` }
+						}
+					}
+				}
+				else if (pkMemberResult && pkMemberResult.status === 404) {
+
+					const postRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members`, token, response: null, data: memberDataToSync, type: PkRequestType.Post }
+					const postResult = await addPendingRequest(postRequest)
+					if (postResult) {
+						if (postResult.status === 200) {
+							return { success: true, msg: "Member added to Plural Kit" }
+						}
+						else {
+							return { success: false, msg: `${postResult.status.toString()} - ${postResult.statusText}` }
+						}
+					}
+				}
+				else {
+					return { success: false, msg: `${pkMemberResult.status.toString()} - ${pkMemberResult.statusText}` }
+				}
 			}
 		}
-		if (options.avatar) memberDataToSync.avatar_url = avatarUrl;
-		if (options.pronouns) memberDataToSync.pronouns = pronouns;
-		if (options.description) memberDataToSync.description = desc;
-		if (options.color) {
-			const updateColor = spColorToPkColor(color)
-			if (updateColor) {
-				memberDataToSync.color = updateColor;
-			}
-		}
-
-		const pkMemberResult = await axios.get(`https://api.pluralkit.me/v2/${spMemberResult.pkId}`, { headers: { authorization: token } })
-		if (pkMemberResult.status == 200) {
-
-			const patchResult = await axios.patch(`https://api.pluralkit.me/v2/systems/@me`, memberDataToSync, { headers: { authorization: token } })
-			if (patchResult.status === 200) {
-				return { success: true, msg: "Member updated on Plural Kit" }
+		else {
+			if (!spMemberResult.pkId) {
+				const postRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members`, token, response: null, data: memberDataToSync, type: PkRequestType.Post }
+				const postResult = await addPendingRequest(postRequest)
+				if (postResult) {
+					if (postResult.status === 200) {
+						return { success: true, msg: "Member added to Plural Kit" }
+					}
+					else {
+						return { success: false, msg: `${postResult.status.toString()} - ${postResult.statusText}` }
+					}
+				}
 			}
 			else {
-				return { success: false, msg: `${patchResult.status.toString()} - ${patchResult.statusText}` }
+				return { success: false, msg: "Member does not exist in Simply Plural for this account." }
 			}
 		}
-		else if (pkMemberResult.status === 404) {
+	}
 
-			const postResult = await axios.post(`https://api.pluralkit.me/v2/systems/@me`, memberDataToSync, { headers: { authorization: token } })
-			if (postResult.status === 200) {
-				return { success: true, msg: "Member added to Plural Kit" }
+	return { success: false, msg: "Member does not exist in Simply Plural for this account." }
+}
+
+export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string, token: string, userId: string): Promise<{ success: boolean, msg: string }> => {
+	const getRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${pkMemberId}`, token, response: null, data: undefined, type: PkRequestType.Get }
+	const pkMemberResult = await addPendingRequest(getRequest)
+
+	if (pkMemberResult) {
+		if (pkMemberResult.status === 200) {
+
+			const memberDataToSync: any = {}
+			if (options.name) {
+				if (options.useDisplayName) {
+					memberDataToSync.name = pkMemberResult.data.display_name;
+				} else {
+					memberDataToSync.name = pkMemberResult.data.name;
+				}
+			}
+
+			if (options.avatar) memberDataToSync.avatarUrl = pkMemberResult.data.avatar_url;
+			if (options.pronouns) memberDataToSync.pronouns = pkMemberResult.data.pronouns;
+			if (options.description) memberDataToSync.desc = pkMemberResult.data.description;
+			if (options.color) memberDataToSync.color = pkMemberResult.data.color;
+
+			const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: pkMemberId })
+
+			if (spMemberResult) {
+				await getCollection("members").updateOne({ uid: userId, pkId: pkMemberId }, { $set: memberDataToSync })
+				return { success: true, msg: "Member updated on Simply Plural" }
 			}
 			else {
-				return { success: false, msg: `${postResult.status.toString()} - ${postResult.statusText}` }
+
+				await getCollection("members").insertOne({ uid: userId, pkId: pkMemberId }, memberDataToSync)
+				return { success: true, msg: "Member added to Simply Plural" }
 			}
 		}
 		else {
@@ -93,49 +167,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 		}
 	}
 	else {
-		if (!spMemberResult.pkId) {
-			return { success: false, msg: "Member does not have a pkId setup." }
-		}
-		else {
-			return { success: false, msg: "Member does not exist in Simply Plural for this account." }
-		}
-
-	}
-}
-
-export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string, token: string, userId: string): Promise<{ success: boolean, msg: string }> => {
-	const pkMemberResult = await axios.get(`https://api.pluralkit.me/v2/${pkMemberId}`, { headers: { authorization: token } })
-
-	if (pkMemberResult && pkMemberResult.status === 200) {
-
-		const memberDataToSync: any = {}
-		if (options.name) {
-			if (options.useDisplayName) {
-				memberDataToSync.name = pkMemberResult.data.display_name;
-			} else {
-				memberDataToSync.name = pkMemberResult.data.name;
-			}
-		}
-
-		if (options.avatar) memberDataToSync.avatarUrl = pkMemberResult.data.avatar_url;
-		if (options.pronouns) memberDataToSync.pronouns = pkMemberResult.data.pronouns;
-		if (options.description) memberDataToSync.desc = pkMemberResult.data.description;
-		if (options.color) memberDataToSync.color = pkMemberResult.data.color;
-
-		const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: pkMemberId })
-
-		if (spMemberResult) {
-			await getCollection("members").updateOne({ uid: userId, pkId: pkMemberId }, { $set: memberDataToSync })
-			return { success: true, msg: "Member updated on Plural Kit" }
-		}
-		else {
-
-			await getCollection("members").insertOne({ uid: userId, pkId: pkMemberId }, memberDataToSync)
-			return { success: true, msg: "Member added to Plural Kit" }
-		}
-	}
-	else {
-		return { success: false, msg: `${pkMemberResult.status.toString()} - ${pkMemberResult.statusText}` }
+		return { success: false, msg: `Internal error in plural kit controller` }
 	}
 }
 
@@ -154,27 +186,33 @@ export const syncAllSpMembersToPk = async (options: syncOptions, allSyncOptions:
 }
 
 export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions: syncAllOptions, token: string, userId: string): Promise<{ success: boolean, msg: string }> => {
-	const pkMembersResult = await axios.get(`https://api.pluralkit.me/v2/systems/@me/members`, { headers: { authorization: token } })
-	if (pkMembersResult.status === 200) {
+	const getRequest: PkRequest = { path: `https://api.pluralkit.me/v2/systems/@me/members`, token, response: null, data: undefined, type: PkRequestType.Get }
+	const pkMembersResult = await addPendingRequest(getRequest)
+	if (pkMembersResult) {
+		if (pkMembersResult.status === 200) {
 
-		const foundMembers: any[] = pkMembersResult.data
+			const foundMembers: any[] = pkMembersResult.data
 
-		for (let i = 0; i < foundMembers.length; ++i) {
-			const member = foundMembers[i];
+			for (let i = 0; i < foundMembers.length; ++i) {
+				const member = foundMembers[i];
 
-			const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: parseId(member.id) })
-			if (spMemberResult && allSyncOptions.overwrite) {
-				await syncMemberFromPk(options, member.id, token, userId);
+				const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: parseId(member.id) })
+				if (spMemberResult && allSyncOptions.overwrite) {
+					await syncMemberFromPk(options, member.id, token, userId);
+				}
+
+				if (!spMemberResult && allSyncOptions.add) {
+					await syncMemberFromPk(options, member.id, token, userId);
+				}
 			}
 
-			if (!spMemberResult && allSyncOptions.add) {
-				await syncMemberFromPk(options, member.id, token, userId);
-			}
+			return { success: true, msg: "" }
 		}
-
-		return { success: true, msg: "" }
+		else {
+			return { success: false, msg: `${pkMembersResult.status.toString()} - ${pkMembersResult.statusText}` }
+		}
 	}
 	else {
-		return { success: false, msg: `${pkMembersResult.status.toString()} - ${pkMembersResult.statusText}` }
+		return { success: false, msg: `Internal error in plural kit controller` }
 	}
 }

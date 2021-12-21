@@ -14,6 +14,7 @@ import http from "http";
 import dotenv from "dotenv";
 import express from "express";
 import { validateGetQuery, validateOperationTime } from "./util/validation";
+import { startPkController } from "./modules/integrations/pk/controller";
 
 const app = express();
 
@@ -47,7 +48,6 @@ app.use(Sentry.Handlers.errorHandler());
 
 const server = http.createServer({}, app);
 
-
 // final setup needs to be completed async
 (async () => {
 
@@ -59,4 +59,5 @@ const server = http.createServer({}, app);
 	const port = process.env.PORT ?? 3000;
 	server.listen(port, () => logger.info(`Initiating Apparyllis API at :${port}`));
 
+	startPkController();
 })();
