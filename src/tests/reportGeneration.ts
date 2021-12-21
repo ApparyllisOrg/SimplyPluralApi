@@ -3,7 +3,7 @@ import { writeFile } from "fs";
 import * as mocha from "mocha"
 import { validateUserReportSchema } from "../api/v1/user";
 import { generateUserReport } from "../api/v1/user/generateReport";
-import { init } from "../modules/mongo";
+import { init, isLive } from "../modules/mongo";
 
 describe("validate generate report schemas", () => {
 	mocha.test("Test valid generate report schema", () => {
@@ -54,29 +54,31 @@ describe("validate generate report schemas", () => {
 			// If this fails, we have no mongodb...
 			return;
 		}
-		try {
-			const now = Date.now();
-			const report = await generateUserReport({
-				frontHistory: {
-					privacyLevel: 2,
-					start: now - 1.21e+9, // 14 days
-					end: now,
-					includeMembers: true,
-					includeCustomFronts: true,
-				},
-				members: {
-					privacyLevel: 2,
-					includeCustomFields: true
-				},
-				customFronts: {
-					privacyLevel: 2,
-				}
-			}, "rXH5xlieFOZ4ulqAlLv3YXLmn532");
-			writeFile("./developer/generateReportResult.html", report, (_err) => {//
-			});
-			assert.strictEqual(!!report, true, "Failed to generate a user report");
-		} catch (e) {
-			assert.strictEqual(false, true, e as string);
+		if (isLive()) {
+			try {
+				const now = Date.now();
+				const report = await generateUserReport({
+					frontHistory: {
+						privacyLevel: 2,
+						start: now - 1.21e+9, // 14 days
+						end: now,
+						includeMembers: true,
+						includeCustomFronts: true,
+					},
+					members: {
+						privacyLevel: 2,
+						includeCustomFields: true
+					},
+					customFronts: {
+						privacyLevel: 2,
+					}
+				}, "rXH5xlieFOZ4ulqAlLv3YXLmn532");
+				writeFile("./developer/generateReportResult.html", report, (_err) => {//
+				});
+				assert.strictEqual(!!report, true, "Failed to generate a user report");
+			} catch (e) {
+				assert.strictEqual(false, true, e as string);
+			}
 		}
 	});
 });
