@@ -49,7 +49,7 @@ describe("validate generate report schemas", () => {
 
 	mocha.test("Generate user report", async () => {
 		try {
-			await init()
+			await init(false)
 		} catch (e) {
 			// If this fails, we have no mongodb...
 			return;

@@ -51,7 +51,7 @@ const server = http.createServer({}, app);
 (async () => {
 
 	// make sure MongoDB is initialized before anything else runs
-	await Mongo.init();
+	await Mongo.init(true);
 
 	socket.init(server);
 

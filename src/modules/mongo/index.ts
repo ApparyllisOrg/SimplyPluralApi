@@ -31,7 +31,7 @@ export const parseId = (id: string): string | MongoDb.ObjectId => {
 const wait = (time: number): Promise<void> =>
 	new Promise<void>((res) => setTimeout(res, time));
 
-export const init = async (): Promise<void> => {
+export const init = async (retry: boolean): Promise<void> => {
 	logger.info(`attempt to connect to db: ${url}`);
 	await _client.connect().catch((reason) => console.log(reason)).then((newDb: void | MongoDb.MongoClient) => { _db = newDb?.db(dbName) ?? undefined });
 	const success = isLive();
@@ -41,7 +41,9 @@ export const init = async (): Promise<void> => {
 		return;
 	}
 
-	logger.warn("`failed to setup db connection! trying again...");
-	await wait(1000);
-	await init();
+	if (retry) {
+		logger.warn("`failed to setup db connection! trying again...");
+		await wait(1000);
+		await init(retry);
+	}
 };
