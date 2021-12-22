@@ -16,7 +16,6 @@ export interface UserItem {
 }
 
 export const parseForAllowedReadValues = async (data: documentObject, requestorUid: string) => {
-	// Todo: Remove comments per document, move to collection
 	if (data.uid !== requestorUid) {
 		delete data["comments"];
 	}

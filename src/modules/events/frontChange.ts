@@ -1,15 +1,19 @@
 import { Collection } from "mongodb";
 import { notifyUser } from "../../util";
 import { logger } from "../logger";
-import { getCollection } from "../mongo";
+import { getCollection, parseId } from "../mongo";
+import { notifyOfFrontChange } from "./automatedReminder";
 
-export const frontChange = async (uid: string) => {
+export const frontChange = async (uid: string, removed: boolean, memberId: string) => {
+
+	notifyOfFrontChange(uid, removed, memberId)
+
 	const sharedCollection = getCollection("sharedFront");
 	const privateCollection = getCollection("privateFront");
-	const frontersCollection = getCollection("fronters");
+	const frontersCollection = getCollection("frontHistory");
 	let sharedData = await sharedCollection.findOne({ uid: uid, _id: uid });
 	let privateData = await privateCollection.findOne({ uid: uid, _id: uid });
-	const frontersData = await frontersCollection.find({ uid: uid }).toArray();
+	const frontersData = await frontersCollection.find({ uid: uid, live: true }).toArray();
 
 	// Can be null if the user is new :)
 	if (!sharedData) {
@@ -34,7 +38,7 @@ export const frontChange = async (uid: string) => {
 	for (let i = 0; i < frontersData.length; ++i) {
 		const fronter = frontersData[i];
 		if (fronter.custom) {
-			const doc = await frontStatuses.findOne({ uid: uid, _id: fronter._id });
+			const doc = await frontStatuses.findOne({ uid: uid, _id: parseId(fronter.member) });
 			if (doc !== null) {
 				if (doc.private !== undefined && doc.private !== null && !doc.private) {
 					customFronterNames.push(doc.name);
@@ -44,7 +48,7 @@ export const frontChange = async (uid: string) => {
 				}
 			}
 		} else {
-			const doc = await members.findOne({ uid: uid, _id: fronter._id });
+			const doc = await members.findOne({ uid: uid, _id: parseId(fronter.member) });
 			if (doc !== null) {
 				if (doc.private !== undefined && doc.private !== null && doc.private === false) {
 					if (doc.preventsFrontNotifs !== true) {

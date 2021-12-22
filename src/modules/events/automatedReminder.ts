@@ -1,9 +1,17 @@
 import { notifyUser } from "../../util";
-import { getCollection } from "../mongo";
+import { getCollection, parseId } from "../mongo";
 
-export const notifyOfFrontChange = async (uid: string, custom: boolean) => {
+export const notifyOfFrontChange = async (uid: string, removed: boolean, memberId: string) => {
+
+	// Removed doesn't do anything for now, this is placeholder code to add support for reacting to removal of front changes
+	if (removed === true)
+		return;
+
 	const automatedReminders = getCollection("automatedReminders");
 	const foundReminders = await automatedReminders.find({ uid: uid }).toArray();
+
+	const foundMember = await getCollection("members").findOne({ _id: parseId(memberId) })
+	const custom = !!foundMember
 
 	// enum ESelectedAction { MemberFront, Customfront, AnyFront } <= Dart code
 	foundReminders.forEach((reminder: any) => {

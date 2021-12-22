@@ -13,7 +13,6 @@ import * as comment from './comment';
 import * as user from './user';
 import * as priv from './private';
 import * as friend from './friend';
-import * as front from './front';
 import * as poll from './poll';
 import * as storage from './storage';
 import * as friendActions from './friendActions';
@@ -77,13 +76,6 @@ export const setupV1routes = (app: core.Express) => {
 	app.post("/v1/frontHistory/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(frontHistrory.validatefrontHistorySchema), validateId, frontHistrory.add)
 	app.patch("/v1/frontHistory/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(frontHistrory.validatefrontHistorySchema), frontHistrory.update)
 	app.delete("/v1/frontHistoryd/:id", isUserAuthenticated(ApiKeyAccessType.Delete), frontHistrory.del)
-
-	// Front
-	app.get("v1/fronters/:system", isUserAuthenticated(ApiKeyAccessType.Read), front.getFronters)
-	app.get("/v1/front/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), front.get)
-	app.post("v1/front/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(front.validatefrontSchema), validateId, front.add)
-	app.patch("v1/front/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(front.validatefrontSchema), front.update)
-	app.delete("v1/front/:id", isUserAuthenticated(ApiKeyAccessType.Delete), front.del)
 
 	// Groups
 	app.get("/v1/group/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), group.get)

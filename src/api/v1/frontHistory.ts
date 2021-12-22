@@ -1,6 +1,7 @@
 import { ObjectId } from "bson";
 import { Request, Response } from "express";
-import { getCollection } from "../../modules/mongo";
+import { frontChange } from "../../modules/events/frontChange";
+import { getCollection, parseId } from "../../modules/mongo";
 import { documentObject } from "../../modules/mongo/baseTypes";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
@@ -16,7 +17,7 @@ export const getFrontHistoryInRange = async (req: Request, res: Response) => {
 	}).toArray()
 
 	const documentIds: (string | ObjectId)[] = documents.map((doc) => doc._id);
-	const documentComments = await getCollection("frontHistory").find({
+	const documentComments = await getCollection("comments").find({
 		documnetId: { $in: documentIds }, collection: "frontHistory"
 	}).toArray()
 
@@ -52,15 +53,39 @@ export const add = async (req: Request, res: Response) => {
 		res.status(409).send("This member is already set to be fronting. Remove them from front prior to adding them to front")
 	}
 	else {
+		frontChange(res.locals.uid, false, req.body.MemberFront)
 		addSimpleDocument(req, res, "frontHistory");
 	}
 }
 
 export const update = async (req: Request, res: Response) => {
-	updateSimpleDocument(req, res, "frontHistory")
+	const frontingDoc = await getCollection("frontHistory").findOne({ _id: parseId(req.params.id) })
+	if (frontingDoc) {
+		if (frontingDoc.live === false && req.body.live === true) {
+			res.status(400).send("You cannot update a front history entry to live, if you wish to add someone to front, use POST instead.")
+			return
+		}
+
+		if (frontingDoc.live === true && req.body.live === false) {
+			frontChange(res.locals.uid, true, frontingDoc.member)
+		}
+		updateSimpleDocument(req, res, "frontHistory")
+	}
+	else {
+		res.status(404).send("Unable to find front document to remove")
+	}
 }
 
 export const del = async (req: Request, res: Response) => {
+	const frontingDoc = await getCollection("frontHistory").findOne({ _id: parseId(req.params.id) })
+
+	// If a fronting document is deleted, and it's a live one, notify front change
+	if (frontingDoc) {
+		if (frontingDoc.live === true) {
+			frontChange(res.locals.uid, true, frontingDoc.member)
+		}
+	}
+
 	deleteSimpleDocument(req, res, "frontHistory");
 }
 

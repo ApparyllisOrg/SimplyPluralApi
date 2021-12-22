@@ -22,7 +22,6 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "polls");
 }
 
-// Todo: write migration code from old poll schema to new poll schema for user data
 export const validatePollSchema = (body: any): { success: boolean, msg: string } => {
 
 	const voteType =

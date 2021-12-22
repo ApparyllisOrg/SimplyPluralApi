@@ -1,7 +1,6 @@
 import { logger } from "../logger";
 import { getCollection, isLive } from "../mongo";
 import { automatedRemindersDueEvent, removeDeletedReminders } from "./automatedReminder";
-import { frontChange } from "./frontChange";
 import { repeatRemindersDueEvent, repeatRemindersEvent } from "./repeatReminders";
 type bindFunc = (uid: string, event: any) => void;
 const _boundEvents = new Map<string, bindFunc>();
@@ -12,7 +11,6 @@ const bindEvents = async () => {
 		return;
 	}
 
-	_boundEvents.set("fronters", frontChange);
 	_boundEvents.set("repeatReminders", repeatRemindersEvent);
 	_boundEvents.set("automatedReminders", removeDeletedReminders);
 	_boundEvents.set("scheduledRepeatReminder", repeatRemindersDueEvent);

@@ -72,9 +72,13 @@ export const getAllFriendFrontValues = async (_req: Request, res: Response) => {
 };
 
 export const getFriendFront = async (req: Request, res: Response) => {
-	const friendFronts = await getCollection("front").find({ uid: req.params.id }).toArray();
+	const friendFronts = await getCollection("frontHistory").find({ uid: req.params.id, live: true }).toArray();
 
-	//TODO: Remove startTime and uuid, basically only send a list of document ids
+	for (let i = 0; i < friendFronts.length; ++i) {
+		const { member } = friendFronts[i]
+		friendFronts[i] = { member }
+	}
+
 	sendDocuments(req, res, "front", friendFronts);
 };
 
