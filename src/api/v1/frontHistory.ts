@@ -43,6 +43,11 @@ export const getFrontHistoryInRange = async (req: Request, res: Response) => {
 	sendDocuments(req, res, "frontHistory", documents);
 }
 
+export const getFronters = async (req: Request, res: Response) => {
+	const documents: documentObject[] = await getCollection("frontHistory").find({ uid: res.locals.uid, live: true }).toArray()
+	sendDocuments(req, res, "frontHistory", documents);
+}
+
 export const get = async (req: Request, res: Response) => {
 	fetchSimpleDocument(req, res, "frontHistory");
 }

@@ -70,6 +70,9 @@ export const setupV1routes = (app: core.Express) => {
 	app.patch("/v1/timer/repeated/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(repeatedTimer.validateRepeatedTimerSchema), repeatedTimer.update)
 	app.delete("/v1/timer/repeated/:id", isUserAuthenticated(ApiKeyAccessType.Delete), repeatedTimer.del)
 
+	// Fronting
+	app.get("/v1/fronters/", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFronters)
+
 	// Front History
 	app.get("/v1/frontHistory/:system", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFrontHistoryInRange)
 	app.get("/v1/frontHistory/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.get)
