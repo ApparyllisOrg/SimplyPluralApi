@@ -3,7 +3,7 @@ import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchColl
 import { validateSchema } from "../../util/validation";
 
 export const getRepeatedTimers = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "repeatedTimer");
+	fetchCollection(req, res, "repeatedTimer", {});
 }
 
 export const get = async (req: Request, res: Response) => {

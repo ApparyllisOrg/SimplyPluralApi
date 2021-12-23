@@ -130,8 +130,9 @@ export const deleteSimpleDocument = async (req: Request, res: Response, collecti
 	}
 }
 
-export const fetchCollection = async (req: Request, res: Response, collection: string) => {
-	const query = Mongo.getCollection(collection).find({ uid: req.params.system })
+export const fetchCollection = async (req: Request, res: Response, collection: string, findQuery: { [key: string]: any }) => {
+	findQuery.uid = req.params.system;
+	const query = Mongo.getCollection(collection).find(findQuery)
 
 	if (req.params.limit) {
 		query.limit(Number(req.params.limit))

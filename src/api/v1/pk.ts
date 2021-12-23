@@ -72,7 +72,6 @@ export const validateSyncMemberSchema = (body: any): { success: boolean, msg: st
 
 export const validateSyncMembersSchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
-		member: { type: "string" },
 		token: { type: "string" },
 		options: {
 			type: "object",

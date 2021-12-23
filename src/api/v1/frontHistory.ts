@@ -3,7 +3,7 @@ import { Request, Response } from "express";
 import { frontChange } from "../../modules/events/frontChange";
 import { getCollection, parseId } from "../../modules/mongo";
 import { documentObject } from "../../modules/mongo/baseTypes";
-import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument } from "../../util";
+import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 export const getFrontHistoryInRange = async (req: Request, res: Response) => {
@@ -41,6 +41,10 @@ export const getFrontHistoryInRange = async (req: Request, res: Response) => {
 	})
 
 	sendDocuments(req, res, "frontHistory", documents);
+}
+
+export const getFrontHistoryForMember = async (req: Request, res: Response) => {
+	fetchCollection(req, res, "frontHistory", { member: req.params.id });
 }
 
 export const getFronters = async (req: Request, res: Response) => {
@@ -90,6 +94,9 @@ export const del = async (req: Request, res: Response) => {
 			frontChange(res.locals.uid, true, frontingDoc.member)
 		}
 	}
+
+	// Delete all attached comments
+	getCollection("comments").deleteMany({ documentId: req.params.id, uid: res.locals.uid, collection: "frontHistory" });
 
 	deleteSimpleDocument(req, res, "frontHistory");
 }

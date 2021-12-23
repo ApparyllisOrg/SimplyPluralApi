@@ -1,26 +1,45 @@
 import { Request, Response } from "express";
 import { getCollection } from "../../modules/mongo";
-import { fetchCollection, sendDocument, sendDocuments, transformResultForClientRead } from "../../util";
+import { sendDocument, sendDocuments, transformResultForClientRead } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 
 export const getFriend = async (req: Request, res: Response) => {
-	const document = await getCollection("friends").findOne({ uid: res.locals.uid, friendUuid: req.params.id });
+	const document = await getCollection("friends").findOne({ uid: res.locals.uid, frienduid: req.params.id });
 	sendDocument(req, res, "friends", document);
 }
 
 export const getFriends = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "friends");
+	const friends = await getCollection("friends").find({ uid: res.locals.uid }).toArray();
+	const friendValues: any[] = []
+
+	for (let i = 0; i < friends.length; ++i) {
+		friendValues.push(await getCollection("users").findOne({ uid: friends[i].frienduid }))
+	}
+
+	sendDocuments(req, res, "friendRequests", friendValues);
 }
 
 export const getIngoingFriendRequests = async (req: Request, res: Response) => {
-	const documents = await getCollection("friendRequests").find({ receiver: res.locals.uid }).toArray();
-	sendDocuments(req, res, "friendRequests", documents);
+	const documents = await getCollection("pendingFriendRequests").find({ receiver: res.locals.uid }).toArray();
+	const friendValues: any[] = []
+
+	for (let i = 0; i < documents.length; ++i) {
+		friendValues.push(await getCollection("users").findOne({ uid: documents[i].receiver }))
+	}
+
+	sendDocuments(req, res, "pendingFriendRequests", friendValues);
 }
 
 export const getOutgoingFriendRequests = async (req: Request, res: Response) => {
-	const documents = await getCollection("friendRequests").find({ sender: res.locals.uid }).toArray();
-	sendDocuments(req, res, "friendRequests", documents);
+	const documents = await getCollection("pendingFriendRequests").find({ sender: res.locals.uid }).toArray();
+	const friendValues: any[] = []
+
+	for (let i = 0; i < documents.length; ++i) {
+		friendValues.push(await getCollection("users").findOne({ uid: documents[i].sender }))
+	}
+
+	sendDocuments(req, res, "pendingFriendRequests", friendValues);
 }
 
 export const updateFriend = async (req: Request, res: Response) => {

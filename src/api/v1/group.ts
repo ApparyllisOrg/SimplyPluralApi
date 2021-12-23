@@ -4,7 +4,7 @@ import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchColl
 import { validateSchema } from "../../util/validation";
 
 export const getGroups = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "groups");
+	fetchCollection(req, res, "groups", {});
 }
 
 export const get = async (req: Request, res: Response) => {

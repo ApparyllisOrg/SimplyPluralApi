@@ -46,7 +46,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/comments/:id", isUserAuthenticated(ApiKeyAccessType.Read), comment.getCommentsForDocument)
 	app.get("/v1/comment/:id", isUserAuthenticated(ApiKeyAccessType.Read), comment.get)
 	app.post("/v1/comment/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(comment.validateCommentSchema), validateId, comment.add)
-	app.patch("/v1/comment/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(comment.validateCommentSchema), comment.update)
+	app.patch("/v1/comment/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(comment.validateUpdateCommentSchema), comment.update)
 	app.delete("/v1/comment/:id", isUserAuthenticated(ApiKeyAccessType.Delete), comment.del)
 
 	// Polls
@@ -75,6 +75,7 @@ export const setupV1routes = (app: core.Express) => {
 
 	// Front History
 	app.get("/v1/frontHistory/:system", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFrontHistoryInRange)
+	app.get("/v1/frontHistory/member/:id", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFrontHistoryForMember)
 	app.get("/v1/frontHistory/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.get)
 	app.post("/v1/frontHistory/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(frontHistrory.validatefrontHistorySchema), validateId, frontHistrory.add)
 	app.patch("/v1/frontHistory/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(frontHistrory.validatefrontHistorySchema), frontHistrory.update)
@@ -103,6 +104,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/friends/requests/incoming", isUserAuthenticated(ApiKeyAccessType.Read), friend.getIngoingFriendRequests)
 	app.get("/v1/friends/requests/outgoing", isUserAuthenticated(ApiKeyAccessType.Read), friend.getOutgoingFriendRequests)
 	app.get("/v1/friends/getFrontValues", isUserAuthenticated(ApiKeyAccessType.Read), friend.getAllFriendFrontValues);
+	app.get("/v1/friend/:system/getFrontValues", isUserAuthenticated(ApiKeyAccessType.Read), friend.getAllFriendFrontValues);
 	app.post("/v1/friends/request/add/:id", isUserAuthenticated(ApiKeyAccessType.Write), friendActions.AddFriend)
 	app.post("/v1/friends/request/respond/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(friendActions.validateRespondToFrienqRequestSchema), friendActions.RespondToFriendRequest)
 	app.delete("/v1/friends/request/:id", isUserAuthenticated(ApiKeyAccessType.Delete), friendActions.CancelFriendRequest)
@@ -110,7 +112,8 @@ export const setupV1routes = (app: core.Express) => {
 
 	// Friend
 	app.get("/v1/friend/:id/getFront", isUserAuthenticated(ApiKeyAccessType.Read), friend.getFriendFront)
-	app.patch("/v1/friend/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(friend.validatePatchFriendSchema), friend.updateFriend)
+	app.get("/v1/friend/:id", isUserAuthenticated(ApiKeyAccessType.Write), friend.updateFriend)
+	app.patch("/v1/friend/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(friend.validatePatchFriendSchema), friend.getFriend)
 
 	// Avatar
 	app.post("/v1/avatar/:id", isUserAppJwtAuthenticated, validateQuery(storage.validateStoreAvatarSchema), storage.Store)

@@ -3,7 +3,7 @@ import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, deleteSim
 import { validateSchema } from "../../util/validation";
 
 export const getPolls = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "polls");
+	fetchCollection(req, res, "polls", {});
 }
 
 export const get = async (req: Request, res: Response) => {
@@ -29,7 +29,8 @@ export const validatePollSchema = (body: any): { success: boolean, msg: string }
 		type: "object",
 		parameters: {
 			id: "string",
-			comment: "string"
+			comment: "string",
+			vote: "string"
 		},
 		nullable: false,
 		additionalProperties: false,
