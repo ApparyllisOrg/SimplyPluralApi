@@ -26,9 +26,14 @@ if (!process.env.DEVELOPMENT) {
 	app.use(helmet());
 }
 
+const accJson = JSON.parse(fs.readFileSync("./spGoogle.json").toString());
+const acc: ServiceAccount = {}
+acc.projectId = accJson.project_id
+acc.privateKey = accJson.private_key;
+acc.clientEmail = accJson.client_email;
+
 admin.initializeApp({
-	projectId: "frontime-7aace",
-	credential: admin.credential.cert(fs.readFileSync("./spGoogle.json") as ServiceAccount),
+	credential: admin.credential.cert(acc),
 	databaseURL: "https://frontime-7aace.firebaseio.com",
 });
 

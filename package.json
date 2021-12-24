@@ -5,7 +5,7 @@
 	"scripts": {
 		"dev": "DEVELOPMENT=1 npm run start",
 		"start": "node --inspect=5858 -r ts-node/register src/index.ts",
-		"start:watch": "ts-node-dev --respawn -- src/index.ts",
+		"start:watch": "ts-node-dev --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config",
 		"build": "tsc",
 		"lint": "eslint src/**/**/*",
 		"test": "mocha --require ts-node/register src/tests/**/*.ts -r dotenv/config"

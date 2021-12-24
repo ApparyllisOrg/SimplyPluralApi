@@ -13,3 +13,4 @@ yarn-error.log
 .log
 *.log
 developer/
+tmp/

@@ -43,6 +43,10 @@ export const getFrontHistoryInRange = async (req: Request, res: Response) => {
 	sendDocuments(req, res, "frontHistory", documents);
 }
 
+export const getFrontHistory = async (req: Request, res: Response) => {
+	fetchCollection(req, res, "frontHistory", {});
+}
+
 export const getFrontHistoryForMember = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "frontHistory", { member: req.params.id });
 }

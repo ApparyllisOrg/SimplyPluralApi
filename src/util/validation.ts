@@ -67,6 +67,7 @@ export const validateGetParams = (req: Request, res: Response, next: NextFunctio
 				id: { type: "string", pattern: "^[A-z0-9]{0,50}$" },
 				system: { type: "string", pattern: "^[A-z0-9]{0,50}$" },
 				member: { type: "string", pattern: "^[A-z0-9]{0,50}$" },
+				type: { type: "", pattern: "^[A-z0-9]{0,50}$" },
 			},
 			nullable: false,
 			additionalProperties: false,

@@ -4,7 +4,7 @@ import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendDocum
 import { validateSchema } from "../../util/validation";
 
 export const getCommentsForDocument = async (req: Request, res: Response) => {
-	const documents = await getCollection("comments").find({ uid: res.locals.uid, documentId: req.params.document }).toArray();
+	const documents = await getCollection("comments").find({ uid: res.locals.uid, documentId: req.params.id, collection: req.params.type }).toArray();
 	sendDocuments(req, res, "comments", documents);
 }
 

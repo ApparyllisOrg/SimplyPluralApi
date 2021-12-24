@@ -5,7 +5,7 @@ import { validateSchema } from "../../util/validation";
 
 
 export const getFriend = async (req: Request, res: Response) => {
-	const document = await getCollection("friends").findOne({ uid: res.locals.uid, frienduid: req.params.id });
+	const document = await getCollection("friends").findOne({ uid: req.params.system, frienduid: req.params.id });
 	sendDocument(req, res, "friends", document);
 }
 
@@ -52,6 +52,38 @@ export const updateFriend = async (req: Request, res: Response) => {
 	}
 	res.status(200).send();
 }
+
+export const getFiendFrontValues = async (req: Request, res: Response) => {
+	const friends = getCollection("friends");
+
+	const sharedFront = getCollection("sharedFront");
+	const privateFront = getCollection("privateFront");
+
+	const friendSettingsDoc = await friends.findOne({ "frienduid": res.locals.uid, uid: req.params.system });
+
+	const friendFrontValues: any[] = [];
+
+	if (friendSettingsDoc.seeFront === true) {
+		if (friendSettingsDoc.trusted === true) {
+			const front = await privateFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
+			if (front) {
+				const result = transformResultForClientRead(front, res.locals.uid);
+				friendFrontValues.push(result);
+			}
+		}
+		else {
+			const front = await sharedFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
+			if (front) {
+				const result = transformResultForClientRead(front, res.locals.uid);
+				friendFrontValues.push(result);
+			}
+		}
+	}
+
+	// TODO: Only send uid, frontString and customFrontString
+	res.status(200).send({ "results": friendFrontValues });
+};
+
 
 export const getAllFriendFrontValues = async (_req: Request, res: Response) => {
 	const friends = getCollection("friends");
