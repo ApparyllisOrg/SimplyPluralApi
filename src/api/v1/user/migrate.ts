@@ -6,7 +6,7 @@ const convertTime = (data: { [field: string]: any }) => {
 	if (!data) return;
 	for (const key in data) {
 		if (data[key]) {
-			if (data[key].prototype.hasOwnProperty.call("_seconds")) {
+			if (Object.keys(data[key]).includes("_seconds")) {
 				const newValue = data[key]["_seconds"] * 1000 + data[key]["_nanoseconds"] / 10000000;
 				data[key] = Math.round(newValue);
 			}
@@ -16,7 +16,7 @@ const convertTime = (data: { [field: string]: any }) => {
 
 export const createUser = async (uid: string) => {
 	const serverUser = await getCollection("serverData").findOne({ uid: uid });
-	if (!serverUser || !serverUser.migrated) {
+	if (!serverUser || (serverUser?.migrated === false)) {
 		const pubMembers = await firestore().collection("users").doc(uid).collection("publicMembers").get();
 
 		const privMembers = await firestore().collection("users").doc(uid).collection("privateMembers").get();

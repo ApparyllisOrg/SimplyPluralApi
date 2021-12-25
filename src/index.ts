@@ -15,6 +15,7 @@ import dotenv from "dotenv";
 import express from "express";
 import { validateGetParams, validateOperationTime } from "./util/validation";
 import { startPkController } from "./modules/integrations/pk/controller";
+import { NextFunction, Request, Response } from "express-serve-static-core";
 
 const app = express();
 
@@ -39,7 +40,17 @@ admin.initializeApp({
 
 startCollectingUsage();
 
-app.use(express.json({ limit: "15mb" }));
+app.use(express.json({ limit: "1mb" }));
+
+if (process.env.DEVELOPMENT) {
+	const logRequest = async (req: Request, _res: Response, next: NextFunction) => {
+		console.log(`${req.method} => ${req.url}`)
+		next()
+	}
+
+	app.use(logRequest)
+}
+
 // Verify get query
 app.use(validateGetParams);
 // Verify the operation time of this request
@@ -51,9 +62,7 @@ app.use(onUsage);
 app.use(Sentry.Handlers.errorHandler());
 
 const server = http.createServer({}, app);
-
-// final setup needs to be completed async
-(async () => {
+const initializeServer = async () => {
 
 	// make sure MongoDB is initialized before anything else runs
 	await Mongo.init(true);
@@ -64,4 +73,6 @@ const server = http.createServer({}, app);
 	server.listen(port, () => logger.info(`Initiating Apparyllis API at :${port}`));
 
 	startPkController();
-})();
+}
+
+initializeServer();

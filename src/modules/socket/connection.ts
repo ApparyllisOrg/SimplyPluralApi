@@ -5,7 +5,7 @@ export type destroyCallback = () => void;
 export default class Connection {
 	uid?: string;
 
-	constructor(private ws: WebSocket | undefined, private destroy: destroyCallback) {
+	constructor(private ws: WebSocket | undefined) {
 		ws?.on('close', this.onClose);
 		ws?.on('message', this.onMessage);
 	}
@@ -42,7 +42,6 @@ export default class Connection {
 		this.ws?.removeAllListeners();
 		this.ws = undefined;
 		this.uid = undefined;
-		this.destroy();
 	}
 
 	async send(data: any, close = false) {

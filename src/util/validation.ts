@@ -64,10 +64,10 @@ export const validateGetParams = (req: Request, res: Response, next: NextFunctio
 		const schema = {
 			type: "object",
 			properties: {
-				id: { type: "string", pattern: "^[A-z0-9]{0,50}$" },
+				id: { type: "string", pattern: "^[A-z0-9]{0,100}$" },
 				system: { type: "string", pattern: "^[A-z0-9]{0,50}$" },
 				member: { type: "string", pattern: "^[A-z0-9]{0,50}$" },
-				type: { type: "", pattern: "^[A-z0-9]{0,50}$" },
+				type: { type: "string", pattern: "^[A-z0-9]{0,100}$" },
 			},
 			nullable: false,
 			additionalProperties: false,

@@ -157,8 +157,9 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 				return { success: true, msg: "Member updated on Simply Plural" }
 			}
 			else {
-
-				await getCollection("members").insertOne({ uid: userId, pkId: pkMemberId }, memberDataToSync)
+				memberDataToSync.uid = userId;
+				memberDataToSync.pkId = pkMemberId;
+				await getCollection("members").insertOne(memberDataToSync)
 				return { success: true, msg: "Member added to Simply Plural" }
 			}
 		}

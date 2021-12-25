@@ -6,6 +6,10 @@ import { setupNewUser } from "./user";
 import { updateUser } from "./user/updates/updateUser";
 
 export const get = async (req: Request, res: Response) => {
+	const privateDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) })
+	if (!privateDocument && req.params.id === res.locals.uid) {
+		await getCollection("private").insertOne({ uid: res.locals.uid, _id: res.locals.uid, termsOfServicesAccepted: false });
+	}
 	fetchSimpleDocument(req, res, "private");
 }
 

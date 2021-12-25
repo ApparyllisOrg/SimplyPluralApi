@@ -16,7 +16,7 @@ export const generateReport = async (req: Request, res: Response) => {
 
 export const get = async (req: Request, res: Response) => {
 	// todo: remove private fields for friends
-	let document = await getCollection("users").findOne({ uid: res.locals.uid })
+	let document = await getCollection("users").findOne({ uid: req.params.id })
 
 	const ownDocument = req.params.id === res.locals.uid;
 
@@ -38,7 +38,12 @@ export const get = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
 	const setBody = req.body;
 	setBody.lastOperationTime = res.locals.operationTime
-	const result = await getCollection("users").updateOne({ uid: res.locals.uid, lastOperationTime: { $lte: res.locals.operationTime } }, { $set: setBody });
+	const result = await getCollection("users").updateOne({
+		uid: res.locals.uid, $or: [
+			{ lastOperationTime: null },
+			{ lastOperationTime: { $lte: res.locals.operationTime } }
+		]
+	}, { $set: setBody });
 	if (result.result.n === 0) {
 		res.status(404).send();
 		return;
@@ -47,7 +52,7 @@ export const update = async (req: Request, res: Response) => {
 }
 
 export const SetUsername = async (req: Request, res: Response) => {
-	const newUsername: string = req.body["newUsername"].trim();
+	const newUsername: string = req.body["username"].trim();
 
 	console.log("Attempt to set username to: " + newUsername);
 
@@ -59,7 +64,12 @@ export const SetUsername = async (req: Request, res: Response) => {
 	const potentiallyAlreadyTakenUserDoc = await getCollection("users").findOne({ username: { $regex: "^" + newUsername + "$", $options: "i" }, uid: { $ne: res.locals.uid } });
 
 	if (potentiallyAlreadyTakenUserDoc === null) {
-		getCollection("users").updateOne({ uid: res.locals.uid, lastOperationTime: { $lte: res.locals.operationTime } }, { $set: { username: newUsername, lastOperationTime: res.locals.operationTime } });
+		getCollection("users").updateOne({
+			uid: res.locals.uid, $or: [
+				{ lastOperationTime: null },
+				{ lastOperationTime: { $lte: res.locals.operationTime } }
+			]
+		}, { $set: { username: newUsername, lastOperationTime: res.locals.operationTime } });
 		res.status(200).send({ success: true });
 		userLog(res.locals.uid, "Updated username to: " + newUsername);
 		return;
@@ -199,6 +209,7 @@ export const validateUsernameSchema = (body: any): { success: boolean, msg: stri
 		},
 		nullable: false,
 		additionalProperties: false,
+		required: ["username"]
 	};
 
 	return validateSchema(schema, body);

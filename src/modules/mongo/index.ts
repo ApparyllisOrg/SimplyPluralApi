@@ -38,16 +38,19 @@ const wait = (time: number): Promise<void> =>
 
 export const init = async (retry: boolean): Promise<void> => {
 	logger.info(`attempt to connect to db: ${url}`);
+	console.log(`attempt to connect to db: ${url}`)
 	await _client.connect().catch((reason) => console.log(reason)).then((newDb: void | MongoDb.MongoClient) => { _db = newDb?.db(dbName) ?? undefined });
 	const success = isLive();
 
 	if (success) {
-		logger.info("`setup db connection");
+		logger.info("setup db connection");
+		console.log("setup db connection")
 		return;
 	}
 
 	if (retry) {
 		logger.warn("`failed to setup db connection! trying again...");
+		console.log("failed to setup db connection! trying again...")
 		await wait(1000);
 		await init(retry);
 	}

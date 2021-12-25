@@ -95,7 +95,6 @@ export const sendDocuments = async (req: Request, res: Response, collection: str
 		const access = await getDocumentAccess(req, res, documents[i], collection);
 		if (access.access === true) {
 			returnDocuments.push(transformResultForClientRead(documents[i], res.locals.uid));
-			return;
 		}
 	}
 
@@ -117,7 +116,7 @@ export const sendDocument = async (req: Request, res: Response, collection: stri
 }
 
 export const fetchSimpleDocument = async (req: Request, res: Response, collection: string) => {
-	const document = await Mongo.getCollection(collection).findOne({ _id: parseId(req.params.id), uid: req.params.system });
+	const document = await Mongo.getCollection(collection).findOne({ _id: parseId(req.params.id), uid: req.params.system ?? res.locals.uid });
 	sendDocument(req, res, collection, document);
 }
 
@@ -171,10 +170,14 @@ export const addSimpleDocument = async (req: Request, res: Response, collection:
 
 export const updateSimpleDocument = async (req: Request, res: Response, collection: string) => {
 	const dataObj: documentObject = req.body;
-	dataObj._id = parseId(req.params.id);
 	dataObj.uid = res.locals.uid;
 	dataObj.lastOperationTime = res.locals.operationTime;
-	const result = await Mongo.getCollection(collection).updateOne({ _id: parseId(req.params.id), uid: res.locals.uid, lastOperationTime: { $lte: res.locals.operationTime } }, { $set: dataObj });
+	const result = await Mongo.getCollection(collection).updateOne({
+		_id: parseId(req.params.id), uid: res.locals.uid, $or: [
+			{ lastOperationTime: null },
+			{ lastOperationTime: { $lte: res.locals.operationTime } }
+		]
+	}, { $set: dataObj });
 	if (result.result.n === 0) {
 		res.status(404).send();
 		return;

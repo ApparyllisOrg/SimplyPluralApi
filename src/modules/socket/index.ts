@@ -5,7 +5,6 @@ import * as Mongo from "../mongo";
 import * as DatabaseAccess from "../../security";
 
 import { transformResultForClientRead } from "../../util";
-import { logger } from "../logger";
 
 import Connection from './connection';
 import crypto from "crypto";
@@ -27,11 +26,15 @@ export interface ChangeEvent {
 let _wss: WebSocket.Server | null = null;
 const connections = new Map<string, Connection>();
 
+export const onConnectionDestroyed = (uniqueId: string) => connections.delete(uniqueId)
+
 export const init = (server: http.Server) => {
-	_wss = new WebSocket.Server({ server, path: '/api/v1/socket' });
+	_wss = new WebSocket.Server({ server, path: '/v1/socket' });
 	_wss.on("connection", (ws) => {
-		const uniqueId = crypto.randomUUID();
-		connections.set(uniqueId, new Connection(ws, () => connections.delete(uniqueId)));
+		const uniqueId = crypto.randomBytes(64).toString("base64")
+		ws?.on('close', () => connections.delete(uniqueId));
+		ws.send("{}")
+		connections.set(uniqueId, new Connection(ws));
 	});
 };
 
@@ -88,8 +91,8 @@ async function dispatchInner(uid: any, event: ChangeEvent) {
 }
 
 const logCurrentConnection = () => {
-	logger.info("Current socket connections:" + _wss?.clients.size.toString());
-	setTimeout(logCurrentConnection, 1000);
+	console.log("Current socket connections:" + _wss?.clients.size.toString());
+	setTimeout(logCurrentConnection, 1500);
 };
 
 logCurrentConnection();
