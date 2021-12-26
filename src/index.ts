@@ -4,7 +4,7 @@ import { logger } from "./modules/logger";
 
 import * as socket from "./modules/socket";
 import { setupV1routes } from "./api/v1/routes";
-import { onUsage, startCollectingUsage } from "./modules/usage";
+import { startCollectingUsage } from "./modules/usage";
 
 import admin, { ServiceAccount } from "firebase-admin";
 import * as fs from 'fs';
@@ -55,8 +55,8 @@ if (process.env.DEVELOPMENT) {
 app.use(validateGetParams);
 // Verify the operation time of this request
 app.use(validateOperationTime);
+
 setupV1routes(app);
-app.use(onUsage);
 
 // Has to be *after* all controllers
 app.use(Sentry.Handlers.errorHandler());

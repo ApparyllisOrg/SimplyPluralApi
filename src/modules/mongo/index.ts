@@ -5,13 +5,13 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-const url = process.env.DATABASE_URI;
+const url: string | undefined = process.env.DATABASE_URI;
 const dbName = "SimplyPlural";
 
 // init
 console.log("Connecting Mongodb to: " + url)
 
-const _client = new MongoDb.MongoClient(url!, { poolSize: 1000, useUnifiedTopology: true });
+const _client = new MongoDb.MongoClient(url ?? "", { poolSize: 1000, useUnifiedTopology: true });
 _client.on("close", (...args: any) => {
 	console.log(args);
 });

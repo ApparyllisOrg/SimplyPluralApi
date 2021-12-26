@@ -92,7 +92,7 @@ async function dispatchInner(uid: any, event: ChangeEvent) {
 
 const logCurrentConnection = () => {
 	console.log("Current socket connections:" + _wss?.clients.size.toString());
-	setTimeout(logCurrentConnection, 1500);
+	setTimeout(logCurrentConnection, 10000);
 };
 
 logCurrentConnection();

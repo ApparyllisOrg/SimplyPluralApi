@@ -45,7 +45,7 @@ export const startPkController = () => {
 
 export const reportActiveQueueSize = () => {
 	console.log("Active pk controller queue size: " + pendingRequests.length.toString())
-	setTimeout(reportActiveQueueSize, 1500)
+	setTimeout(reportActiveQueueSize, 10000)
 }
 
 export const tick = async () => {
@@ -57,19 +57,19 @@ export const tick = async () => {
 			const type = request.type;
 			switch (type) {
 				case PkRequestType.Get: {
-					const result = await axios.get(request.path, { headers: { authorization: request.token } })
+					const result = await axios.get(request.path, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP } }).catch(() => { return null })
 					request.response = result
 					pendingResponses.push(request)
 					break
 				}
 				case PkRequestType.Post: {
-					const result = await axios.post(request.path, request.data, { headers: { authorization: request.token } })
+					const result = await axios.post(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP } }).catch(() => { return null })
 					request.response = result
 					pendingResponses.push(request)
 					break
 				}
 				case PkRequestType.Patch: {
-					const result = await axios.patch(request.path, request.data, { headers: { authorization: request.token } })
+					const result = await axios.patch(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP } }).catch(() => { return null })
 					request.response = result
 					pendingResponses.push(request)
 					break
@@ -82,6 +82,7 @@ export const tick = async () => {
 		pendingRequests.splice(0, 1)
 	}
 	catch (e) {
+		console.log(e);
 		logger.error("Pk sync error: " + e)
 		Sentry.captureException(e);
 	}

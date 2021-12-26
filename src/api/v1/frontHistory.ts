@@ -1,4 +1,3 @@
-import { ObjectId } from "bson";
 import { Request, Response } from "express";
 import { frontChange } from "../../modules/events/frontChange";
 import { getCollection, parseId } from "../../modules/mongo";
@@ -7,38 +6,16 @@ import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocum
 import { validateSchema } from "../../util/validation";
 
 export const getFrontHistoryInRange = async (req: Request, res: Response) => {
-	const documents: documentObject[] = await getCollection("frontHistory").find({
+	const query = {
 		$or: [
-			{ startTime: { $gte: req.query.start }, endTime: { $lte: req.query.end } },
-			{ startTime: { $lte: req.query.start }, endTime: { $gte: req.query.end } },
-			{ startTime: { $lte: req.query.end }, endTime: { $gte: req.query.start } },
-			{ startTime: { $gte: req.query.start }, endTime: { $lte: req.query.end } }
+			{ startTime: { $gte: Number(req.query.start) }, endTime: { $lte: Number(req.query.end) } }, // Starts before, ends after
+			{ startTime: { $lte: Number(req.query.start) }, endTime: { $gte: Number(req.query.start) } }, // Starts before, ends before
+			{ startTime: { $gte: Number(req.query.start) }, endTime: { $lte: Number(req.query.end) } }, // Starts after, ends before
+			{ startTime: { $lte: Number(req.query.end) }, endTime: { $gte: Number(req.query.end) } } //Starts after, ends after
 		]
-	}).toArray()
+	}
 
-	const documentIds: (string | ObjectId)[] = documents.map((doc) => doc._id);
-	const documentComments = await getCollection("comments").find({
-		documnetId: { $in: documentIds }, collection: "frontHistory"
-	}).toArray()
-
-	// Fill every document with its comments.
-	// TODO: check if there's a better way/faster way to do this
-	documentComments.forEach((doc: documentObject) => {
-		for (let i = 0; i < documents.length; ++i) {
-			// todo: Check if this works with both object ids and random ids
-			if (documents[i]._id === doc._id) {
-				if (documents[i].comments) {
-					const comments: any[] = doc.comments;
-					comments.push(doc)
-				}
-				else {
-					documents[i].comments = [doc];
-				}
-
-				break;
-			}
-		}
-	})
+	const documents: documentObject[] = await getCollection("frontHistory").find(query).toArray()
 
 	sendDocuments(req, res, "frontHistory", documents);
 }
@@ -66,7 +43,7 @@ export const add = async (req: Request, res: Response) => {
 		res.status(409).send("This member is already set to be fronting. Remove them from front prior to adding them to front")
 	}
 	else {
-		frontChange(res.locals.uid, false, req.body.MemberFront)
+		frontChange(res.locals.uid, false, req.body.member)
 		addSimpleDocument(req, res, "frontHistory");
 	}
 }
@@ -105,7 +82,7 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "frontHistory");
 }
 
-export const validatefrontHistorySchema = (body: any): { success: boolean, msg: string } => {
+export const validatefrontHistoryPostSchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -118,6 +95,23 @@ export const validatefrontHistorySchema = (body: any): { success: boolean, msg: 
 		nullable: false,
 		additionalProperties: false,
 		required: ["custom", "live", "startTime", "member"]
+	};
+
+	return validateSchema(schema, body);
+}
+
+export const validatefrontHistoryPatchSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			custom: { type: "boolean" },
+			live: { type: "boolean" },
+			startTime: { type: "number" },
+			endTime: { type: "number" },
+			member: { type: "string" }
+		},
+		nullable: false,
+		additionalProperties: false
 	};
 
 	return validateSchema(schema, body);

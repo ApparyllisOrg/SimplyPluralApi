@@ -3,6 +3,7 @@ import { auth } from "firebase-admin";
 import { Request, Response } from "express";
 import { FullApiAccess, validateApiKey } from "../modules/api/keys";
 import { logSecurity } from "../modules/logger";
+import { logUserUsage } from "../modules/usage";
 
 export const validateToken = async (tokenStr: string): Promise<{ uid: string | undefined, accessType: number, jwt: boolean }> => {
 	if (tokenStr == null)
@@ -43,7 +44,10 @@ export const isUserAuthenticated = function (accessRequested: number): authMiddl
 
 		res.locals.uid = result.uid;
 		res.locals.jwt = result.jwt;
+
 		next();
+
+		logUserUsage(res.locals.uid, `${req.method} - ${req.route.path}`);
 	}
 };
 
@@ -65,10 +69,10 @@ export const isUserAppJwtAuthenticated = async (req: Request, res: Response, nex
 	if (result.jwt === true && result.accessType === FullApiAccess) {
 		if (req.header("User-Agent")?.startsWith("Dart") === true) {
 			next();
+			logUserUsage(res.locals.uid, `${req.method} - ${req.route.path}`);
 			return;
 		}
 		return rejectEntry(req, res, "You require to be a Dart agent to authenticate.", req.ip);
 	}
 	return rejectEntry(req, res, "You require to be authenticated using a JWT.", req.ip);
 }
-

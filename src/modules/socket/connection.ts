@@ -15,11 +15,11 @@ export default class Connection {
 		try {
 			json = JSON.parse(message);
 		} catch (e) {
-			return this.send({ msg: "Invalid message, cannot parse Json." });
+			return this.send(JSON.stringify({ msg: "Invalid message, cannot parse Json." }));
 		}
 
 		if (json.op == null)
-			return this.send({ msg: "Missing 'op' in message." });
+			return this.send(JSON.stringify({ msg: "Missing 'op' in message." }));
 
 		switch (json.op as string) {
 			case "authenticate":

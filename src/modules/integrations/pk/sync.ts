@@ -17,19 +17,21 @@ export interface syncAllOptions {
 
 // Simply Plural colors are supported in a wide variety.
 // We officially support: #ffffff, ffffff, #ffffffff
-const spColorToPkColor = (color: string): string | undefined => {
+const spColorToPkColor = (color: string | undefined): string | undefined => {
 	let pkColor = "";
 
-	if (color.length === 7) {
-		pkColor = color.substring(0, 6);
-	} else if (color.length === 9) {
-		pkColor = color.substring(0, 6);
-	} else if (color.length === 6) {
-		pkColor = color;
-	}
+	if (color) {
+		if (color.length === 7) {
+			pkColor = color.substring(0, 6);
+		} else if (color.length === 9) {
+			pkColor = color.substring(0, 6);
+		} else if (color.length === 6) {
+			pkColor = color;
+		}
 
-	if (RegExp(/^([a-fA-F0-9]{6})$/).test(pkColor)) {
-		return pkColor;
+		if (RegExp(/^([a-fA-F0-9]{6})$/).test(pkColor)) {
+			return pkColor;
+		}
 	}
 
 	return undefined;

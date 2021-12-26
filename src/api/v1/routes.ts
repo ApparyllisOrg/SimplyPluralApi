@@ -38,35 +38,35 @@ export const setupV1routes = (app: core.Express) => {
 	// Custom front
 	app.get("/v1/customFront/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), customFront.get)
 	app.get("/v1/customFronts/:system", isUserAuthenticated(ApiKeyAccessType.Read), customFront.getCustomFronts)
-	app.post("/v1/customFront/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFront.validateCustomFrontSchema), validateId, customFront.add)
+	app.post("/v1/customFront/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFront.validateCustomFrontSchema), validateId, customFront.add)
 	app.patch("/v1/customFront/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFront.validateCustomFrontSchema), customFront.update)
 	app.delete("/v1/customFront/:id", isUserAuthenticated(ApiKeyAccessType.Delete), customFront.del)
 
 	// Comments
 	app.get("/v1/comments/:type/:id", isUserAuthenticated(ApiKeyAccessType.Read), comment.getCommentsForDocument)
 	app.get("/v1/comment/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), comment.get)
-	app.post("/v1/comment/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(comment.validateCommentSchema), validateId, comment.add)
+	app.post("/v1/comment/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(comment.validateCommentSchema), validateId, comment.add)
 	app.patch("/v1/comment/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(comment.validateUpdateCommentSchema), comment.update)
 	app.delete("/v1/comment/:id", isUserAuthenticated(ApiKeyAccessType.Delete), comment.del)
 
 	// Polls
 	app.get("/v1/polls/:system", isUserAuthenticated(ApiKeyAccessType.Read), poll.getPolls)
 	app.get("/v1/poll/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), poll.get)
-	app.post("/v1/poll/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(poll.validatePollSchema), validateId, poll.add)
+	app.post("/v1/poll/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(poll.validatePollSchema), validateId, poll.add)
 	app.patch("/v1/poll/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(poll.validatePollSchema), poll.update)
 	app.delete("/v1/poll/:id", isUserAuthenticated(ApiKeyAccessType.Delete), poll.del)
 
 	// Automated timers
 	app.get("/v1/timers/automated/:system/", isUserAuthenticated(ApiKeyAccessType.Read), automatedTimer.getAutomatedTimers)
 	app.get("/v1/timer/automated/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), automatedTimer.get)
-	app.post("/v1/timer/automated/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(automatedTimer.validateAutomatedTimerSchema), validateId, automatedTimer.add)
+	app.post("/v1/timer/automated/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(automatedTimer.validateAutomatedTimerSchema), validateId, automatedTimer.add)
 	app.patch("/v1/timer/automated/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(automatedTimer.validateAutomatedTimerSchema), automatedTimer.update)
 	app.delete("/v1/timer/automated/:id", isUserAuthenticated(ApiKeyAccessType.Delete), automatedTimer.del)
 
 	// Repeated timers
 	app.get("/v1/timers/repeated/:system/", isUserAuthenticated(ApiKeyAccessType.Read), repeatedTimer.getRepeatedTimers)
 	app.get("/v1/timer/repeated/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), repeatedTimer.get)
-	app.post("/v1/timer/repeated/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(repeatedTimer.validateRepeatedTimerSchema), validateId, repeatedTimer.add)
+	app.post("/v1/timer/repeated/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(repeatedTimer.validateRepeatedTimerSchema), validateId, repeatedTimer.add)
 	app.patch("/v1/timer/repeated/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(repeatedTimer.validateRepeatedTimerSchema), repeatedTimer.update)
 	app.delete("/v1/timer/repeated/:id", isUserAuthenticated(ApiKeyAccessType.Delete), repeatedTimer.del)
 
@@ -78,14 +78,14 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/frontHistory", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFrontHistory)
 	app.get("/v1/frontHistory/member/:id", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFrontHistoryForMember)
 	app.get("/v1/frontHistory/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.get)
-	app.post("/v1/frontHistory/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(frontHistrory.validatefrontHistorySchema), validateId, frontHistrory.add)
-	app.patch("/v1/frontHistory/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(frontHistrory.validatefrontHistorySchema), frontHistrory.update)
+	app.post("/v1/frontHistory/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(frontHistrory.validatefrontHistoryPostSchema), validateId, frontHistrory.add)
+	app.patch("/v1/frontHistory/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(frontHistrory.validatefrontHistoryPatchSchema), frontHistrory.update)
 	app.delete("/v1/frontHistoryd/:id", isUserAuthenticated(ApiKeyAccessType.Delete), frontHistrory.del)
 
 	// Groups
 	app.get("/v1/group/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), group.get)
 	app.get("/v1/groups/:system", isUserAuthenticated(ApiKeyAccessType.Read), group.getGroups)
-	app.post("/v1/group/id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateGroupSchema), validateId, group.add)
+	app.post("/v1/group/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateGroupSchema), validateId, group.add)
 	app.patch("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateGroupSchema), group.update)
 	app.delete("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Delete), group.del)
 

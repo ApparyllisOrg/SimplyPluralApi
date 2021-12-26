@@ -129,6 +129,10 @@ export const validateId = async (req: Request, res: Response, next: any) => {
 			return;
 		}
 	}
+	else if (!req.params.id) {
+		next();
+		return;
+	}
 
 	res.status(400).send("Id does not resolve to a mongo id");
 }
