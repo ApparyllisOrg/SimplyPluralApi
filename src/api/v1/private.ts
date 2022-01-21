@@ -40,6 +40,7 @@ export const validatePrivateSchema = (body: any): { success: boolean, msg: strin
 		},
 		nullable: false,
 		additionalProperties: false,
+
 	};
 
 	return validateSchema(schema, body);

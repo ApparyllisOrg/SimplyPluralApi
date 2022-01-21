@@ -25,6 +25,8 @@ export const validateQuery = (func: schemavalidation) => {
 	return async (req: Request, res: Response, next: any) => {
 		const result = func(req.query);
 		if (!result.success) {
+			console.log(result.msg)
+			console.log(req.query)
 			res.status(400).send(result.msg);
 		}
 		else {
@@ -95,11 +97,10 @@ export const validateGetQuery = (req: Request, res: Response, next: NextFunction
 			properties: {
 				sortBy: { type: "string" },
 				sortUp: { type: "boolean" },
-				limit: { type: "number" },
-				start: { type: "number" },
+				limit: { type: "string", pattern: "^[0-9]" },
+				start: { type: "string", pattern: "^[0-9]" },
 			},
 			nullable: false,
-			additionalProperties: false,
 			dependencies: {
 				sortBy: { required: ["sortUp"] },
 				sortUp: { required: ["sortBy"] },

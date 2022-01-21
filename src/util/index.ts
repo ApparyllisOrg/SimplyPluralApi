@@ -5,7 +5,7 @@ import { ObjectID } from "mongodb";
 import * as Mongo from "../modules/mongo";
 import { parseId } from "../modules/mongo";
 import { documentObject } from "../modules/mongo/baseTypes";
-import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
+import { canSeeMembers, FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
 import { parseForAllowedReadValues } from "../security/readRules";
 
 export function transformResultForClientRead(value: documentObject, requestorUid: string) {
@@ -74,14 +74,16 @@ export const getDocumentAccess = async (req: Request, res: Response, document: d
 			if (document.private) {
 				const trustedFriend: boolean = await isTrustedFriend(friendLevel);
 				if (trustedFriend) {
-					return { access: true, statusCode: 200, message: "" }
+					const canSee = await await canSeeMembers(res.locals.uid, req.params.id);
+					return { access: canSee, statusCode: 200, message: "" }
 				}
 				else {
 					return { access: false, statusCode: 401, message: "Access to document has been rejected." }
 				}
 			}
 			else {
-				return { access: true, statusCode: 200, message: "" }
+				const canSee = await await canSeeMembers(res.locals.uid, req.params.id);
+				return { access: canSee, statusCode: 200, message: "" }
 			}
 		}
 	}
@@ -130,24 +132,25 @@ export const deleteSimpleDocument = async (req: Request, res: Response, collecti
 }
 
 export const fetchCollection = async (req: Request, res: Response, collection: string, findQuery: { [key: string]: any }) => {
-	findQuery.uid = req.params.system;
+	findQuery.uid = req.params.system ?? res.locals.uid;
 	const query = Mongo.getCollection(collection).find(findQuery)
 
-	if (req.params.limit) {
-		query.limit(Number(req.params.limit))
+	if (req.query.limit) {
+		query.limit(Number(req.query.limit))
 	}
 
-	if (req.params.sortBy && req.params.sortOrder) {
+	if (req.query.sortBy && req.query.sortOrder) {
 		const sortQuery: any = {}
-		sortQuery[req.params.sortBy] = req.params.sortOrder
+		const sortString: string = req.query.sortBy.toString()
+		sortQuery[sortString] = Number(req.query.sortOrder)
 		query.sort(sortQuery)
 	}
 	else {
 		query.sort({ name: 1 })
 	}
 
-	if (req.params.start) {
-		query.skip(Number(req.params.start))
+	if (req.query.start) {
+		query.skip(Number(req.query.start))
 	}
 
 	const documents = await query.toArray();
@@ -172,16 +175,12 @@ export const updateSimpleDocument = async (req: Request, res: Response, collecti
 	const dataObj: documentObject = req.body;
 	dataObj.uid = res.locals.uid;
 	dataObj.lastOperationTime = res.locals.operationTime;
-	const result = await Mongo.getCollection(collection).updateOne({
+	await Mongo.getCollection(collection).updateOne({
 		_id: parseId(req.params.id), uid: res.locals.uid, $or: [
 			{ lastOperationTime: null },
 			{ lastOperationTime: { $lte: res.locals.operationTime } }
 		]
 	}, { $set: dataObj });
-	if (result.result.n === 0) {
-		res.status(404).send();
-		return;
-	}
 
 	res.status(200).send();
 }

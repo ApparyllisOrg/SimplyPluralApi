@@ -38,16 +38,12 @@ export const get = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
 	const setBody = req.body;
 	setBody.lastOperationTime = res.locals.operationTime
-	const result = await getCollection("users").updateOne({
+	await getCollection("users").updateOne({
 		uid: res.locals.uid, $or: [
 			{ lastOperationTime: null },
 			{ lastOperationTime: { $lte: res.locals.operationTime } }
 		]
 	}, { $set: setBody });
-	if (result.result.n === 0) {
-		res.status(404).send();
-		return;
-	}
 	res.status(200).send();
 }
 
@@ -178,7 +174,7 @@ export const validateUserSchema = (body: any): { success: boolean, msg: string }
 			fields: {
 				type: "object",
 				patternProperties: {
-					"^[0-9A-z]{22}$": {
+					"^[0-9A-z]{22,23}$": {
 						type: "object",
 						properties: {
 							name: { type: "string" },

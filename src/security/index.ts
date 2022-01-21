@@ -17,6 +17,7 @@ export enum FriendLevel {
 }
 
 const friendLevelLRU = new LRU<string, FriendLevel>({ max: 10000, maxAge: 1000 * 5 });
+const seeMembersLRU = new LRU<string, boolean>({ max: 10000, maxAge: 1000 * 5 });
 
 export const getFriendLevel = async (a: string, b: string): Promise<FriendLevel> => {
 
@@ -51,6 +52,23 @@ export const getFriendLevel = async (a: string, b: string): Promise<FriendLevel>
 
 	friendLevelLRU.set(a + b, friendLevel);
 	return friendLevel;
+};
+
+export const canSeeMembers = async (a: string, b: string): Promise<boolean> => {
+
+	const seeMembers = seeMembersLRU.get(a + b);
+	if (seeMembers) {
+		return seeMembers;
+	}
+
+	const friendDoc = await Mongo.getCollection("friends").findOne({ uid: b, frienduid: a });
+	if (!friendDoc) {
+		seeMembersLRU.set(a + b, false);
+		return false
+	}
+
+	friendLevelLRU.set(a + b, friendDoc.seeMembers);
+	return friendDoc.seeMembers;
 };
 
 export const isPendingFriend = (friendLevel: FriendLevel): boolean => !!(friendLevel & FriendLevel.Pending);

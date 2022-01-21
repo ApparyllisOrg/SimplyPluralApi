@@ -15,7 +15,7 @@ export const add = async (req: Request, res: Response) => {
 }
 
 export const update = async (req: Request, res: Response) => {
-	updateSimpleDocument(req, res, "notes")
+	updateSimpleDocument(req, res, "polls")
 }
 
 export const del = async (req: Request, res: Response) => {
@@ -27,10 +27,10 @@ export const validatePollSchema = (body: any): { success: boolean, msg: string }
 	const voteType =
 	{
 		type: "object",
-		parameters: {
-			id: "string",
-			comment: "string",
-			vote: "string"
+		properties: {
+			id: { type: "string" },
+			comment: { type: "string" },
+			vote: { type: "string" }
 		},
 		nullable: false,
 		additionalProperties: false,

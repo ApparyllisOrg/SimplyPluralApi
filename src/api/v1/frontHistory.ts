@@ -8,10 +8,10 @@ import { validateSchema } from "../../util/validation";
 export const getFrontHistoryInRange = async (req: Request, res: Response) => {
 	const query = {
 		$or: [
-			{ startTime: { $gte: Number(req.query.start) }, endTime: { $lte: Number(req.query.end) } }, // Starts before, ends after
-			{ startTime: { $lte: Number(req.query.start) }, endTime: { $gte: Number(req.query.start) } }, // Starts before, ends before
-			{ startTime: { $gte: Number(req.query.start) }, endTime: { $lte: Number(req.query.end) } }, // Starts after, ends before
-			{ startTime: { $lte: Number(req.query.end) }, endTime: { $gte: Number(req.query.end) } } //Starts after, ends after
+			{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $lte: Number(req.query.endTime) } }, // Starts before, ends after
+			{ startTime: { $lte: Number(req.query.startTime) }, endTime: { $gte: Number(req.query.startTime) } }, // Starts before, ends before
+			{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $lte: Number(req.query.endTime) } }, // Starts after, ends before
+			{ startTime: { $lte: Number(req.query.endTime) }, endTime: { $gte: Number(req.query.endTime) } } //Starts after, ends after
 		]
 	}
 
@@ -112,6 +112,22 @@ export const validatefrontHistoryPatchSchema = (body: any): { success: boolean, 
 		},
 		nullable: false,
 		additionalProperties: false
+	};
+
+	return validateSchema(schema, body);
+}
+
+// Query params so we have to use string pattern comparison
+// Query proeprties are always strings
+export const validateGetfrontHistorychema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			startTime: { type: "string", pattern: "^[0-9]" },
+			endTime: { type: "string", pattern: "^[0-9]" },
+		},
+		nullable: false,
+		required: ["startTime", "endTime"]
 	};
 
 	return validateSchema(schema, body);

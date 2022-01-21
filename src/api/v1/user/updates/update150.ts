@@ -17,6 +17,8 @@ export const update150 = async (uid: string) => {
 			// Convert seconds to milliseconds
 			commentsToInsert.push({ uid, time: comments[j].time._seconds * 1000, text: comments[j].text, collection: "frontHistory", documentId: entry._id })
 		}
+
+		fhCollection.updateOne({ _id: entry._id }, { $sert: { commentCount: comments.length } });
 	}
 
 	await getCollection("comments").insertMany(commentsToInsert)

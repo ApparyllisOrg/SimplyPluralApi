@@ -18,6 +18,7 @@ import * as storage from './storage';
 import * as friendActions from './friendActions';
 import * as frontHistrory from './frontHistory';
 import * as pk from './pk';
+import * as token from './tokens';
 
 // Todo: Verify all access types are setup correctly before moving to procuction
 export const setupV1routes = (app: core.Express) => {
@@ -74,13 +75,13 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/fronters/", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFronters)
 
 	// Front History
-	app.get("/v1/frontHistory/:system", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFrontHistoryInRange)
+	app.get("/v1/frontHistory/:system", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(frontHistrory.validateGetfrontHistorychema), frontHistrory.getFrontHistoryInRange)
 	app.get("/v1/frontHistory", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFrontHistory)
 	app.get("/v1/frontHistory/member/:id", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFrontHistoryForMember)
 	app.get("/v1/frontHistory/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.get)
 	app.post("/v1/frontHistory/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(frontHistrory.validatefrontHistoryPostSchema), validateId, frontHistrory.add)
 	app.patch("/v1/frontHistory/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(frontHistrory.validatefrontHistoryPatchSchema), frontHistrory.update)
-	app.delete("/v1/frontHistoryd/:id", isUserAuthenticated(ApiKeyAccessType.Delete), frontHistrory.del)
+	app.delete("/v1/frontHistory/:id", isUserAuthenticated(ApiKeyAccessType.Delete), frontHistrory.del)
 
 	// Groups
 	app.get("/v1/group/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), group.get)
@@ -124,4 +125,10 @@ export const setupV1routes = (app: core.Express) => {
 	// Sync members
 	app.patch("/v1/integrations/pluralkit/sync/member/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(pk.validateSyncMemberSchema), validateQuery(pk.validateSyncDirectionSchema), pk.performSyncMember)
 	app.patch("/v1/integrations/pluralkit/sync/members", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(pk.validateSyncMembersSchema), validateQuery(pk.validateSyncDirectionSchema), pk.performSyncAllMembers)
+
+	// Tokens
+	app.get("/v1/tokens", isUserAppJwtAuthenticated, token.getAll)
+	app.get("/v1/token/:id", isUserAppJwtAuthenticated, token.get)
+	app.post("/v1/token/:id", isUserAppJwtAuthenticated, validateBody(token.validateApiKeySchema), token.add)
+	app.delete("/v1/token/:id", isUserAppJwtAuthenticated, token.del)
 }

@@ -11,6 +11,16 @@ export const FullApiAccess = ApiKeyAccessType.Read | ApiKeyAccessType.Write | Ap
 
 export const generateNewApiKey = async (): Promise<string> => {
 	const token = await randomBytes(48);
+
+	//Check for collisions... Shouldn't happen but let's check it anyway
+	const existingToken = await getCollection("tokens").findOne({
+		token: token,
+	});
+
+	if (existingToken) {
+		return await generateNewApiKey();
+	}
+
 	return token.toString("base64");
 }
 

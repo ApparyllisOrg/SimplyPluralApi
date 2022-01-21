@@ -3,23 +3,24 @@ import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchColl
 import { validateSchema } from "../../util/validation";
 
 export const getRepeatedTimers = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "repeatedTimer", {});
+	fetchCollection(req, res, "repeatedTimers", {});
 }
 
 export const get = async (req: Request, res: Response) => {
-	fetchSimpleDocument(req, res, "repeatedTimer");
+	fetchSimpleDocument(req, res, "repeatedTimers");
 }
 
 export const add = async (req: Request, res: Response) => {
-	addSimpleDocument(req, res, "repeatedTimer");
+	console.log(req)
+	addSimpleDocument(req, res, "repeatedTimers");
 }
 
 export const update = async (req: Request, res: Response) => {
-	updateSimpleDocument(req, res, "repeatedTimer")
+	updateSimpleDocument(req, res, "repeatedTimers")
 }
 
 export const del = async (req: Request, res: Response) => {
-	deleteSimpleDocument(req, res, "repeatedTimer");
+	deleteSimpleDocument(req, res, "repeatedTimers");
 }
 
 export const validateRepeatedTimerSchema = (body: any): { success: boolean, msg: string } => {
@@ -28,7 +29,7 @@ export const validateRepeatedTimerSchema = (body: any): { success: boolean, msg:
 		properties: {
 			name: { type: "string" },
 			message: { type: "string" },
-			dayInterval: { type: "string" },
+			dayInterval: { type: "number" },
 			time: {
 				type: "object",
 				properties: {

@@ -32,7 +32,7 @@ export const validateNoteSchema = (body: any): { success: boolean, msg: string }
 			note: { type: "string" },
 			color: { type: "string" },
 			member: { type: "string" },
-			date: { type: "string" },
+			date: { type: "number" },
 		},
 		nullable: false,
 		additionalProperties: false,
