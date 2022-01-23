@@ -189,6 +189,7 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	}
 	else {
 		result = result.replace("{{numCustomFronts}}", "");
+		result = result.replace("{{customFronts}}", "");
 	}
 
 

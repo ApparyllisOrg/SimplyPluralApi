@@ -123,7 +123,12 @@ export const fetchSimpleDocument = async (req: Request, res: Response, collectio
 }
 
 export const deleteSimpleDocument = async (req: Request, res: Response, collection: string) => {
-	const result = await Mongo.getCollection(collection).deleteOne({ _id: parseId(req.params.id), uid: res.locals.uid, lastOperationTime: { $lte: res.locals.operationTime } });
+	const result = await Mongo.getCollection(collection).deleteOne({
+		_id: parseId(req.params.id), uid: res.locals.uid, $or: [
+			{ lastOperationTime: null },
+			{ lastOperationTime: { $lte: res.locals.operationTime } }
+		]
+	});
 	if (result.deletedCount && result.deletedCount > 0) {
 		res.status(200).send();
 	} else {

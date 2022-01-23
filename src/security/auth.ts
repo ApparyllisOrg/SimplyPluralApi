@@ -67,6 +67,7 @@ export const isUserAppJwtAuthenticated = async (req: Request, res: Response, nex
 	const result = await validateToken(req.headers.authorization as string);
 
 	if (result.jwt === true && result.accessType === FullApiAccess) {
+		res.locals.uid = result.uid;
 		if (req.header("User-Agent")?.startsWith("Dart") === true) {
 			next();
 			logUserUsage(res.locals.uid, `${req.method} - ${req.route.path}`);

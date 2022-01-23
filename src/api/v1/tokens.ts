@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { assignApiKey, generateNewApiKey } from "../../modules/api/keys";
+import { ApiKeyAccessType, assignApiKey, generateNewApiKey } from "../../modules/api/keys";
 import { deleteSimpleDocument, fetchCollection, fetchSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 
@@ -14,7 +14,16 @@ export const getAll = async (req: Request, res: Response) => {
 
 export const add = async (req: Request, res: Response) => {
 	const token = await generateNewApiKey();
-	const success = await assignApiKey(req.body.read, req.body.write, req.body.delete, token, res.locals.uid);
+
+	let read = false;
+	let write = false;
+	let del = false;
+
+	if (req.body.permission & ApiKeyAccessType.Read) read = true;
+	if (req.body.permission & ApiKeyAccessType.Write) write = true;
+	if (req.body.permission & ApiKeyAccessType.Delete) del = true;
+
+	const success = await assignApiKey(read, write, del, token, res.locals.uid);
 	if (!success) {
 		res.status(400).send("You need to specify at least one permission");
 	}

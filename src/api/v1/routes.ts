@@ -92,7 +92,7 @@ export const setupV1routes = (app: core.Express) => {
 
 	// User
 	app.get("/v1/user/:id", isUserAuthenticated(ApiKeyAccessType.Read), user.get)
-	app.get("v1/user/generateReport/", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(user.validateUserReportSchema), user.generateReport)
+	app.post("/v1/user/generateReport", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(user.validateUserReportSchema), user.generateReport)
 	app.patch("/v1/user/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(user.validateUserSchema), user.update)
 	app.patch("/v1/user/username/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(user.validateUsernameSchema), user.SetUsername)
 	app.delete("/v1/user/:id", isUserAppJwtAuthenticated, user.deleteAccount)

@@ -8,10 +8,113 @@ import { validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
 import { createUser } from "./user/migrate";
 import { update122 } from "./user/updates/update112";
+import * as nodemailer from "nodemailer"
+import puppeteer from 'puppeteer'
+import AWS from "aws-sdk";
+import { randomBytes } from "crypto";
+
+const spacesEndpoint = new AWS.Endpoint("sfo3.digitaloceanspaces.com");
+const s3 = new AWS.S3({
+	endpoint: spacesEndpoint,
+	accessKeyId: process.env.SPACES_KEY,
+	secretAccessKey: process.env.SPACES_SECRET,
+});
+
 
 export const generateReport = async (req: Request, res: Response) => {
-	const htmlFile = await generateUserReport(req.query, res.locals.uid);
-	res.status(200).send(htmlFile);
+
+	const canGenerate = await canGenerateReport(res);
+	if (canGenerate) {
+		performReportGeneration(req, res)
+		decrementGenerationsLeft(res.locals.uid)
+		return;
+	}
+	else {
+		res.status(403).send("You do not have enough generations left in order to generate a new report");
+		return;
+	}
+}
+
+const decrementGenerationsLeft = async (uid: string) => {
+	const user = await getCollection("users").findOne({ uid, _id: uid })
+	const patron: boolean = user.patron ?? false;
+
+	const privateDoc = await getCollection("private").findOne({ uid, _id: uid });
+	if (privateDoc.generationsLeft) {
+		await getCollection("private").updateOne({ uid, _id: uid }, { $inc: { generationsLeft: -1 } });
+	}
+	else {
+		await getCollection("private").updateOne({ uid, _id: uid }, { $set: { generationsLeft: patron ? 10 : 3 } });
+	}
+}
+
+const canGenerateReport = async (res: Response): Promise<boolean> => {
+	const privateDoc = await getCollection("private").findOne({ uid: res.locals.uid, _id: res.locals.uid });
+	if (privateDoc) {
+		if (privateDoc.generationsLeft && privateDoc.generationsLeft > 0) {
+			return true;
+		}
+		else if (!privateDoc.generationsLeft) {
+			return true;
+		}
+		return privateDoc.bypassGenerationLimit === true;
+	}
+
+	return true;
+}
+
+const performReportGeneration = async (req: Request, res: Response) => {
+	const htmlFile = await generateUserReport(req.body, res.locals.uid);
+
+	const transporter = nodemailer.createTransport({
+		host: "smtp.ethereal.email",
+		port: 587,
+		secure: false, // true for 465, false for other ports
+		auth: {
+			user: "alessandro.bins69@ethereal.email", // generated ethereal user
+			pass: 'vEwCaGr1Mdd2Kx1CP6', // generated ethereal password
+		},
+	})
+
+	const browser = await puppeteer.launch({ headless: true },);
+	const page = await browser.newPage();
+	await page.setContent(htmlFile);
+	const pdfBuffer = await page.pdf(({ format: 'a4', landscape: false, printBackground: false, margin: { top: "2cm", left: "2cm", right: "2cm", bottom: "2cm" } }))
+
+	const randomId = (await randomBytes(64)).toString("base64");
+	const randomId2 = (await randomBytes(64)).toString("base64");
+	const randomId3 = (await randomBytes(64)).toString("base64");
+
+	let path = `reports/${res.locals.uid}/${randomId}/${randomId2}/${randomId3}`;
+	path = path.replace("/", "0")
+	path = path.replace("+", "1")
+	path = path.replace("=", "2")
+
+	const params = {
+		Bucket: "simply-plural",
+		Key: path,
+		Body: pdfBuffer,
+		ACL: "public-read",
+		ContentType: 'application/pdf'
+	};
+
+	s3.putObject(params, async function (err) {
+		if (err) {
+			console.log(err)
+			res.status(500).send(err);
+		} else {
+			const info = await transporter.sendMail({
+				from: '"Apparyllis" <noreply@apparyllis.com>', // sender address
+				to: "celestepeeters@hotmail.com", // list of receivers
+				subject: "Your user report",
+				text: "https://simply-plural.sfo3.digitaloceanspaces.com/" + path,
+			});
+
+			console.log("Message sent: %s", info.messageId);
+			console.log("https://simply-plural.sfo3.digitaloceanspaces.com/" + path)
+			res.status(200).send({ success: true, msg: "https://simply-plural.sfo3.digitaloceanspaces.com/" + path });
+		}
+	});
 }
 
 export const get = async (req: Request, res: Response) => {
@@ -215,6 +318,14 @@ export const validateUserReportSchema = (body: any): { success: boolean, msg: st
 	const schema = {
 		type: "object",
 		properties: {
+			sendTo: {
+
+				type: "string",
+			},
+			cc: {
+
+				type: "array", items: { type: "string" },
+			},
 			frontHistory: {
 				nullable: true,
 				type: "object",

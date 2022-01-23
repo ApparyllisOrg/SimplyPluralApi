@@ -1,4 +1,4 @@
-import axios, { AxiosResponse } from "axios";
+import axios, { AxiosError, AxiosResponse } from "axios";
 import { logger } from "../../logger";
 import * as Sentry from "@sentry/node";
 
@@ -48,6 +48,13 @@ export const reportActiveQueueSize = () => {
 	setTimeout(reportActiveQueueSize, 10000)
 }
 
+const handleError = (reason: AxiosError) => {
+	if (reason.response) {
+		return reason.response;
+	}
+	return null;
+}
+
 export const tick = async () => {
 
 	// 20 requests per second is our rate limit, so let's tick every 100ms and send 2 requests.
@@ -57,19 +64,19 @@ export const tick = async () => {
 			const type = request.type;
 			switch (type) {
 				case PkRequestType.Get: {
-					const result = await axios.get(request.path, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP } }).catch(() => { return null })
+					const result = await axios.get(request.path, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP } }).catch(handleError)
 					request.response = result
 					pendingResponses.push(request)
 					break
 				}
 				case PkRequestType.Post: {
-					const result = await axios.post(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP } }).catch(() => { return null })
+					const result = await axios.post(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP } }).catch(handleError)
 					request.response = result
 					pendingResponses.push(request)
 					break
 				}
 				case PkRequestType.Patch: {
-					const result = await axios.patch(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP } }).catch(() => { return null })
+					const result = await axios.patch(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP } }).catch(handleError)
 					request.response = result
 					pendingResponses.push(request)
 					break

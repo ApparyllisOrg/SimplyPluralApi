@@ -5,7 +5,7 @@
 	"scripts": {
 		"dev": "DEVELOPMENT=1 npm run start",
 		"start": "node --inspect=5858 -r ts-node/register src/index.ts",
-		"start:watch": "ts-node-dev --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config",
+		"start:watch": "ts-node-dev --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config --inspect",
 		"build": "tsc",
 		"lint": "eslint src/**/**/*",
 		"test": "mocha --require ts-node/register src/tests/**/*.ts -r dotenv/config"
@@ -24,6 +24,8 @@
 		"@types/moment": "^2.13.0",
 		"@types/moment-timezone": "^0.5.30",
 		"@types/mongodb": "^3.6.17",
+		"@types/nodemailer": "^6.4.4",
+		"@types/puppeteer": "^5.4.4",
 		"@types/redis": "^2.8.32",
 		"@typescript-eslint/eslint-plugin": "^4.28.2",
 		"@typescript-eslint/parser": "^4.28.2",
@@ -40,6 +42,8 @@
 		"helmet": "^4.6.0",
 		"lru-cache": "^6.0.0",
 		"mongodb": "^3.6.6",
+		"nodemailer": "^6.7.2",
+		"puppeteer": "^13.1.1",
 		"redis": "^4.0.0-rc.4",
 		"short-uuid": "^4.2.0",
 		"vhost": "^3.0.2",
