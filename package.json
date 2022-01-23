@@ -54,7 +54,7 @@
 	"devDependencies": {
 		"@types/chai": "^4.2.22",
 		"@types/mocha": "^9.0.0",
-		"@types/node": "^15.12.1",
+		"@types/node": "^17.0.10",
 		"@types/ws": "^7.4.4",
 		"chai": "^4.3.4",
 		"eslint": "^7.30.0",
