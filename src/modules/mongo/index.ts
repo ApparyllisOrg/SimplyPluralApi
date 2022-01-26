@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 dotenv.config();
 
 const url: string | undefined = process.env.DATABASE_URI;
-const dbName = "SimplyPlural";
+const dbName = process.env.DBNAME;
 
 // init
 console.log("Connecting Mongodb to: " + url)

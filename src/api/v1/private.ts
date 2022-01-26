@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import moment from "moment";
 import { getCollection, parseId } from "../../modules/mongo";
 import { addSimpleDocument, fetchSimpleDocument, updateSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
@@ -10,6 +11,7 @@ export const get = async (req: Request, res: Response) => {
 	if (!privateDocument && req.params.id === res.locals.uid) {
 		await getCollection("private").insertOne({ uid: res.locals.uid, _id: res.locals.uid, termsOfServicesAccepted: false });
 	}
+	await updateGenerationLimit(res.locals.uid, privateDocument);
 	fetchSimpleDocument(req, res, "private");
 }
 
@@ -44,4 +46,23 @@ export const validatePrivateSchema = (body: any): { success: boolean, msg: strin
 	};
 
 	return validateSchema(schema, body);
+}
+
+const resetGenerationLimit = async (uid: string) => {
+	const user = await getCollection("users").findOne({ uid, _id: uid })
+	await getCollection("private").updateOne({ uid, _id: uid }, { $set: { generationsLeft: user.patron === true ? 10 : 3 }, lastGenerationReset: moment.now() });
+}
+
+const updateGenerationLimit = async (uid: string, doc: any) => {
+	if (doc.lastGenerationReset) {
+		const last = moment(doc.lastGenerationReset)
+		last.add("7 days")
+
+		if (moment.now() >= last.valueOf()) {
+			await resetGenerationLimit(uid);
+		}
+	}
+	else {
+		await resetGenerationLimit(uid);
+	}
 }

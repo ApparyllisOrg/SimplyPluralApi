@@ -76,6 +76,8 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	result = result.replace("{{color}}", user.color);
 	result = result.replace("{{desc}}", getDescription(user, descTemplate));
 
+	console.log(query)
+
 	if (query.members) {
 		let membersList = await getFile("./templates/members/reportMembers.html", "utf-8");
 
@@ -105,12 +107,12 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 			member = member.replace("{{privacy}}", getWrittenPrivacyLevel(memberData));
 			member = member.replace("{{desc}}", getDescription(memberData, descTemplate));
 
-			if (!query.members.includeCustomFields) {
+			if (query.members.includeCustomFields === false) {
 				member = member.replace("{{fields}}", "");
 			}
 			else {
-
 				if (memberData.info) {
+
 					let fields = `${fieldsTemplate}`;
 					let generatedFields = "";
 					for (const [key, value] of Object.entries(memberData.info)) {
@@ -130,6 +132,8 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 							field = field.replace("{{key}}", fieldKeyToName(key, user));
 							field = field.replace("{{value}}", value as string);
 							generatedFields = generatedFields + field;
+
+
 						}
 					}
 
