@@ -34,8 +34,8 @@ export const generateReport = async (req: Request, res: Response) => {
 }
 
 const decrementGenerationsLeft = async (uid: string) => {
-	const user = await getCollection("users").findOne({ uid, _id: uid })
-	const patron: boolean = user.patron ?? false;
+	const user: any | null = await getCollection("users").findOne({ uid, _id: uid })
+	const patron: boolean = user?.patron ?? false;
 
 	const privateDoc = await getCollection("private").findOne({ uid, _id: uid });
 	if (privateDoc.generationsLeft) {

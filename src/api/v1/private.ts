@@ -50,11 +50,11 @@ export const validatePrivateSchema = (body: any): { success: boolean, msg: strin
 
 const resetGenerationLimit = async (uid: string) => {
 	const user = await getCollection("users").findOne({ uid, _id: uid })
-	await getCollection("private").updateOne({ uid, _id: uid }, { $set: { generationsLeft: user.patron === true ? 10 : 3 }, lastGenerationReset: moment.now() });
+	await getCollection("private").updateOne({ uid, _id: uid }, { $set: { generationsLeft: user?.patron === true ? 10 : 3, lastGenerationReset: moment.now() }, });
 }
 
 const updateGenerationLimit = async (uid: string, doc: any) => {
-	if (doc.lastGenerationReset) {
+	if (doc?.lastGenerationReset) {
 		const last = moment(doc.lastGenerationReset)
 		last.add("7 days")
 

@@ -44,8 +44,7 @@ admin.initializeApp({
 });
 
 startCollectingUsage();
-
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: "3mb" }));
 
 if (process.env.DEVELOPMENT) {
 	const logRequest = async (req: Request, _res: Response, next: NextFunction) => {
