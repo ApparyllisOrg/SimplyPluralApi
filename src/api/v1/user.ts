@@ -10,6 +10,7 @@ import { update122 } from "./user/updates/update112";
 import AWS from "aws-sdk";
 import { nanoid } from "nanoid";
 import { auth } from "firebase-admin";
+import { getFriendLevel, isTrustedFriend } from "../../security";
 
 const spacesEndpoint = new AWS.Endpoint("sfo3.digitaloceanspaces.com");
 const s3 = new AWS.S3({
@@ -104,6 +105,25 @@ export const get = async (req: Request, res: Response) => {
 	if (!document.fields && ownDocument) {
 		await initializeCustomFields(res.locals.uid);
 		document = await getCollection("users").findOne({ uid: res.locals.uid })
+	}
+
+	// Remove fields that aren't shared to the friend
+	if (req.params.id !== res.locals.uid) {
+		const friendLevel = await getFriendLevel(req.params.id, res.locals.uid);
+		const isATrustedFriends = isTrustedFriend(friendLevel)
+		const newFields: any = {}
+
+		Object.keys(document.fields).forEach((key: string) => {
+			const field = document.fields[key]
+			if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
+				newFields[key] = field;
+			}
+			if (field.private === false && field.preventTrusted === false) {
+				newFields[key] = field;
+			}
+		});
+
+		document.fields = newFields;
 	}
 
 	sendDocument(req, res, "users", document);

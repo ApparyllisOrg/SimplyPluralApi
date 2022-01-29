@@ -2,7 +2,7 @@ import * as MongoDb from "mongodb";
 import { ObjectId } from "mongodb";
 import { logger } from "../logger";
 import dotenv from "dotenv";
-
+import * as events from "../events/eventController"
 dotenv.config();
 
 const url: string | undefined = process.env.DATABASE_URI;
@@ -45,6 +45,7 @@ export const init = async (retry: boolean): Promise<void> => {
 	if (success) {
 		logger.info("setup db connection");
 		console.log("setup db connection")
+		events.init();
 		return;
 	}
 

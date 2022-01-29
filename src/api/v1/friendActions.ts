@@ -89,7 +89,7 @@ export const validateRespondToFrienqRequestSchema = (body: any): { success: bool
 }
 
 export const RespondToFriendRequest = async (req: Request, res: Response) => {
-	const accept = req.body.accept;
+	const accept = req.query.accepted === "true";
 	const target = req.params.id;
 
 	const userDoc = await getCollection("users").findOne({

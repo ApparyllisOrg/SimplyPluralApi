@@ -1,9 +1,17 @@
 import { Request, Response } from "express";
 import { getCollection } from "../../modules/mongo";
+import { canSeeMembers } from "../../security";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 export const getCustomFronts = async (req: Request, res: Response) => {
+	if (req.params.system != res.locals.uid) {
+		const canSee = await canSeeMembers(req.params.system, res.locals.uid)
+		if (!canSee) {
+			res.status(403).send("You are not authorized to see members of this user");
+			return;
+		}
+	}
 	fetchCollection(req, res, "frontStatuses", {});
 }
 

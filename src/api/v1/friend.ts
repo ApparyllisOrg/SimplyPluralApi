@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { getCollection } from "../../modules/mongo";
-import { sendDocument, sendDocuments, transformResultForClientRead } from "../../util";
+import { getCollection, parseId } from "../../modules/mongo";
+import { canAccessDocument } from "../../security";
+import { sendDocument, sendDocuments } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 
@@ -17,7 +18,8 @@ export const getFriends = async (req: Request, res: Response) => {
 		friendValues.push(await getCollection("users").findOne({ uid: friends[i].frienduid }))
 	}
 
-	sendDocuments(req, res, "friendRequests", friendValues);
+	// Send users as collection as we are sending user objects, not friend (requests)
+	sendDocuments(req, res, "users", friendValues);
 }
 
 export const getIngoingFriendRequests = async (req: Request, res: Response) => {
@@ -25,10 +27,11 @@ export const getIngoingFriendRequests = async (req: Request, res: Response) => {
 	const friendValues: any[] = []
 
 	for (let i = 0; i < documents.length; ++i) {
-		friendValues.push(await getCollection("users").findOne({ uid: documents[i].receiver }))
+		friendValues.push(await getCollection("users").findOne({ uid: documents[i].sender }))
 	}
 
-	sendDocuments(req, res, "pendingFriendRequests", friendValues);
+	// Send users as collection as we are sending user objects, not friend (requests)
+	sendDocuments(req, res, "users", friendValues);
 }
 
 export const getOutgoingFriendRequests = async (req: Request, res: Response) => {
@@ -36,16 +39,22 @@ export const getOutgoingFriendRequests = async (req: Request, res: Response) => 
 	const friendValues: any[] = []
 
 	for (let i = 0; i < documents.length; ++i) {
-		friendValues.push(await getCollection("users").findOne({ uid: documents[i].sender }))
+		friendValues.push(await getCollection("users").findOne({ uid: documents[i].receiver }))
 	}
 
-	sendDocuments(req, res, "pendingFriendRequests", friendValues);
+	// Send users as collection as we are sending user objects, not friend (requests)
+	sendDocuments(req, res, "users", friendValues);
 }
 
 export const updateFriend = async (req: Request, res: Response) => {
 	const setBody = req.body
 	setBody.lastOperationTime = res.locals.operationTime;
-	const result = await getCollection("friends").updateOne({ uid: res.locals.uid, friendUuid: req.params.id, lastUpdate: { $le: res.locals.operationTime } }, { $set: setBody })
+	const result = await getCollection("friends").updateOne({
+		uid: res.locals.uid, frienduid: req.params.id, $or: [
+			{ lastOperationTime: null },
+			{ lastOperationTime: { $lte: res.locals.operationTime } }
+		]
+	}, { $set: setBody })
 	if (result.result.n === 0) {
 		res.status(404).send();
 		return;
@@ -61,27 +70,18 @@ export const getFiendFrontValues = async (req: Request, res: Response) => {
 
 	const friendSettingsDoc = await friends.findOne({ "frienduid": res.locals.uid, uid: req.params.system });
 
-	const friendFrontValues: any[] = [];
-
 	if (friendSettingsDoc.seeFront === true) {
 		if (friendSettingsDoc.trusted === true) {
 			const front = await privateFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
-			if (front) {
-				const result = transformResultForClientRead(front, res.locals.uid);
-				friendFrontValues.push(result);
-			}
+			res.status(200).send({ frontString: front.frontString, customFrontString: front.customFrontString });
 		}
 		else {
 			const front = await sharedFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
-			if (front) {
-				const result = transformResultForClientRead(front, res.locals.uid);
-				friendFrontValues.push(result);
-			}
+			res.status(200).send({ frontString: front.frontString, customFrontString: front.customFrontString });
 		}
 	}
 
-	// TODO: Only send uid, frontString and customFrontString
-	res.status(200).send({ "results": friendFrontValues });
+	res.status(404).send();
 };
 
 
@@ -102,17 +102,13 @@ export const getAllFriendFrontValues = async (_req: Request, res: Response) => {
 			if (friendSettingsDoc.trusted === true) {
 				const front = await privateFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
 				if (front) {
-
-					const result = transformResultForClientRead(front, res.locals.uid);
-					friendFrontValues.push(result);
-
+					friendFrontValues.push({ uid: front.uid, customFrontString: front.customFrontString, frontString: front.frontString });
 				}
 			}
 			else {
 				const front = await sharedFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
 				if (front) {
-					const result = transformResultForClientRead(front, res.locals.uid);
-					friendFrontValues.push(result);
+					friendFrontValues.push({ uid: front.uid, customFrontString: front.customFrontString, frontString: front.frontString });
 				}
 			}
 		}
@@ -125,12 +121,31 @@ export const getAllFriendFrontValues = async (_req: Request, res: Response) => {
 export const getFriendFront = async (req: Request, res: Response) => {
 	const friendFronts = await getCollection("frontHistory").find({ uid: req.params.id, live: true }).toArray();
 
+	const frontingList = []
+
 	for (let i = 0; i < friendFronts.length; ++i) {
 		const { member } = friendFronts[i]
-		friendFronts[i] = { member }
+		const memberDoc = await getCollection("members").findOne({ _id: parseId(member) });
+		if (memberDoc) {
+			const { preventTrusted } = memberDoc;
+
+			const canAccess = await canAccessDocument(res.locals.uid, req.params.id, memberDoc.private, preventTrusted);
+			if (canAccess === true) {
+				frontingList.push(member);
+			}
+		}
+		const customFrontDoc = await getCollection("frontStatuses").findOne({ _id: parseId(member) });
+		if (customFrontDoc) {
+			const { preventTrusted } = customFrontDoc;
+
+			const canAccess = await canAccessDocument(res.locals.uid, req.params.id, customFrontDoc.private, preventTrusted);
+			if (canAccess === true) {
+				frontingList.push(member);
+			}
+		}
 	}
 
-	sendDocuments(req, res, "front", friendFronts);
+	res.status(200).send(JSON.stringify(frontingList));
 };
 
 export const validatePatchFriendSchema = (body: any): { success: boolean, msg: string } => {
@@ -140,6 +155,7 @@ export const validatePatchFriendSchema = (body: any): { success: boolean, msg: s
 			seeMembers: { type: "boolean" },
 			seeFront: { type: "boolean" },
 			getFrontNotif: { type: "boolean" },
+			getTheirFrontNotif: { type: "boolean" },
 			trusted: { type: "boolean" }
 		},
 		nullable: false,

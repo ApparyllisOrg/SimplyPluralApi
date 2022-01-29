@@ -1,10 +1,52 @@
 import { Request, Response } from "express";
 import { getCollection } from "../../modules/mongo";
-import { addSimpleDocument, deleteSimpleDocument, fetchCollection, fetchSimpleDocument, updateSimpleDocument } from "../../util";
+import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security";
+import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendDocuments, updateSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 export const getMembers = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "members", {});
+	if (req.params.system != res.locals.uid) {
+		const canSee = await canSeeMembers(req.params.system, res.locals.uid)
+		if (!canSee) {
+			res.status(403).send("You are not authorized to see custom fronts of this user");
+			return;
+		}
+	}
+
+	const query = getCollection("members").find({ uid: req.params.system })
+	const documents = await query.toArray();
+
+	if (req.params.system != res.locals.uid) {
+		const ownerUser = await getCollection("users").findOne({ uid: req.params.system });
+		const friendLevel = await getFriendLevel(req.params.system, res.locals.uid)
+		const isATrustedFriend = isTrustedFriend(friendLevel)
+		if (ownerUser) {
+			const ownerFields: { [key: string]: any } = ownerUser.fields;
+			documents.forEach((member) => {
+
+				const newFields: any = {}
+
+				if (member.info) {
+					Object.keys(member.info).forEach((key) => {
+						const fieldSpec = ownerFields[key];
+						if (fieldSpec.private === true && fieldSpec.preventTrusted === false && isATrustedFriend) {
+							newFields[key] = member.info[key];
+						}
+						if (fieldSpec.private === false && fieldSpec.preventTrusted === false) {
+							newFields[key] = member.info[key];
+						}
+					});
+				}
+
+				member.info = newFields;
+			})
+		}
+		else {
+			res.status(404).send();
+			return;
+		}
+	}
+	sendDocuments(req, res, "members", documents);
 }
 
 export const get = async (req: Request, res: Response) => {

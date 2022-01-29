@@ -5,7 +5,7 @@ import { ObjectID } from "mongodb";
 import * as Mongo from "../modules/mongo";
 import { parseId } from "../modules/mongo";
 import { documentObject } from "../modules/mongo/baseTypes";
-import { canSeeMembers, FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
+import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
 import { parseForAllowedReadValues } from "../security/readRules";
 
 export function transformResultForClientRead(value: documentObject, requestorUid: string) {
@@ -53,7 +53,7 @@ export const notifyUser = async (uid: string, title: string, message: string) =>
 	}
 };
 
-export const getDocumentAccess = async (req: Request, res: Response, document: documentObject, collection: string): Promise<{ access: boolean, statusCode: number, message: string }> => {
+export const getDocumentAccess = async (_req: Request, res: Response, document: documentObject, collection: string): Promise<{ access: boolean, statusCode: number, message: string }> => {
 	if (document.uid == res.locals.uid) {
 		return { access: true, statusCode: 200, message: "" }
 	}
@@ -65,26 +65,29 @@ export const getDocumentAccess = async (req: Request, res: Response, document: d
 			return { access: false, statusCode: 401, message: "Access to document has been rejected." }
 		}
 
-		const friendLevel: FriendLevel = await getFriendLevel(res.locals.uid, req.params.id);
-		const isaFriend = await isFriend(friendLevel);
+		const friendLevel: FriendLevel = await getFriendLevel(res.locals.uid, document.uid);
+		const isaFriend = isFriend(friendLevel);
 		if (!isaFriend) {
+			if (collection === "users" && !!(friendLevel & FriendLevel.Pending)) {
+
+				// Only send relevant data
+				document = { uid: document.uid, _id: document._id, username: document.username }
+
+				return { access: true, statusCode: 200, message: "" }
+			}
 			return { access: false, statusCode: 401, message: "Access to document has been rejected." }
 		}
 		else {
 			if (document.private) {
 				const trustedFriend: boolean = await isTrustedFriend(friendLevel);
 				if (trustedFriend) {
-					const canSee = await await canSeeMembers(res.locals.uid, req.params.id);
-					return { access: canSee, statusCode: 200, message: "" }
+					return { access: !document.preventTrusted, statusCode: 200, message: "" }
 				}
 				else {
 					return { access: false, statusCode: 401, message: "Access to document has been rejected." }
 				}
 			}
-			else {
-				const canSee = await await canSeeMembers(res.locals.uid, req.params.id);
-				return { access: canSee, statusCode: 200, message: "" }
-			}
+			return { access: true, statusCode: 200, message: "" }
 		}
 	}
 }

@@ -90,7 +90,8 @@ export const validatefrontHistoryPostSchema = (body: any): { success: boolean, m
 			live: { type: "boolean" },
 			startTime: { type: "number" },
 			endTime: { type: "number" },
-			member: { type: "string" }
+			member: { type: "string" },
+			customStatus: { type: "string", maxLength: 50 }
 		},
 		nullable: false,
 		additionalProperties: false,
@@ -108,7 +109,8 @@ export const validatefrontHistoryPatchSchema = (body: any): { success: boolean, 
 			live: { type: "boolean" },
 			startTime: { type: "number" },
 			endTime: { type: "number" },
-			member: { type: "string" }
+			member: { type: "string" },
+			customStatus: { type: "string", maxLength: 50 }
 		},
 		nullable: false,
 		additionalProperties: false
