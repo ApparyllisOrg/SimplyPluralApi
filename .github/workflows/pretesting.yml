@@ -24,4 +24,5 @@ jobs:
     - uses: actions/checkout@v2
     - run: npm install
     - run: npm run build
+    - run: cp .env ./dist/.env
     - run: pm2 restart pretesting
