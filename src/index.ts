@@ -17,6 +17,7 @@ import cors from "cors";
 import { validateGetParams, validateOperationTime } from "./util/validation";
 import { startPkController } from "./modules/integrations/pk/controller";
 import { NextFunction, Request, Response } from "express-serve-static-core";
+import { startMailTransport } from "./modules/mail";
 
 const app = express();
 
@@ -77,6 +78,7 @@ const initializeServer = async () => {
 	server.listen(port, () => logger.info(`Initiating Apparyllis API at :${port}`));
 
 	startPkController();
+	startMailTransport();
 }
 
 initializeServer();

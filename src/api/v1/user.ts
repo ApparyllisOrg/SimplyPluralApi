@@ -11,6 +11,9 @@ import AWS from "aws-sdk";
 import { nanoid } from "nanoid";
 import { auth } from "firebase-admin";
 import { getFriendLevel, isTrustedFriend } from "../../security";
+import { mailerTransport } from "../../modules/mail";
+import { readFile } from "fs";
+import { promisify } from "util";
 
 const spacesEndpoint = new AWS.Endpoint("sfo3.digitaloceanspaces.com");
 const s3 = new AWS.S3({
@@ -78,6 +81,19 @@ const performReportGeneration = async (req: Request, res: Response) => {
 		ACL: "public-read",
 		ContentType: 'text/html'
 	};
+
+	const getFile = promisify(readFile);
+	let emailTemplate = await getFile("./templates/userReportEmail.html", "utf-8");
+
+	emailTemplate = emailTemplate.replace("{{reportUrl}}", "https://simply-plural.sfo3.digitaloceanspaces.com/" + path)
+
+	mailerTransport?.sendMail({
+		from: '"Apparyllis" <noreply@apparyllis.com>',
+		to: req.body.sendTo,
+		cc: req.body.cc,
+		subject: "Your user report",
+		html: emailTemplate,
+	})
 
 	s3.putObject(params, async function (err) {
 		if (err) {
@@ -309,14 +325,12 @@ export const validateUserReportSchema = (body: any): { success: boolean, msg: st
 	const schema = {
 		type: "object",
 		properties: {
-			/* Figure out how to setup an SMTP-relay only server to send emails, services are too expensive
 			sendTo: {
 				type: "string",
 			},
 			cc: {
 				type: "array", items: { type: "string" },
 			},
-			*/
 			frontHistory: {
 				nullable: true,
 				type: "object",
