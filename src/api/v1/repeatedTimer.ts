@@ -11,7 +11,6 @@ export const get = async (req: Request, res: Response) => {
 }
 
 export const add = async (req: Request, res: Response) => {
-	console.log(req)
 	addSimpleDocument(req, res, "repeatedTimers");
 }
 

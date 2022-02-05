@@ -76,8 +76,6 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	result = result.replace("{{color}}", user.color);
 	result = result.replace("{{desc}}", getDescription(user, descTemplate));
 
-	console.log(query)
-
 	if (query.members) {
 		let membersList = await getFile("./templates/members/reportMembers.html", "utf-8");
 

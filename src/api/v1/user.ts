@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import shortUUID from "short-uuid";
-import { userLog } from "../../modules/logger";
+import { logger, userLog } from "../../modules/logger";
 import { db, getCollection } from "../../modules/mongo";
 import { sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
@@ -81,7 +81,7 @@ const performReportGeneration = async (req: Request, res: Response) => {
 
 	s3.putObject(params, async function (err) {
 		if (err) {
-			console.log(err)
+			logger.error(err)
 			res.status(500).send(err);
 		} else {
 			res.status(200).send({ success: true, msg: "https://simply-plural.sfo3.digitaloceanspaces.com/" + path });
@@ -309,13 +309,11 @@ export const validateUserReportSchema = (body: any): { success: boolean, msg: st
 	const schema = {
 		type: "object",
 		properties: {
-			/*	TODO: Enable mail delivery of the report
+			/* Figure out how to setup an SMTP-relay only server to send emails, services are too expensive
 			sendTo: {
-
 				type: "string",
 			},
 			cc: {
-
 				type: "array", items: { type: "string" },
 			},
 			*/

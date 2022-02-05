@@ -138,8 +138,10 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 	if (pkMemberResult) {
 		if (pkMemberResult.status === 200) {
 
+			const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: pkMemberId })
+			const forceSyncProperties = spMemberResult == null;
 			const memberDataToSync: any = {}
-			if (options.name) {
+			if (options.name || forceSyncProperties) {
 				if (options.useDisplayName) {
 					memberDataToSync.name = pkMemberResult.data.display_name;
 				} else {
@@ -147,12 +149,10 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 				}
 			}
 
-			if (options.avatar) memberDataToSync.avatarUrl = pkMemberResult.data.avatar_url;
-			if (options.pronouns) memberDataToSync.pronouns = pkMemberResult.data.pronouns;
-			if (options.description) memberDataToSync.desc = pkMemberResult.data.description;
-			if (options.color) memberDataToSync.color = pkMemberResult.data.color;
-
-			const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: pkMemberId })
+			if (options.avatar || forceSyncProperties) memberDataToSync.avatarUrl = pkMemberResult.data.avatar_url;
+			if (options.pronouns || forceSyncProperties) memberDataToSync.pronouns = pkMemberResult.data.pronouns;
+			if (options.description || forceSyncProperties) memberDataToSync.desc = pkMemberResult.data.description;
+			if (options.color || forceSyncProperties) memberDataToSync.color = pkMemberResult.data.color;
 
 			if (spMemberResult) {
 				await getCollection("members").updateOne({ uid: userId, pkId: pkMemberId }, { $set: memberDataToSync })
