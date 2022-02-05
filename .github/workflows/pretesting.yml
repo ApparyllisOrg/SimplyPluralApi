@@ -22,7 +22,10 @@ jobs:
     runs-on: self-hosted
     steps:
     - uses: actions/checkout@v2
+      with:
+        ref: pretesting
     - run: npm install
     - run: npm run build
-    - run: cp .env ./dist/.env
+    - run: cp /deploy/pretesting/.env ./dist/.env
+    - run: cp /deploy/pretesting/spGoogle.json ./dist/spGoogle.json
     - run: pm2 restart pretesting
