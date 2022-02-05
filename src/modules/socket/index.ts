@@ -8,6 +8,7 @@ import { transformResultForClientRead } from "../../util";
 
 import Connection from './connection';
 import crypto from "crypto";
+import { ChangeStream } from "mongodb";
 
 export enum OperationType {
 	Read,
@@ -16,27 +17,74 @@ export enum OperationType {
 	Delete
 }
 
-export interface ChangeEvent {
+export interface ChangeEventNative {
 	uid: string,
 	documentId: string,
 	collection: string,
 	operationType: OperationType
 }
 
+const listenCollections = ["members", "frontStatuses", "notes", "polls", "automatedTimers", "repeatedTimers", "frontHistory", "comments", "groups",]
+
 let _wss: WebSocket.Server | null = null;
 const connections = new Map<string, Connection>();
+const listenStreams: ChangeStream[] = []
 
 export const onConnectionDestroyed = (uniqueId: string) => connections.delete(uniqueId)
 
 export const init = (server: http.Server) => {
-	_wss = new WebSocket.Server({ server, path: '/v1/socket' });
+	_wss = new WebSocket.Server({
+		server, path: '/v1/socket', perMessageDeflate: {
+			zlibDeflateOptions: {
+				chunkSize: 1024,
+				memLevel: 7,
+				level: 3
+			},
+			zlibInflateOptions: {
+				chunkSize: 10 * 1024
+			},
+			clientNoContextTakeover: true,
+			serverNoContextTakeover: true,
+			serverMaxWindowBits: 10,
+			concurrencyLimit: 10,
+			threshold: 1024
+		}
+	});
 	_wss.on("connection", (ws) => {
 		const uniqueId = crypto.randomBytes(64).toString("base64")
 		ws?.on('close', () => connections.delete(uniqueId));
+
 		ws.send("{}")
 		connections.set(uniqueId, new Connection(ws));
 	});
+
+	if (process.env.LOCALEVENTS === "true") {
+		listenCollections.forEach((collection) => {
+			const changeStream = Mongo.getCollection(collection).watch([], { fullDocument: "updateLookup" });
+			changeStream.on("change", next => {
+				dispatch(next)
+			});
+			listenStreams.push()
+		})
+	}
+
 };
+
+const stringToOperationType = (type: string): OperationType => {
+	if (type === "insert") {
+		return OperationType.Add;
+	}
+
+	if (type === "update") {
+		return OperationType.Update;
+	}
+
+	if (type === "delete") {
+		return OperationType.Delete;
+	}
+
+	return OperationType.Add;
+}
 
 export const getUserConnections = (uid: string) =>
 	[...connections.values()].filter(conn => conn.uid === uid);
@@ -51,9 +99,20 @@ export async function notify(uid: string, title: string, message: string) {
 
 export async function dispatch(event: any) {
 	const document = event.fullDocument;
+
+	if (!document) {
+		return;
+	}
+
+	const innerEventData: ChangeEventNative = {
+		documentId: event.fullDocument._id, operationType: stringToOperationType(event.operationType),
+		uid: event.fullDocument.uid,
+		collection: event.ns.coll
+	}
+
 	const owner = document.uid;
 	if (!DatabaseAccess.friendReadCollections.includes(event.ns.coll))
-		return dispatchInner(owner, event);
+		return dispatchInner(owner, innerEventData);
 
 	const friends = await Mongo.getCollection("friends").find({ uid: owner }).toArray();
 	const trustedFriends = friends.filter(f => f.trusted);
@@ -68,10 +127,20 @@ export async function dispatch(event: any) {
 	else
 		friends.forEach(f => dispatchInner(f, event));
 
-	dispatchInner(owner, event);
+
+	dispatchInner(owner, innerEventData);
 }
 
-async function dispatchInner(uid: any, event: ChangeEvent) {
+export const dispatchDelete = async (event: ChangeEventNative) => {
+	const result = { operationType: "delete", id: event.documentId };
+	const payload = { msg: "update", target: event.collection, results: [result] };
+
+	for (const conn of getUserConnections(event.uid)) {
+		conn.send(payload);
+	}
+}
+
+async function dispatchInner(uid: any, event: ChangeEventNative) {
 	let result = {};
 	if (event.operationType === OperationType.Delete) {
 		result = { operationType: "delete", id: event.documentId };

@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { getCollection } from "../../modules/mongo";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 
@@ -19,6 +20,7 @@ export const update = async (req: Request, res: Response) => {
 }
 
 export const del = async (req: Request, res: Response) => {
+	getCollection("queuedEvents").deleteMany({ uid: res.locals.uid, reminderId: req.params.id });
 	deleteSimpleDocument(req, res, "repeatedTimers");
 }
 

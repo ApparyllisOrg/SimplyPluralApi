@@ -5,6 +5,7 @@ import { ObjectID } from "mongodb";
 import * as Mongo from "../modules/mongo";
 import { parseId } from "../modules/mongo";
 import { documentObject } from "../modules/mongo/baseTypes";
+import { dispatchDelete, OperationType } from "../modules/socket";
 import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
 import { parseForAllowedReadValues } from "../security/readRules";
 
@@ -133,6 +134,12 @@ export const deleteSimpleDocument = async (req: Request, res: Response, collecti
 		]
 	});
 	if (result.deletedCount && result.deletedCount > 0) {
+		dispatchDelete({
+			operationType: OperationType.Delete,
+			uid: res.locals.uid,
+			documentId: req.params.id,
+			collection: collection
+		})
 		res.status(200).send();
 	} else {
 		res.status(404).send();
