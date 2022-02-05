@@ -32,7 +32,7 @@ else {
 	app.use(cors())
 }
 
-const accJson = JSON.parse(fs.readFileSync("../spGoogle.json").toString());
+const accJson = JSON.parse(fs.readFileSync("./spGoogle.json").toString());
 const acc: ServiceAccount = {}
 acc.projectId = accJson.project_id
 acc.privateKey = accJson.private_key;
