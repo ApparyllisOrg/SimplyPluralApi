@@ -47,7 +47,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/comments/:type/:id", isUserAuthenticated(ApiKeyAccessType.Read), comment.getCommentsForDocument)
 	app.get("/v1/comment/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), comment.get)
 	app.post("/v1/comment/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(comment.validateCommentSchema), validateId, comment.add)
-	app.patch("/v1/comment/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(comment.validateUpdateCommentSchema), comment.update)
+	app.patch("/v1/comment/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(comment.validateCommentPatchSchema), comment.update)
 	app.delete("/v1/comment/:id", isUserAuthenticated(ApiKeyAccessType.Delete), comment.del)
 
 	// Polls

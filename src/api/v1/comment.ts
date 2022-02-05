@@ -29,13 +29,13 @@ export const update = async (req: Request, res: Response) => {
 }
 
 export const del = async (req: Request, res: Response) => {
-	const attachedDocument = await getCollection(req.body.collection).findOne({ _id: parseId(req.body.documentId), uid: res.locals.uid });
-	if (!attachedDocument) {
-		res.status(404).send("Document not found for which you wish to remove a comment")
+	const originalComment = await getCollection("comments").findOne({ _id: parseId(req.params.id), uid: res.locals.uid });
+	if (!originalComment) {
+		res.status(404).send("Cannot find the comment you wish to delete")
 	}
 	else {
 		// Decrement the comment count
-		await getCollection(req.body.collection).updateOne({ _id: parseId(req.body.documentId), uid: res.locals.uid }, { $inc: { commentCount: -1 } });
+		await getCollection(originalComment.collection).updateOne({ _id: parseId(originalComment.documentId), uid: res.locals.uid }, { $inc: { commentCount: -1 } });
 		deleteSimpleDocument(req, res, "comments");
 	}
 }
@@ -57,16 +57,16 @@ export const validateCommentSchema = (body: any): { success: boolean, msg: strin
 	return validateSchema(schema, body);
 }
 
-export const validateUpdateCommentSchema = (body: any): { success: boolean, msg: string } => {
+
+export const validateCommentPatchSchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
-			time: { type: "number" },
 			text: { type: "string" },
 		},
 		nullable: false,
 		additionalProperties: false,
-		required: ["time", "text"]
+		required: ["text"]
 	};
 
 	return validateSchema(schema, body);
