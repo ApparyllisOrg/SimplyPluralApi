@@ -69,9 +69,6 @@ export const update150 = async (uid: string) => {
 			votes.push({ id: prop, vote: oldVote[prop].vote, comment: oldVote[prop].comment });
 		}
 
-		console.log(poll);
-		console.log(votes);
-		//
-		//await getCollection("polls").updateOne({ _id: parseId(poll._id), uid }, { $set: { votes } });
+		await getCollection("polls").updateOne({ _id: parseId(poll._id), uid }, { $set: { votes } });
 	}
 }
