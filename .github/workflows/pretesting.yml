@@ -1,0 +1,31 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
+
+name: Deploy pretesting API
+
+on:
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'     
+        required: true
+        default: 'warning'
+      tags:
+        description: 'Test scenario tags'  
+  push:
+    branches: [ pretesting ]
+  pull_request:
+    branches: [ pretesting ]
+
+jobs:
+  build:
+    runs-on: self-hosted
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        ref: pretesting
+    - run: npm install
+    - run: npm run build
+    - run: cp /deploy/pretesting/.env ./dist/.env
+    - run: cp /deploy/pretesting/spGoogle.json ./dist/spGoogle.json
+    - run: runuser -l api -c "pm2 restart pretesting"
