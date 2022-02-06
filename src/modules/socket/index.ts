@@ -45,9 +45,9 @@ export const init = (server: http.Server) => {
 			},
 			clientNoContextTakeover: true,
 			serverNoContextTakeover: true,
-			serverMaxWindowBits: 10,
+			serverMaxWindowBits: 15,
 			concurrencyLimit: 10,
-			threshold: 1024
+			threshold: 100
 		}
 	});
 	_wss.on("connection", (ws) => {
@@ -55,7 +55,7 @@ export const init = (server: http.Server) => {
 		ws?.on('close', () => connections.delete(uniqueId));
 
 		ws.send("{}")
-		connections.set(uniqueId, new Connection(ws));
+		connections.set(uniqueId, new Connection(ws, ""));
 	});
 
 	if (process.env.LOCALEVENTS === "true") {
@@ -84,6 +84,22 @@ const stringToOperationType = (type: string): OperationType => {
 	}
 
 	return OperationType.Add;
+}
+
+const operationTypeToString = (type: OperationType): string => {
+	if (type === OperationType.Add) {
+		return "insert";
+	}
+
+	if (type === OperationType.Update) {
+		return "update";
+	}
+
+	if (type === OperationType.Delete) {
+		return "delete";
+	}
+
+	return "insert";
 }
 
 export const getUserConnections = (uid: string) =>
@@ -118,14 +134,14 @@ export async function dispatch(event: any) {
 	const trustedFriends = friends.filter(f => f.trusted);
 
 	if (event.operationType == "delete")
-		friends.forEach(f => dispatchInner(f, event));
+		friends.forEach(f => dispatchInner(f, innerEventData));
 
 	if (document.private) {
 		if (!document.preventTrusted)
-			trustedFriends.forEach(tf => dispatchInner(tf, event));
+			trustedFriends.forEach(tf => dispatchInner(tf, innerEventData));
 	}
 	else
-		friends.forEach(f => dispatchInner(f, event));
+		friends.forEach(f => dispatchInner(f, innerEventData));
 
 
 	dispatchInner(owner, innerEventData);
@@ -149,7 +165,7 @@ async function dispatchInner(uid: any, event: ChangeEventNative) {
 		if (DatabaseAccess.friendReadCollections.indexOf(event.collection) < 0) {
 			return;
 		}
-		result = { operationType: event.operationType, ...transformResultForClientRead(document, event.uid) };
+		result = { operationType: operationTypeToString(event.operationType), ...transformResultForClientRead(document, event.uid) };
 	}
 
 	const payload = { msg: "update", target: event.collection, results: [result] };
