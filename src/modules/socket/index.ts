@@ -148,7 +148,7 @@ export async function dispatch(event: any) {
 }
 
 export const dispatchDelete = async (event: ChangeEventNative) => {
-	const result = { operationType: "delete", id: event.documentId };
+	const result = { operationType: "delete", id: event.documentId, content: {} };
 	const payload = { msg: "update", target: event.collection, results: [result] };
 
 	for (const conn of getUserConnections(event.uid)) {

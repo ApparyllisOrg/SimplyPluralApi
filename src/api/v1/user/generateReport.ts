@@ -47,7 +47,7 @@ const getAvatarString = (data: any, uid: string): string => {
 
 	if (avatar.length == 0) {
 		// Todo: Make this a better link
-		avatar = "https://apparyllis.com/wp-content/uploads/2021/03/cropped-Apparyllis_Square.png";
+		avatar = "https://sfo3.digitaloceanspaces.com/simply-plural/content/resources/Logo_Apparyllis_Square_1024.png";
 	}
 
 	return avatar;
@@ -74,6 +74,7 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 
 	result = result.replace("{{username}}", user.username);
 	result = result.replace("{{color}}", user.color);
+	result = result.replace("{{avatar}}", getAvatarString(user, uid));
 	result = result.replace("{{desc}}", getDescription(user, descTemplate));
 
 	if (query.members) {
@@ -153,6 +154,7 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	}
 	else {
 		result = result.replace("{{numMembers}}", "");
+		result = result.replace("{{members}}", "");
 	}
 
 

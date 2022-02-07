@@ -327,9 +327,10 @@ export const validateUserReportSchema = (body: any): { success: boolean, msg: st
 		properties: {
 			sendTo: {
 				type: "string",
+				format: "email",
 			},
 			cc: {
-				type: "array", items: { type: "string" },
+				type: "array", items: { type: "string", format: "email" },
 			},
 			frontHistory: {
 				nullable: true,
@@ -363,6 +364,7 @@ export const validateUserReportSchema = (body: any): { success: boolean, msg: st
 		},
 		nullable: false,
 		additionalProperties: false,
+		required: ["sendTo"],
 	};
 
 	return validateSchema(schema, body);
