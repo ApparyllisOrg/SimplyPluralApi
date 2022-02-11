@@ -14,6 +14,7 @@ import { getFriendLevel, isTrustedFriend } from "../../security";
 import { mailerTransport } from "../../modules/mail";
 import { readFile } from "fs";
 import { promisify } from "util";
+import moment from "moment";
 
 const spacesEndpoint = new AWS.Endpoint("sfo3.digitaloceanspaces.com");
 const s3 = new AWS.S3({
@@ -82,10 +83,12 @@ const performReportGeneration = async (req: Request, res: Response) => {
 		ContentType: 'text/html'
 	};
 
+	const reportUrl = "https://simply-plural.sfo3.digitaloceanspaces.com/" + path;
+
 	const getFile = promisify(readFile);
 	let emailTemplate = await getFile("./templates/userReportEmail.html", "utf-8");
 
-	emailTemplate = emailTemplate.replace("{{reportUrl}}", "https://simply-plural.sfo3.digitaloceanspaces.com/" + path)
+	emailTemplate = emailTemplate.replace("{{reportUrl}}", reportUrl)
 
 	mailerTransport?.sendMail({
 		from: '"Apparyllis" <noreply@apparyllis.com>',
@@ -95,12 +98,15 @@ const performReportGeneration = async (req: Request, res: Response) => {
 		html: emailTemplate,
 	})
 
+	// TODO: Expose a getter for all reports associated with a user
+	getCollection("reports").insertOne({ uid: res.locals.uid, url: reportUrl, createdAt: moment.now(), usedSettings: req.body })
+
 	s3.putObject(params, async function (err) {
 		if (err) {
 			logger.error(err)
 			res.status(500).send(err);
 		} else {
-			res.status(200).send({ success: true, msg: "https://simply-plural.sfo3.digitaloceanspaces.com/" + path });
+			res.status(200).send({ success: true, msg: reportUrl });
 		}
 	});
 }

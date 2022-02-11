@@ -13,7 +13,6 @@ import helmet from "helmet";
 import http from "http";
 import dotenv from "dotenv";
 import express from "express";
-import cors from "cors";
 import { validateGetParams, validateOperationTime } from "./util/validation";
 import { startPkController } from "./modules/integrations/pk/controller";
 import { NextFunction, Request, Response } from "express-serve-static-core";
@@ -28,9 +27,6 @@ if (!process.env.DEVELOPMENT) {
 	app.use(Sentry.Handlers.requestHandler());
 	app.use(helmet());
 
-}
-else {
-	app.use(cors())
 }
 
 const accJson = JSON.parse(fs.readFileSync("./spGoogle.json").toString());
