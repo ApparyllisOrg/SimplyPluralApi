@@ -161,6 +161,16 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 			else {
 				memberDataToSync.uid = userId;
 				memberDataToSync.pkId = pkMemberId;
+
+				if (pkMemberResult.data.privacy?.visibility === "private") {
+					memberDataToSync.private = true;
+					memberDataToSync.preventTrusted = true;
+				}
+				else {
+					memberDataToSync.private = false;
+					memberDataToSync.preventTrusted = false;
+				}
+
 				await getCollection("members").insertOne(memberDataToSync)
 				return { success: true, msg: "Member added to Simply Plural" }
 			}

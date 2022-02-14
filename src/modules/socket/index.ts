@@ -157,18 +157,17 @@ export const dispatchDelete = async (event: ChangeEventNative) => {
 }
 
 async function dispatchInner(uid: any, event: ChangeEventNative) {
+
 	let result = {};
 	if (event.operationType === OperationType.Delete) {
 		result = { operationType: "delete", id: event.documentId };
 	} else {
 		const document = await Mongo.getCollection(event.collection).findOne({ _id: Mongo.parseId(event.documentId) });
-		if (DatabaseAccess.friendReadCollections.indexOf(event.collection) < 0) {
-			return;
-		}
 		result = { operationType: operationTypeToString(event.operationType), ...transformResultForClientRead(document, event.uid) };
 	}
 
 	const payload = { msg: "update", target: event.collection, results: [result] };
+
 
 	for (const conn of getUserConnections(uid)) {
 		conn.send(payload);

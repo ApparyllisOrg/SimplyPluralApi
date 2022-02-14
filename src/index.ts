@@ -26,7 +26,6 @@ if (!process.env.DEVELOPMENT) {
 	Sentry.init({ dsn: process.env.SENTRY_DSN });
 	app.use(Sentry.Handlers.requestHandler());
 	app.use(helmet());
-
 }
 
 const accJson = JSON.parse(fs.readFileSync("./spGoogle.json").toString());

@@ -15,6 +15,7 @@ import { mailerTransport } from "../../modules/mail";
 import { readFile } from "fs";
 import { promisify } from "util";
 import moment from "moment";
+import { updateUser } from "./user/updates/updateUser";
 
 const spacesEndpoint = new AWS.Endpoint("sfo3.digitaloceanspaces.com");
 const s3 = new AWS.S3({
@@ -22,7 +23,6 @@ const s3 = new AWS.S3({
 	accessKeyId: process.env.SPACES_KEY,
 	secretAccessKey: process.env.SPACES_SECRET,
 });
-
 
 export const generateReport = async (req: Request, res: Response) => {
 
@@ -120,6 +120,7 @@ export const get = async (req: Request, res: Response) => {
 	// create the user
 	if (!document && ownDocument) {
 		await createUser(res.locals.uid);
+		await updateUser(0, 160, res.locals.uid)
 		document = await getCollection("users").findOne({ uid: res.locals.uid })
 	}
 
