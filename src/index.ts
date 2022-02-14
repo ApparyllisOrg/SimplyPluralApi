@@ -43,7 +43,7 @@ acc.clientEmail = accJson.client_email;
 
 admin.initializeApp({
 	credential: admin.credential.cert(acc),
-	databaseURL: "https://frontime-7aace.firebaseio.com",
+	databaseURL: `https://${accJson.project_id}.firebaseio.com`,
 });
 
 startCollectingUsage();
