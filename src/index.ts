@@ -18,6 +18,9 @@ import { validateGetParams, validateOperationTime } from "./util/validation";
 import { startPkController } from "./modules/integrations/pk/controller";
 import { NextFunction, Request, Response } from "express-serve-static-core";
 
+process.on('uncaughtException', console.error);
+process.on('unhandledRejection', console.error);
+
 const app = express();
 
 dotenv.config();
