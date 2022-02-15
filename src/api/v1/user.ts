@@ -200,6 +200,9 @@ export const deleteAccount = async (req: Request, res: Response) => {
 		return;
 	}
 
+	const userDoc = await getCollection("users").findOne({ uid: res.locals.uid, _id: res.locals.uid })
+	const username = userDoc?.username ?? "";
+
 	const collections = await db()!.listCollections().toArray();
 
 	collections.forEach(async (collection) => {
@@ -216,9 +219,15 @@ export const deleteAccount = async (req: Request, res: Response) => {
 	await getCollection("pendingFriendRequests")
 		.deleteMany({ sender: { $eq: res.locals.uid } });
 
+	const user = await auth().getUser(res.locals.uid)
+
+	const email = user.email ?? "";
+
+	userLog(res.locals.uid, `Pre Delete User ${email} and username ${username}`);
+
 	auth().deleteUser(res.locals.uid);
 
-	userLog(res.locals.uid, "Deleted user");
+	userLog(res.locals.uid, `Post Delete User ${email} and username ${username}`);
 
 	res.status(200).send();
 };
