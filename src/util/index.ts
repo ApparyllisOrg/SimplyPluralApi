@@ -27,7 +27,7 @@ export const notifyUser = async (uid: string, title: string, message: string) =>
 	const privateCollection = Mongo.getCollection("private");
 	const privateFriendData = await privateCollection.findOne({ uid: uid });
 	if (privateFriendData) {
-		privateCollection.updateOne({ uid }, {
+		privateCollection.updateOne({ uid, _id: uid }, {
 				$push: {
 						notificationHistory: {
 								$each: [
