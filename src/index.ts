@@ -4,6 +4,7 @@ import { logger } from "./modules/logger";
 
 import * as socket from "./modules/socket";
 import { setupV1routes } from "./api/v1/routes";
+import setupBaseRoutes from "./api/routes";
 import { startCollectingUsage } from "./modules/usage";
 
 import admin, { ServiceAccount } from "firebase-admin";
@@ -17,6 +18,11 @@ import { validateGetParams, validateOperationTime } from "./util/validation";
 import { startPkController } from "./modules/integrations/pk/controller";
 import { NextFunction, Request, Response } from "express-serve-static-core";
 import { startMailTransport } from "./modules/mail";
+
+if (process.env.DEVELOPMENT) {
+	process.on('uncaughtException', console.error);
+	process.on('unhandledRejection', console.error);
+}
 
 const app = express();
 
@@ -36,7 +42,7 @@ acc.clientEmail = accJson.client_email;
 
 admin.initializeApp({
 	credential: admin.credential.cert(acc),
-	databaseURL: "https://frontime-7aace.firebaseio.com",
+	databaseURL: `https://${accJson.project_id}.firebaseio.com`,
 });
 
 startCollectingUsage();
@@ -57,6 +63,7 @@ app.use(validateGetParams);
 app.use(validateOperationTime);
 
 setupV1routes(app);
+setupBaseRoutes(app);
 
 // Has to be *after* all controllers
 app.use(Sentry.Handlers.errorHandler());
