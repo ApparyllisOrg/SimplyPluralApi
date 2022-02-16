@@ -5,7 +5,7 @@ import { ObjectID } from "mongodb";
 import * as Mongo from "../modules/mongo";
 import { parseId } from "../modules/mongo";
 import { documentObject } from "../modules/mongo/baseTypes";
-import { dispatchDelete, OperationType } from "../modules/socket";
+import { dispatchDelete, notify as socketNotify, OperationType } from "../modules/socket";
 import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
 import { parseForAllowedReadValues } from "../security/readRules";
 
@@ -22,9 +22,26 @@ export function transformResultForClientRead(value: documentObject, requestorUid
 }
 
 export const notifyUser = async (uid: string, title: string, message: string) => {
+	socketNotify(uid, title, message);
+
 	const privateCollection = Mongo.getCollection("private");
 	const privateFriendData = await privateCollection.findOne({ uid: uid });
 	if (privateFriendData) {
+		privateCollection.updateOne({ uid, _id: uid }, {
+				$push: {
+						notificationHistory: {
+								$each: [
+										{
+												timestamp: Date.now(),
+												title,
+												message
+										}
+								],
+								$slice: -30
+						},
+				},
+		});
+
 		const token = privateFriendData["notificationToken"];
 		if (Array.isArray(token)) {
 			token.forEach((element) => {
