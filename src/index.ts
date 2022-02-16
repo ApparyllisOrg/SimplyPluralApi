@@ -19,8 +19,10 @@ import { startPkController } from "./modules/integrations/pk/controller";
 import { NextFunction, Request, Response } from "express-serve-static-core";
 import { startMailTransport } from "./modules/mail";
 
-process.on('uncaughtException', console.error);
-process.on('unhandledRejection', console.error);
+if (process.env.DEVELOPMENT) {
+	process.on('uncaughtException', console.error);
+	process.on('unhandledRejection', console.error);
+}
 
 const app = express();
 
