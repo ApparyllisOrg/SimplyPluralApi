@@ -32,13 +32,12 @@ export default class Connection {
 	private handleAuth = async (token: string) => {
 		const resolvedToken = await validateToken(token);
 
-		const validatedUid = await validateToken(token);
-		if (!validatedUid)
+		if (resolvedToken.accessType == 0)
 			return this.send({ msg: "Authentication violation: Token is missing or invalid. Goodbye :)" }, true);
 
 		this.uid = resolvedToken.uid;
 		console.log(this.uid)
-		this.send({ msg: "Successfully authenticated", validatedUid });
+		this.send({ msg: "Successfully authenticated", resolvedToken });
 	}
 
 	private onClose() {
