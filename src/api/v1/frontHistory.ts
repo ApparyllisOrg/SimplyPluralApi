@@ -56,6 +56,14 @@ export const update = async (req: Request, res: Response) => {
 			return
 		}
 
+		if (req.body.member != null && req.body.member != undefined && frontingDoc.live === true) {
+			const alreadyFrontingDoc = await getCollection("frontHistory").findOne({ member: req.body.member, live: true })
+			if (alreadyFrontingDoc) {
+				res.status(400).send("You cannot change an active front entry to this member, they are already fronting")
+				return
+			}
+		}
+
 		if (frontingDoc.live === true && req.body.live === false) {
 			frontChange(res.locals.uid, true, frontingDoc.member)
 		}

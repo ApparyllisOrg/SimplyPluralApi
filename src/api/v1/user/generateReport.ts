@@ -11,18 +11,20 @@ const fieldKeyToName = (key: string, userData: any) => {
 }
 
 const meetsPrivacyLevel = (data: any, level: number): boolean => {
-	if (level < 1) {
-		if (data.private) {
-			return false;
-		}
-	}
-	else if (level < 2) {
-		if (data.private && data.preventTrusted) {
-			return false;
-		}
+
+	if (level == 0) {
+		return true;
 	}
 
-	return true;
+	if (level == 1) {
+		return !data.private || (data.private && !data.preventTrusted);
+	}
+
+	if (level == 2) {
+		return !data.private && !data.preventTrusted;
+	}
+
+	return false;
 }
 
 const getWrittenPrivacyLevel = (data: any): string => {
@@ -212,9 +214,11 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 		const members = await getCollection("members").find({ uid: uid }).sort({ "name": 1 }).toArray();
 		const customFronts = await getCollection("frontStatuses").find({ uid: uid }).sort({ "name": 1 }).toArray();
 
+		const liveFronters = await getCollection("frontHistory").find({ "live": true }).sort({ "startTime": -1 }).toArray();
+
 		let frontEntries = "";
 
-		history.forEach((value) => {
+		const addEntry = (value: any) => {
 			const documentId = value.member;
 			const foundMember: number = members.findIndex((value) => value._id == documentId);
 			let name = "";
@@ -243,11 +247,33 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 			frontEntry = frontEntry.replace("{{avatar}}", avatar);
 
 			frontEntry = frontEntry.replace("{{start}}", moment(value.startTime).format("dddd, MMMM Do YYYY, h:mm:ss a"));
-			frontEntry = frontEntry.replace("{{end}}", moment(value.endTime).format("dddd, MMMM Do YYYY, h:mm:ss a"));
-			frontEntry = frontEntry.replace("{{duration}}", moment.duration(value.endTime - value.startTime).humanize());
+
+			const status = value.customStatus;
+			if (status) {
+				frontEntry = frontEntry.replace("{{customStatus}}", `Status: ${status}`);
+			}
+			else {
+				frontEntry = frontEntry.replace("{{customStatus}}", ``);
+			}
+
+			if (value.live === true) {
+				frontEntry = frontEntry.replace("{{end}}", "Active front");
+				frontEntry = frontEntry.replace("{{duration}}", moment.duration(moment.now() - value.startTime).humanize());
+			}
+			else {
+				frontEntry = frontEntry.replace("{{end}}", moment(value.endTime).format("dddd, MMMM Do YYYY, h:mm:ss a"));
+				frontEntry = frontEntry.replace("{{duration}}", moment.duration(value.endTime - value.startTime).humanize());
+			}
 
 			frontEntries = frontEntries + frontEntry;
+		}
 
+		liveFronters.forEach((value) => {
+			addEntry(value);
+		});
+
+		history.forEach((value) => {
+			addEntry(value);
 		});
 
 		frontHistory = frontHistory.replace("{{entries}}", frontEntries);

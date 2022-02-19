@@ -51,11 +51,6 @@ export const isUserAuthenticated = function (accessRequested: number): authMiddl
 	}
 };
 
-
-// Only accept updates from user-agent Dart.
-// We know this can easily be circumvented, but this is sp-app-specific data
-// That no client can read, or edit unless they can authenticate with jwt.
-
 export const isUserAppJwtAuthenticated = async (req: Request, res: Response, next: any) => {
 
 	const authorization = req.headers.authorization;
@@ -68,12 +63,9 @@ export const isUserAppJwtAuthenticated = async (req: Request, res: Response, nex
 
 	if (result.jwt === true && result.accessType === FullApiAccess) {
 		res.locals.uid = result.uid;
-		if (req.header("User-Agent")?.startsWith("Dart") === true) {
-			next();
-			logUserUsage(res.locals.uid, `${req.method} - ${req.route.path}`);
-			return;
-		}
-		return rejectEntry(req, res, "You require to be a Dart agent to authenticate.", req.ip);
+		next();
+		return;
+
 	}
 	return rejectEntry(req, res, "You require to be authenticated using a JWT.", req.ip);
 }
