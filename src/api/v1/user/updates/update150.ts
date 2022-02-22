@@ -18,7 +18,7 @@ export const update150 = async (uid: string) => {
 			commentsToInsert.push({ uid, time: comments[j].time._seconds * 1000, text: comments[j].text, collection: "frontHistory", documentId: entry._id })
 		}
 
-		fhCollection.updateOne({ _id: entry._id }, { $sert: { commentCount: comments.length } });
+		fhCollection.updateOne({ _id: entry._id }, { $set: { commentCount: comments.length } });
 	}
 
 	if (commentsToInsert.length > 0)
