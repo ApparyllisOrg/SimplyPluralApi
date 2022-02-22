@@ -36,7 +36,6 @@ export default class Connection {
 			return this.send({ msg: "Authentication violation: Token is missing or invalid. Goodbye :)" }, true);
 
 		this.uid = resolvedToken.uid;
-		console.log(this.uid)
 		this.send({ msg: "Successfully authenticated", resolvedToken });
 	}
 

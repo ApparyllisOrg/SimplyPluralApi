@@ -21,7 +21,8 @@ export const update150 = async (uid: string) => {
 		fhCollection.updateOne({ _id: entry._id }, { $sert: { commentCount: comments.length } });
 	}
 
-	await getCollection("comments").insertMany(commentsToInsert)
+	if (commentsToInsert.length > 0)
+		await getCollection("comments").insertMany(commentsToInsert)
 
 	const fronters = await getCollection("fronters").find({ uid }).toArray()
 
@@ -32,15 +33,17 @@ export const update150 = async (uid: string) => {
 	}
 
 
-	const convertBinaryVotes = (votes: { id: string, comment: string, vote: string }[], toConvert: any[], vote: string) => {
-		for (let i = 0; i < toConvert.length; ++i) {
-			const oldVote = toConvert[i];
-			if (typeof oldVote === "string") {
-				votes.push({ id: oldVote, vote: vote, comment: "" });
-			}
-			else {
-				const oldVoteObj: { id: string, comment: string } = oldVote;
-				votes.push({ id: oldVoteObj.id, vote: vote, comment: oldVoteObj.comment });
+	const convertBinaryVotes = (votes: { id: string, comment: string, vote: string }[], toConvert: any[] | undefined, vote: string) => {
+		if (toConvert) {
+			for (let i = 0; i < toConvert.length; ++i) {
+				const oldVote = toConvert[i];
+				if (typeof oldVote === "string") {
+					votes.push({ id: oldVote, vote: vote, comment: "" });
+				}
+				else {
+					const oldVoteObj: { id: string, comment: string } = oldVote;
+					votes.push({ id: oldVoteObj.id, vote: vote, comment: oldVoteObj.comment });
+				}
 			}
 		}
 	}
@@ -61,12 +64,14 @@ export const update150 = async (uid: string) => {
 		convertBinaryVotes(votes, abstain, "abstain");
 		convertBinaryVotes(votes, veto, "veto");
 
-		const oldVotes: { [key: string]: { comment: string, vote: string } }[] = poll.botes
+		const oldVotes: { [key: string]: { comment: string, vote: string } }[] | undefined = poll.votes
 
-		for (let i = 0; i < oldVotes.length; ++i) {
-			const oldVote: { [key: string]: { comment: string, vote: string } } = oldVotes[i];
-			const prop = Object.getOwnPropertyNames(oldVote)[0];
-			votes.push({ id: prop, vote: oldVote[prop].vote, comment: oldVote[prop].comment });
+		if (oldVotes) {
+			for (let i = 0; i < oldVotes.length; ++i) {
+				const oldVote: { [key: string]: { comment: string, vote: string } } = oldVotes[i];
+				const prop = Object.getOwnPropertyNames(oldVote)[0];
+				votes.push({ id: prop, vote: oldVote[prop].vote, comment: oldVote[prop].comment });
+			}
 		}
 
 		await getCollection("polls").updateOne({ _id: parseId(poll._id), uid }, { $set: { votes } });

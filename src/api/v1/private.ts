@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import moment from "moment";
+import { userLog } from "../../modules/logger";
 import { getCollection, parseId } from "../../modules/mongo";
 import { addSimpleDocument, fetchSimpleDocument, updateSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
@@ -20,6 +21,7 @@ export const update = async (req: Request, res: Response) => {
 	if (previousDocument) {
 		if (previousDocument.latestVersion && previousDocument.latestVersion < req.body.latestVersion) {
 			await updateUser(previousDocument.latestVersion, req.body.latestVersion, res.locals.uid)
+			userLog(res.locals.uid, `Updated user account to version ${req.body.latestVersion}`)
 		}
 		updateSimpleDocument(req, res, "private")
 	}

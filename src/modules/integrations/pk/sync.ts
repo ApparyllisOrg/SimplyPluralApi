@@ -142,7 +142,7 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 			const forceSyncProperties = spMemberResult == null;
 			const memberDataToSync: any = {}
 			if (options.name || forceSyncProperties) {
-				if (options.useDisplayName) {
+				if (options.useDisplayName && pkMemberResult.data.display_name) {
 					memberDataToSync.name = pkMemberResult.data.display_name;
 				} else {
 					memberDataToSync.name = pkMemberResult.data.name;

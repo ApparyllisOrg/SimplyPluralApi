@@ -10,7 +10,6 @@ export const update122 = async (uid: string) => {
 
 	const infoFields: Map<string, any> = new Map<string, any>();
 	const infoFieldConversions: Map<string, any> = new Map<string, any>();
-
 	await members.forEach((member: any) => {
 		const newInfo: Map<string, any> = new Map<string, any>();
 
