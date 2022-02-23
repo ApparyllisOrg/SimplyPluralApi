@@ -155,7 +155,7 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 			if (options.color || forceSyncProperties) memberDataToSync.color = pkMemberResult.data.color;
 
 			if (spMemberResult) {
-				if (memberDataToSync) {
+				if (memberDataToSync && Object.keys(memberDataToSync).length > 0) {
 					await getCollection("members").updateOne({ uid: userId, pkId: pkMemberId }, { $set: memberDataToSync })
 				}
 				return { success: true, msg: "Member updated on Simply Plural" }
