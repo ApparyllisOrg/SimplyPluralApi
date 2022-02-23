@@ -64,19 +64,19 @@ export const tick = async () => {
 			const type = request.type;
 			switch (type) {
 				case PkRequestType.Get: {
-					const result = await axios.get(request.path, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP } }).catch(handleError)
+					const result = await axios.get(request.path, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError)
 					request.response = result
 					pendingResponses.push(request)
 					break
 				}
 				case PkRequestType.Post: {
-					const result = await axios.post(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP } }).catch(handleError)
+					const result = await axios.post(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError)
 					request.response = result
 					pendingResponses.push(request)
 					break
 				}
 				case PkRequestType.Patch: {
-					const result = await axios.patch(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP } }).catch(handleError)
+					const result = await axios.patch(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError)
 					request.response = result
 					pendingResponses.push(request)
 					break
