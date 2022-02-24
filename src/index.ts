@@ -29,7 +29,9 @@ const app = express();
 dotenv.config();
 
 if (!process.env.DEVELOPMENT) {
-	Sentry.init({ dsn: process.env.SENTRY_DSN });
+	if (process.env.SENTRY_DSN) {
+		Sentry.init({ dsn: process.env.SENTRY_DSN });
+	}
 	app.use(Sentry.Handlers.requestHandler());
 	app.use(helmet());
 }

@@ -28,10 +28,12 @@ export const update150 = async (uid: string) => {
 
 	for (let i = 0; i < fronters.length; ++i) {
 		const fronter = fronters[i]
-		const foundMember = await memberCollection.findOne({ _id: parseId(fronter.member) })
+		const foundMember = await memberCollection.findOne({ _id: parseId(fronter._id) })
 		await fhCollection.insertOne({ uid, member: fronter._id, startTime: fronter.startTime, live: true, custom: !foundMember })
 	}
 
+	// Delete any front entries that are NOT live and have no endTime, these entries are old corrupted entries from back in March 2021.
+	await fhCollection.deleteMany({ uid, live: { $ne: true }, endTime: null })
 
 	const convertBinaryVotes = (votes: { id: string, comment: string, vote: string }[], toConvert: any[] | undefined, vote: string) => {
 		if (toConvert) {

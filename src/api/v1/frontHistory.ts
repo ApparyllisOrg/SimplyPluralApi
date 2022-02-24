@@ -52,14 +52,14 @@ export const update = async (req: Request, res: Response) => {
 	const frontingDoc = await getCollection("frontHistory").findOne({ _id: parseId(req.params.id) })
 	if (frontingDoc) {
 		if (frontingDoc.live === false && req.body.live === true) {
-			res.status(400).send("You cannot update a front history entry to live, if you wish to add someone to front, use POST instead.")
+			res.status(409).send("You cannot update a front history entry to live, if you wish to add someone to front, use POST instead.")
 			return
 		}
 
 		if (req.body.member != null && req.body.member != undefined && frontingDoc.live === true) {
 			const alreadyFrontingDoc = await getCollection("frontHistory").findOne({ member: req.body.member, live: true })
 			if (alreadyFrontingDoc) {
-				res.status(400).send("You cannot change an active front entry to this member, they are already fronting")
+				res.status(409).send("You cannot change an active front entry to this member, they are already fronting")
 				return
 			}
 		}
