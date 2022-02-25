@@ -130,6 +130,12 @@ export async function dispatch(event: any) {
 	if (!DatabaseAccess.friendReadCollections.includes(event.ns.coll))
 		return dispatchInner(owner, innerEventData);
 
+	// Disabled for now, we would need to handle things differently on the SDK side, right now updates
+	// Are expected self-owned and we don't send uid alongside it. It would show friend members
+	// in your own members and cause more concern than it's worth at the moment. If SDK is updated
+	// and we can make this a needed-only thing (emitting to all friends at all times is also quite bandwidth intensive when it's not needed)
+	// Then we can readd it.
+	/*
 	const friends = await Mongo.getCollection("friends").find({ uid: owner }).toArray();
 	const trustedFriends = friends.filter(f => f.trusted);
 
@@ -142,6 +148,7 @@ export async function dispatch(event: any) {
 	}
 	else
 		friends.forEach(f => dispatchInner(f, innerEventData));
+		*/
 
 
 	dispatchInner(owner, innerEventData);

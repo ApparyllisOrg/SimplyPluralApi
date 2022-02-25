@@ -4,19 +4,17 @@ import { syncAllPkMembersToSp, syncAllSpMembersToPk, syncMemberToPk } from "../.
 import { validateSchema } from "../../util/validation";
 
 export const performSyncMember = async (req: Request, res: Response) => {
-	const result = await syncMemberToPk(req.body.options, req.body.member, req.body.token, res.locals.uid)
-	if (result.success) {
-		res.status(200).send();
-	}
-	else {
-		res.status(400).send(result.msg);
+	if (req.params.direction === "push") {
+		performSyncMemberToPk(req, res);
+	} else {
+		performSyncMemberFromPk(req, res);
 	}
 }
 
 export const performSyncMemberToPk = async (req: Request, res: Response) => {
 	const result = await syncMemberToPk(req.body.options, req.body.member, req.body.token, res.locals.uid)
 	if (result.success) {
-		res.status(200).send();
+		res.status(200).send({ success: true, msgg: `Synced member with id ${req.body.member} to PluralKit` });
 	}
 	else {
 		res.status(400).send(result.msg);
@@ -26,7 +24,7 @@ export const performSyncMemberToPk = async (req: Request, res: Response) => {
 export const performSyncMemberFromPk = async (req: Request, res: Response) => {
 	const result = await syncMemberToPk(req.body.options, req.body.member, req.body.token, res.locals.uid)
 	if (result.success) {
-		res.status(200).send();
+		res.status(200).send({ success: true, msgg: `Synced member with id ${req.body.member} from PluralKit` });
 	}
 	else {
 		res.status(400).send(result.msg);
@@ -45,22 +43,23 @@ export const performSyncAllMembers = async (req: Request, res: Response) => {
 const performSyncAllMemberToPk = async (req: Request, res: Response) => {
 	const result = await syncAllSpMembersToPk(req.body.options, req.body.syncOptions, req.body.token, res.locals.uid)
 	if (result.success) {
-		res.status(200).send();
+		res.status(200).send({ success: true, msg: `Synced all members to PluralKit` });
 	}
 	else {
-		res.status(400).send(result.msg);
+		res.status(400).send({ success: false, msg: result.msg });
 	}
 }
 
 const performSyncAllMemberFromPk = async (req: Request, res: Response) => {
 	const result = await syncAllPkMembersToSp(req.body.options, req.body.syncOptions, req.body.token, res.locals.uid)
 	if (result.success) {
-		res.status(200).send();
+		res.status(200).send({ success: true, msg: `Synced all members from PluralKit` });
 	}
 	else {
-		res.status(400).send(result.msg);
+		res.status(400).send({ success: false, msg: result.msg });
 	}
 }
+
 
 export const validateSyncDirectionSchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {

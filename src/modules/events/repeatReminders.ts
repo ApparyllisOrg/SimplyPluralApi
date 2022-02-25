@@ -7,12 +7,13 @@ const scheduleReminder = async (uid: string, data: any, userData: any) => {
 
 	const now = new Date();
 
-	const hour = data.time.hour;
-	const minute = data.time.minute;
+	const hour: number = data.time.hour;
+	const minute: number = data.time.minute;
 
 	const timzone: string = userData.location;
-	const formattedTime = data.startTime.year + "-" + data.startTime.month
-		+ "-" + data.startTime.day + " " + hour + ":" + minute;
+	const formattedTime = data.startTime.year + "-" + ("00" + data.startTime.month).slice(-2)
+		+ "-" + data.startTime.day + " " + ("00" + hour).slice(-2) + ":" + ("00" + minute).slice(-2);
+
 	const initialTime = moment.tz(formattedTime, "YYYY-MM-DD HH:mm", true, timzone);
 
 	if (initialTime.valueOf() > now.valueOf()) {
@@ -36,7 +37,7 @@ const scheduleReminder = async (uid: string, data: any, userData: any) => {
 };
 
 export const repeatRemindersEvent = async (uid: string) => {
-	const repeatReminders = getCollection("repeatedReminders");
+	const repeatReminders = getCollection("repeatedTimers");
 	const foundReminders = await repeatReminders.find({ uid: uid }).toArray();
 
 	const privateUserData = await getCollection("private").findOne({ uid: uid });
@@ -53,7 +54,7 @@ export const repeatRemindersDueEvent = async (uid: string, event: any) => {
 	const privateUserData = await getCollection("private").findOne({ uid: uid });
 	if (privateUserData) {
 		notifyUser(uid, "Reminder", event.message);
-		const repeatReminders = getCollection("repeatedReminders");
+		const repeatReminders = getCollection("repeatedTimers");
 		const foundReminder = await repeatReminders.findOne({ uid: uid, _id: event.reminderId });
 		if (foundReminder) { // We can delete the timer
 			scheduleReminder(uid, foundReminder, privateUserData);
