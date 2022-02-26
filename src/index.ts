@@ -18,6 +18,7 @@ import { validateGetParams, validateOperationTime } from "./util/validation";
 import { startPkController } from "./modules/integrations/pk/controller";
 import { NextFunction, Request, Response } from "express-serve-static-core";
 import { startMailTransport } from "./modules/mail";
+import cors from "cors";
 
 if (process.env.DEVELOPMENT) {
 	process.on('uncaughtException', console.error);
@@ -25,6 +26,10 @@ if (process.env.DEVELOPMENT) {
 }
 
 const app = express();
+
+if (process.env.DEVELOPMENT) {
+	app.use(cors())
+}
 
 dotenv.config();
 
