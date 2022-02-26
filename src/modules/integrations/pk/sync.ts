@@ -97,6 +97,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 					const postResult = await addPendingRequest(postRequest)
 					if (postResult) {
 						if (postResult.status === 200) {
+							await getCollection("members").updateOne({ uid: userId, _id: spMemberId }, { $set: { pkId: postResult.data.id } })
 							return { success: true, msg: "Member added to Plural Kit" }
 						}
 						else {
@@ -115,6 +116,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 				const postResult = await addPendingRequest(postRequest)
 				if (postResult) {
 					if (postResult.status === 200) {
+						await getCollection("members").updateOne({ uid: userId, _id: spMemberId }, { $set: { pkId: postResult.data.id } })
 						return { success: true, msg: "Member added to Plural Kit" }
 					}
 					else {

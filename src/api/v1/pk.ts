@@ -1,10 +1,10 @@
 
 import { Request, Response } from "express";
-import { syncAllPkMembersToSp, syncAllSpMembersToPk, syncMemberToPk } from "../../modules/integrations/pk/sync"
+import { syncAllPkMembersToSp, syncAllSpMembersToPk, syncMemberFromPk, syncMemberToPk } from "../../modules/integrations/pk/sync"
 import { validateSchema } from "../../util/validation";
 
 export const performSyncMember = async (req: Request, res: Response) => {
-	if (req.params.direction === "push") {
+	if (req.query.direction === "push") {
 		performSyncMemberToPk(req, res);
 	} else {
 		performSyncMemberFromPk(req, res);
@@ -22,7 +22,7 @@ export const performSyncMemberToPk = async (req: Request, res: Response) => {
 }
 
 export const performSyncMemberFromPk = async (req: Request, res: Response) => {
-	const result = await syncMemberToPk(req.body.options, req.body.member, req.body.token, res.locals.uid)
+	const result = await syncMemberFromPk(req.body.options, req.body.member, req.body.token, res.locals.uid)
 	if (result.success) {
 		res.status(200).send({ success: true, msgg: `Synced member with id ${req.body.member} from PluralKit` });
 	}

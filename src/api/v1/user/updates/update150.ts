@@ -102,4 +102,18 @@ export const update150 = async (uid: string) => {
 
 		await getCollection("notes").updateOne({ _id: parseId(note._id), uid }, { $set: { color: colorString } });
 	}
+
+	// Fully deprecate old pk as sp ids,
+	// Store pk id as document id if no valid pk id is stored in the member
+	const members = await getCollection("members").find({ uid }).toArray();
+	for (let i = 0; i < members.length; ++i) {
+		const member = members[i]
+
+		const pkId: string | undefined = member.pkId;
+		const spId: string = member._id;
+
+		if (spId.length == 5 && (!pkId || pkId.length != 5)) {
+			await getCollection("members").updateOne({ _id: spId, uid }, { $set: { pkId: spId } });
+		}
+	}
 }

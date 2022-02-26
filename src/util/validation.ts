@@ -27,8 +27,6 @@ export const validateQuery = (func: schemavalidation) => {
 	return async (req: Request, res: Response, next: any) => {
 		const result = func(req.query);
 		if (!result.success) {
-			console.log(result.msg)
-			console.log(req.query)
 			res.status(400).send(result.msg);
 		}
 		else {
