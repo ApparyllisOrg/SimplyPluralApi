@@ -111,7 +111,7 @@ export const RespondToFriendRequest = async (req: Request, res: Response) => {
 
 	if (friendLevel & FriendLevel.Pending) {
 		await AcceptFriendRequest(targtUid, res.locals.uid, accept, req.body.settings);
-		res.status(200).send({ success: true, msg: "Friend request accepted" });
+		res.status(200).send({ success: true, msg: accept ? "Friend request accepted" : "Friend request rejected" });
 		return;
 	}
 
