@@ -69,7 +69,7 @@ export const canSeeMembers = async (owner: string, requestor: string): Promise<b
 		return false
 	}
 
-	friendLevelLRU.set(owner + requestor, friendDoc.seeMembers);
+	seeMembersLRU.set(owner + requestor, friendDoc.seeMembers);
 	return friendDoc.seeMembers;
 };
 
