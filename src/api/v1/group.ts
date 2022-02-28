@@ -38,7 +38,7 @@ const delGroupRecursive = async (groupId: string, uid: string) => {
 	for (let i = 0; i < groups.length; i++) {
 		await delGroupRecursive(groups[i]._id, uid)
 	}
-	await getCollection("groups").deleteOne({ uid, _id: groupId })
+	await getCollection("groups").deleteOne({ uid, _id: parseId(groupId) })
 	dispatchDelete({
 		operationType: OperationType.Delete,
 		uid,

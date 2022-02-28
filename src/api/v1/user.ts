@@ -167,8 +167,6 @@ export const update = async (req: Request, res: Response) => {
 export const SetUsername = async (req: Request, res: Response) => {
 	const newUsername: string = req.body["username"].trim();
 
-	console.log("Attempt to set username to: " + newUsername);
-
 	if (newUsername.length < 3) {
 		res.status(200).send({ success: false, msg: "Username must be at least 3 characters" });
 		return;
