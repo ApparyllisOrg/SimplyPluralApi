@@ -29,3 +29,8 @@ export const log = (message: string) => {
 export const logSecurity = (message: string) => {
 	logger.log("security", message);
 };
+
+export const consoleLogTimestamp = (str: string) => {
+	const date = new Date();
+	console.log(`[${date.getFullYear()}-${date.getMonth()}-${date.getDay()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}-${date.getMilliseconds()}] ${str}`)
+}

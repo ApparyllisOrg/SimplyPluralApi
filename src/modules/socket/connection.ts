@@ -6,6 +6,7 @@ export default class Connection {
 	constructor(private ws: WebSocket | undefined, public uid: string | undefined) {
 		ws?.on('close', this.onClose);
 		ws?.on('message', this.onMessage);
+		ws?.on('pong', () => { ws.ping() })
 	}
 
 	private onMessage = async (message: string) => {
