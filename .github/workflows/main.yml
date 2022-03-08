@@ -21,7 +21,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        ref: pretesting
+        ref: main
     - run: npm install
     - run: npm run build
     - run: cp /deploy/production/.env ./dist/.env
