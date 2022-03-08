@@ -11,9 +11,9 @@ on:
         required: true
         default: 'warning'
   push:
-    branches: [ pretesting ]
+    branches: [ main ]
   pull_request:
-    branches: [ pretesting ]
+    branches: [ main ]
 
 jobs:
   build:
