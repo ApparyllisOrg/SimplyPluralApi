@@ -23,7 +23,7 @@
 		"@types/lru-cache": "^5.1.1",
 		"@types/moment": "^2.13.0",
 		"@types/moment-timezone": "^0.5.30",
-		"@types/mongodb": "^3.6.20",
+		"@types/mongodb": "^4.0.7",
 		"@types/nodemailer": "^6.4.4",
 		"@types/puppeteer": "^5.4.4",
 		"@types/redis": "^2.8.32",
