@@ -1,4 +1,6 @@
 import { Request, Response } from "express";
+import { repeatRemindersEvent } from "../../modules/events/repeatReminders";
+import { getCollection } from "../../modules/mongo";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 
@@ -11,15 +13,18 @@ export const get = async (req: Request, res: Response) => {
 }
 
 export const add = async (req: Request, res: Response) => {
-	console.log(req)
-	addSimpleDocument(req, res, "repeatedTimers");
+	await addSimpleDocument(req, res, "repeatedTimers");
+	repeatRemindersEvent(res.locals.uid)
 }
 
 export const update = async (req: Request, res: Response) => {
-	updateSimpleDocument(req, res, "repeatedTimers")
+	await updateSimpleDocument(req, res, "repeatedTimers")
+	repeatRemindersEvent(res.locals.uid)
+
 }
 
 export const del = async (req: Request, res: Response) => {
+	getCollection("queuedEvents").deleteMany({ uid: res.locals.uid, reminderId: req.params.id });
 	deleteSimpleDocument(req, res, "repeatedTimers");
 }
 

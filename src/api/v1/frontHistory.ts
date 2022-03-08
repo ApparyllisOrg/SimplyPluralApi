@@ -8,10 +8,10 @@ import { validateSchema } from "../../util/validation";
 export const getFrontHistoryInRange = async (req: Request, res: Response) => {
 	const query = {
 		$or: [
-			{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $lte: Number(req.query.endTime) } }, // Starts before, ends after
-			{ startTime: { $lte: Number(req.query.startTime) }, endTime: { $gte: Number(req.query.startTime) } }, // Starts before, ends before
-			{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $lte: Number(req.query.endTime) } }, // Starts after, ends before
-			{ startTime: { $lte: Number(req.query.endTime) }, endTime: { $gte: Number(req.query.endTime) } } //Starts after, ends after
+			{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $gte: Number(req.query.endTime) } }, // starts after start, ends after end
+			{ startTime: { $lte: Number(req.query.startTime) }, endTime: { $gte: Number(req.query.startTime) } }, //start before start, ends after start
+			{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $lte: Number(req.query.endTime) } }, // start after start, ends before end
+			{ startTime: { $lte: Number(req.query.endTime) }, endTime: { $gte: Number(req.query.endTime) } } //Starts before end, ends after end
 		]
 	}
 
@@ -52,8 +52,16 @@ export const update = async (req: Request, res: Response) => {
 	const frontingDoc = await getCollection("frontHistory").findOne({ _id: parseId(req.params.id) })
 	if (frontingDoc) {
 		if (frontingDoc.live === false && req.body.live === true) {
-			res.status(400).send("You cannot update a front history entry to live, if you wish to add someone to front, use POST instead.")
+			res.status(409).send("You cannot update a front history entry to live, if you wish to add someone to front, use POST instead.")
 			return
+		}
+
+		if (req.body.member != null && req.body.member != undefined && frontingDoc.live === true) {
+			const alreadyFrontingDoc = await getCollection("frontHistory").findOne({ member: req.body.member, live: true })
+			if (alreadyFrontingDoc && alreadyFrontingDoc._id != req.params.id) {
+				res.status(409).send("You cannot change an active front entry to this member, they are already fronting")
+				return
+			}
 		}
 
 		if (frontingDoc.live === true && req.body.live === false) {

@@ -7,7 +7,7 @@ export const notifyOfFrontChange = async (uid: string, removed: boolean, memberI
 	if (removed === true)
 		return;
 
-	const automatedReminders = getCollection("automatedReminders");
+	const automatedReminders = getCollection("automatedTimers");
 	const foundReminders = await automatedReminders.find({ uid: uid }).toArray();
 
 	const foundMember = await getCollection("members").findOne({ _id: parseId(memberId) })
@@ -47,7 +47,7 @@ export const scheduleAutomatedReminder = async (uid: string, data: any) => {
 };
 
 export const automatedRemindersDueEvent = async (uid: string, event: any) => {
-	const automatedReminders = getCollection("automatedReminders");
+	const automatedReminders = getCollection("automatedTimers");
 	const foundReminder = await automatedReminders.findOne({ uid: uid, _id: event.reminderId });
 	if (foundReminder) { // We can delete the timer
 		notifyUser(uid, "Reminder", foundReminder.message);
@@ -55,7 +55,7 @@ export const automatedRemindersDueEvent = async (uid: string, event: any) => {
 };
 
 export const removeDeletedReminders = async (uid: string) => {
-	const automatedReminders = getCollection("automatedReminders");
+	const automatedReminders = getCollection("automatedTimers");
 	const queuedEvents = getCollection("queuedEvents");
 
 	const foundReminders = await automatedReminders.find({ uid: uid }).toArray();

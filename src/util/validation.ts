@@ -1,10 +1,12 @@
 import { validationResult } from "express-validator";
 import { NextFunction, Request, Response } from "express";
+import addFormats from "ajv-formats"
 
 import Ajv from "ajv";
 import { ObjectId } from "mongodb";
 import moment from "moment";
 const ajv = new Ajv({ allErrors: true, $data: true })
+addFormats(ajv)
 
 export async function validateData(req: Request, res: Response, next: any) {
 	const errors = validationResult(req);
@@ -25,8 +27,6 @@ export const validateQuery = (func: schemavalidation) => {
 	return async (req: Request, res: Response, next: any) => {
 		const result = func(req.query);
 		if (!result.success) {
-			console.log(result.msg)
-			console.log(req.query)
 			res.status(400).send(result.msg);
 		}
 		else {

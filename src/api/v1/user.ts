@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import shortUUID from "short-uuid";
-import { userLog } from "../../modules/logger";
+import { logger, userLog } from "../../modules/logger";
 import { db, getCollection } from "../../modules/mongo";
 import { sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
@@ -11,6 +11,11 @@ import AWS from "aws-sdk";
 import { nanoid } from "nanoid";
 import { auth } from "firebase-admin";
 import { getFriendLevel, isTrustedFriend } from "../../security";
+import { mailerTransport } from "../../modules/mail";
+import { readFile } from "fs";
+import { promisify } from "util";
+import moment from "moment";
+import { updateUser } from "./user/updates/updateUser";
 
 const spacesEndpoint = new AWS.Endpoint("sfo3.digitaloceanspaces.com");
 const s3 = new AWS.S3({
@@ -18,7 +23,6 @@ const s3 = new AWS.S3({
 	accessKeyId: process.env.SPACES_KEY,
 	secretAccessKey: process.env.SPACES_SECRET,
 });
-
 
 export const generateReport = async (req: Request, res: Response) => {
 
@@ -79,12 +83,30 @@ const performReportGeneration = async (req: Request, res: Response) => {
 		ContentType: 'text/html'
 	};
 
+	const reportUrl = "https://simply-plural.sfo3.digitaloceanspaces.com/" + path;
+
+	const getFile = promisify(readFile);
+	let emailTemplate = await getFile("./templates/userReportEmail.html", "utf-8");
+
+	emailTemplate = emailTemplate.replace("{{reportUrl}}", reportUrl)
+
+	mailerTransport?.sendMail({
+		from: '"Apparyllis" <noreply@apparyllis.com>',
+		to: req.body.sendTo,
+		cc: req.body.cc,
+		subject: "Your user report",
+		html: emailTemplate,
+	})
+
+	// TODO: Expose a getter for all reports associated with a user
+	getCollection("reports").insertOne({ uid: res.locals.uid, url: reportUrl, createdAt: moment.now(), usedSettings: req.body })
+
 	s3.putObject(params, async function (err) {
 		if (err) {
-			console.log(err)
+			logger.error(err)
 			res.status(500).send(err);
 		} else {
-			res.status(200).send({ success: true, msg: "https://simply-plural.sfo3.digitaloceanspaces.com/" + path });
+			res.status(200).send({ success: true, msg: reportUrl });
 		}
 	});
 }
@@ -98,6 +120,7 @@ export const get = async (req: Request, res: Response) => {
 	// create the user
 	if (!document && ownDocument) {
 		await createUser(res.locals.uid);
+		await updateUser(0, 160, res.locals.uid)
 		document = await getCollection("users").findOne({ uid: res.locals.uid })
 	}
 
@@ -144,8 +167,6 @@ export const update = async (req: Request, res: Response) => {
 export const SetUsername = async (req: Request, res: Response) => {
 	const newUsername: string = req.body["username"].trim();
 
-	console.log("Attempt to set username to: " + newUsername);
-
 	if (newUsername.length < 3) {
 		res.status(200).send({ success: false, msg: "Username must be at least 3 characters" });
 		return;
@@ -177,6 +198,9 @@ export const deleteAccount = async (req: Request, res: Response) => {
 		return;
 	}
 
+	const userDoc = await getCollection("users").findOne({ uid: res.locals.uid, _id: res.locals.uid })
+	const username = userDoc?.username ?? "";
+
 	const collections = await db()!.listCollections().toArray();
 
 	collections.forEach(async (collection) => {
@@ -193,9 +217,15 @@ export const deleteAccount = async (req: Request, res: Response) => {
 	await getCollection("pendingFriendRequests")
 		.deleteMany({ sender: { $eq: res.locals.uid } });
 
+	const user = await auth().getUser(res.locals.uid)
+
+	const email = user.email ?? "";
+
+	userLog(res.locals.uid, `Pre Delete User ${email} and username ${username}`);
+
 	auth().deleteUser(res.locals.uid);
 
-	userLog(res.locals.uid, "Deleted user");
+	userLog(res.locals.uid, `Post Delete User ${email} and username ${username}`);
 
 	res.status(200).send();
 };
@@ -309,16 +339,13 @@ export const validateUserReportSchema = (body: any): { success: boolean, msg: st
 	const schema = {
 		type: "object",
 		properties: {
-			/*	TODO: Enable mail delivery of the report
 			sendTo: {
-
 				type: "string",
+				format: "email",
 			},
 			cc: {
-
-				type: "array", items: { type: "string" },
+				type: "array", items: { type: "string", format: "email" },
 			},
-			*/
 			frontHistory: {
 				nullable: true,
 				type: "object",
@@ -351,6 +378,7 @@ export const validateUserReportSchema = (body: any): { success: boolean, msg: st
 		},
 		nullable: false,
 		additionalProperties: false,
+		required: ["sendTo"],
 	};
 
 	return validateSchema(schema, body);

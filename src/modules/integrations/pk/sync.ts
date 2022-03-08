@@ -1,3 +1,4 @@
+import { BulkWriteOperation } from "mongodb";
 import { getCollection, parseId } from "../../mongo"
 import { addPendingRequest, PkRequest, PkRequestType } from "./controller"
 
@@ -97,6 +98,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 					const postResult = await addPendingRequest(postRequest)
 					if (postResult) {
 						if (postResult.status === 200) {
+							await getCollection("members").updateOne({ uid: userId, _id: spMemberId }, { $set: { pkId: postResult.data.id } })
 							return { success: true, msg: "Member added to Plural Kit" }
 						}
 						else {
@@ -115,6 +117,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 				const postResult = await addPendingRequest(postRequest)
 				if (postResult) {
 					if (postResult.status === 200) {
+						await getCollection("members").updateOne({ uid: userId, _id: spMemberId }, { $set: { pkId: postResult.data.id } })
 						return { success: true, msg: "Member added to Plural Kit" }
 					}
 					else {
@@ -131,46 +134,77 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 	return { success: false, msg: "Member does not exist in Simply Plural for this account." }
 }
 
-export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string, token: string, userId: string): Promise<{ success: boolean, msg: string }> => {
-	const getRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${pkMemberId}`, token, response: null, data: undefined, type: PkRequestType.Get }
-	const pkMemberResult = await addPendingRequest(getRequest)
+export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string, token: string, userId: string, memberData: any | undefined, batch: BulkWriteOperation<any>[] | undefined): Promise<{ success: boolean, msg: string }> => {
 
-	if (pkMemberResult) {
-		if (pkMemberResult.status === 200) {
+	let data: any | undefined = memberData;
 
-			const memberDataToSync: any = {}
-			if (options.name) {
-				if (options.useDisplayName) {
-					memberDataToSync.name = pkMemberResult.data.display_name;
-				} else {
-					memberDataToSync.name = pkMemberResult.data.name;
-				}
-			}
-
-			if (options.avatar) memberDataToSync.avatarUrl = pkMemberResult.data.avatar_url;
-			if (options.pronouns) memberDataToSync.pronouns = pkMemberResult.data.pronouns;
-			if (options.description) memberDataToSync.desc = pkMemberResult.data.description;
-			if (options.color) memberDataToSync.color = pkMemberResult.data.color;
-
-			const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: pkMemberId })
-
-			if (spMemberResult) {
-				await getCollection("members").updateOne({ uid: userId, pkId: pkMemberId }, { $set: memberDataToSync })
-				return { success: true, msg: "Member updated on Simply Plural" }
+	if (!memberData) {
+		const getRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${pkMemberId}`, token, response: null, data: undefined, type: PkRequestType.Get }
+		const pkMemberResult = await addPendingRequest(getRequest)
+		if (pkMemberResult) {
+			if (pkMemberResult.status === 200) {
+				data = pkMemberResult.data;
 			}
 			else {
-				memberDataToSync.uid = userId;
-				memberDataToSync.pkId = pkMemberId;
-				await getCollection("members").insertOne(memberDataToSync)
-				return { success: true, msg: "Member added to Simply Plural" }
+				return { success: false, msg: `${pkMemberResult.status.toString()} - ${pkMemberResult.statusText}` }
 			}
 		}
 		else {
-			return { success: false, msg: `${pkMemberResult.status.toString()} - ${pkMemberResult.statusText}` }
+			return { success: false, msg: `Internal error in plural kit controller` }
 		}
 	}
+
+	const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: pkMemberId })
+	const forceSyncProperties = spMemberResult == null;
+	const memberDataToSync: any = {}
+	if (options.name || forceSyncProperties) {
+		if (options.useDisplayName && data.display_name) {
+			memberDataToSync.name = data.display_name;
+		} else {
+			memberDataToSync.name = data.name;
+		}
+	}
+
+	if (options.avatar || forceSyncProperties) memberDataToSync.avatarUrl = data.avatar_url;
+	if (options.pronouns || forceSyncProperties) memberDataToSync.pronouns = data.pronouns;
+	if (options.description || forceSyncProperties) memberDataToSync.desc = data.description;
+	if (options.color || forceSyncProperties) memberDataToSync.color = data.color;
+
+	if (spMemberResult) {
+		if (memberDataToSync && Object.keys(memberDataToSync).length > 0) {
+			{
+				if (batch) {
+					batch.push({ updateOne: { update: { $set: memberDataToSync }, filter: { uid: userId, pkId: pkMemberId } }, })
+				}
+				else {
+					await getCollection("members").updateOne({ uid: userId, pkId: pkMemberId }, { $set: memberDataToSync }, {})
+				}
+			}
+
+		}
+		return { success: true, msg: "Member updated on Simply Plural" }
+	}
 	else {
-		return { success: false, msg: `Internal error in plural kit controller` }
+		memberDataToSync.uid = userId;
+		memberDataToSync.pkId = pkMemberId;
+
+		if (memberData.privacy?.visibility === "private") {
+			memberDataToSync.private = true;
+			memberDataToSync.preventTrusted = true;
+		}
+		else {
+			memberDataToSync.private = false;
+			memberDataToSync.preventTrusted = false;
+		}
+
+		if (batch) {
+			batch.push({ insertOne: { document: memberDataToSync } })
+		}
+		else {
+			await getCollection("members").insertOne(memberDataToSync)
+		}
+
+		return { success: true, msg: "Member added to Simply Plural" }
 	}
 }
 
@@ -179,9 +213,9 @@ export const syncAllSpMembersToPk = async (options: syncOptions, allSyncOptions:
 	for (let i = 0; i < spMembersResult.length; ++i) {
 		const member = spMembersResult[i];
 		if (member.pkId && allSyncOptions.overwrite) {
-			await syncMemberToPk(options, member._id, token, userId);
+			syncMemberToPk(options, member._id, token, userId);
 		} else if (!member.pkId && allSyncOptions.add) {
-			await syncMemberToPk(options, member._id, token, userId);
+			syncMemberToPk(options, member._id, token, userId);
 		}
 	}
 
@@ -195,19 +229,26 @@ export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions:
 		if (pkMembersResult.status === 200) {
 
 			const foundMembers: any[] = pkMembersResult.data
+			const promises: Promise<{ success: boolean, msg: string }>[] = [];
+
+			const bulkWrites: BulkWriteOperation<any>[] = []
 
 			for (let i = 0; i < foundMembers.length; ++i) {
 				const member = foundMembers[i];
 
 				const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: parseId(member.id) })
 				if (spMemberResult && allSyncOptions.overwrite) {
-					await syncMemberFromPk(options, member.id, token, userId);
+					promises.push(syncMemberFromPk(options, member.id, token, userId, foundMembers[i], bulkWrites));
 				}
 
 				if (!spMemberResult && allSyncOptions.add) {
-					await syncMemberFromPk(options, member.id, token, userId);
+					promises.push(syncMemberFromPk(options, member.id, token, userId, foundMembers[i], bulkWrites));
 				}
 			}
+
+			await Promise.all(promises);
+
+			getCollection("members").bulkWrite(bulkWrites);
 
 			return { success: true, msg: "" }
 		}

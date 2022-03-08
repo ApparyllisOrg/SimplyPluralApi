@@ -3,14 +3,17 @@ import { validateToken } from "../../security/auth";
 
 export type destroyCallback = () => void;
 export default class Connection {
-	uid?: string;
-
-	constructor(private ws: WebSocket | undefined) {
+	constructor(private ws: WebSocket | undefined, public uid: string | undefined) {
 		ws?.on('close', this.onClose);
 		ws?.on('message', this.onMessage);
+		ws?.on('pong', () => { ws.ping() })
 	}
 
-	private async onMessage(message: string) {
+	private onMessage = async (message: string) => {
+
+		// Ignore ping messages
+		if (message == "ping") return;
+
 		let json;
 		try {
 			json = JSON.parse(message);
@@ -27,15 +30,14 @@ export default class Connection {
 		}
 	}
 
-	private async handleAuth(token: string) {
+	private handleAuth = async (token: string) => {
 		const resolvedToken = await validateToken(token);
 
-		const uid = await validateToken(token);
-		if (!uid)
+		if (resolvedToken.accessType == 0)
 			return this.send({ msg: "Authentication violation: Token is missing or invalid. Goodbye :)" }, true);
 
 		this.uid = resolvedToken.uid;
-		this.send({ msg: "Successfully authenticated", uid });
+		this.send({ msg: "Successfully authenticated", resolvedToken });
 	}
 
 	private onClose() {

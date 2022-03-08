@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
+import { dispatchDelete, OperationType } from "../../modules/socket";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection } from "../../util";
 import { validateSchema } from "../../util/validation";
 
@@ -35,9 +36,15 @@ export const del = async (req: Request, res: Response) => {
 const delGroupRecursive = async (groupId: string, uid: string) => {
 	const groups = await getCollection("groups").find({ uid, parent: groupId }).toArray()
 	for (let i = 0; i < groups.length; i++) {
-		await delGroupRecursive(groupId, uid)
+		await delGroupRecursive(groups[i]._id, uid)
 	}
-	await getCollection("groups").deleteOne({ uid, _id: groupId })
+	await getCollection("groups").deleteOne({ uid, _id: parseId(groupId) })
+	dispatchDelete({
+		operationType: OperationType.Delete,
+		uid,
+		documentId: groupId,
+		collection: "groups"
+	})
 }
 
 const privateGroupRecursive = async (groupId: string, uid: string, priv: boolean, preventTrusted: boolean) => {
