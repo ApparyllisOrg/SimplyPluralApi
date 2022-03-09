@@ -8,6 +8,13 @@ export const update122 = async (uid: string) => {
 	const users = getCollection("users");
 	const members = membersCollection.find({ uid: uid });
 
+	const user = await users.findOne({ uid })
+
+	// Don't run update if we already have fields...
+	if (user.fields) {
+		return;
+	}
+
 	const infoFields: Map<string, any> = new Map<string, any>();
 	const infoFieldConversions: Map<string, any> = new Map<string, any>();
 	await members.forEach((member: any) => {
