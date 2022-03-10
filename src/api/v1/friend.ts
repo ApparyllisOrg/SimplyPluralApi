@@ -122,9 +122,10 @@ export const getFriendFront = async (req: Request, res: Response) => {
 	const friendFronts = await getCollection("frontHistory").find({ uid: req.params.id, live: true }).toArray();
 
 	const frontingList = []
+	const frontingStatuses: { [key: string]: string } = {}
 
 	for (let i = 0; i < friendFronts.length; ++i) {
-		const { member } = friendFronts[i]
+		const { member, customStatus } = friendFronts[i]
 		const memberDoc = await getCollection("members").findOne({ _id: parseId(member) });
 		if (memberDoc) {
 			const { preventTrusted } = memberDoc;
@@ -132,6 +133,9 @@ export const getFriendFront = async (req: Request, res: Response) => {
 			const canAccess = await canAccessDocument(res.locals.uid, req.params.id, memberDoc.private, preventTrusted);
 			if (canAccess === true) {
 				frontingList.push(member);
+				if (customStatus) {
+					frontingStatuses[member] = customStatus;
+				}
 			}
 		}
 		const customFrontDoc = await getCollection("frontStatuses").findOne({ _id: parseId(member) });
@@ -141,11 +145,14 @@ export const getFriendFront = async (req: Request, res: Response) => {
 			const canAccess = await canAccessDocument(res.locals.uid, req.params.id, customFrontDoc.private, preventTrusted);
 			if (canAccess === true) {
 				frontingList.push(member);
+				if (customStatus) {
+					frontingStatuses[member] = customStatus;
+				}
 			}
 		}
 	}
 
-	res.status(200).send(JSON.stringify(frontingList));
+	res.status(200).send({ fronters: frontingList, statuses: frontingStatuses });
 };
 
 export const validatePatchFriendSchema = (body: any): { success: boolean, msg: string } => {
