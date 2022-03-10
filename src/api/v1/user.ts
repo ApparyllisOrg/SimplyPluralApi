@@ -294,6 +294,7 @@ export const validateUserSchema = (body: any): { success: boolean, msg: string }
 			fromFirebase: { type: "boolean" },
 			isAsystem: { type: "boolean" },
 			avatarUuid: { type: "string" },
+			avatarUrl: { type: "string" },
 			color: { type: "string" },
 			fields: {
 				type: "object",
