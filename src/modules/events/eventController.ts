@@ -66,5 +66,5 @@ export const init = () => {
 	// getting queued events is atomic, so only one server handles the documents it got returned
 	// We don't want to run runEvents twice on two servers and have it return
 	// the same events on both. It needs to return atomically.
-	if (!process.env.DEVELOPMENT || process.env.LOCALEVENTS) bindEvents();
+	if (!process.env.DEVELOPMENT && process.env.LOCALEVENTS) bindEvents();
 };

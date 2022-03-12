@@ -58,7 +58,7 @@ export const init = (server: http.Server) => {
 		connections.set(uniqueId, new Connection(ws, ""));
 	});
 
-	if (process.env.LOCALEVENTS === "true") {
+	if (process.env.SOCKETEMIT === "true") {
 		listenCollections.forEach((collection) => {
 			const changeStream = Mongo.getCollection(collection).watch([], { fullDocument: "updateLookup" });
 			changeStream.on("change", next => {
