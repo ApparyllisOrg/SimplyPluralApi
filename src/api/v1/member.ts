@@ -88,7 +88,8 @@ export const validateMemberSchema = (body: any): { success: boolean, msg: string
 			avatarUrl: { type: "string" },
 			private: { type: "boolean" },
 			preventTrusted: { type: "boolean" },
-			preventFrontNotifs: { type: "boolean" },
+			preventsFrontNotifs
+				: { type: "boolean" },
 			info: {
 				type: "object",
 				properties: {
