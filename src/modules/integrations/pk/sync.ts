@@ -197,6 +197,8 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 			memberDataToSync.preventTrusted = false;
 		}
 
+		memberDataToSync.preventsFrontNotifs = false;
+
 		if (batch) {
 			batch.push({ insertOne: { document: memberDataToSync } })
 		}
