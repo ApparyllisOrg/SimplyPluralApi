@@ -7,12 +7,14 @@ import { validateSchema } from "../../util/validation";
 
 export const getFrontHistoryInRange = async (req: Request, res: Response) => {
 	const query = {
-		$or: [
-			{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $gte: Number(req.query.endTime) } }, // starts after start, ends after end
-			{ startTime: { $lte: Number(req.query.startTime) }, endTime: { $gte: Number(req.query.startTime) } }, //start before start, ends after start
-			{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $lte: Number(req.query.endTime) } }, // start after start, ends before end
-			{ startTime: { $lte: Number(req.query.endTime) }, endTime: { $gte: Number(req.query.endTime) } } //Starts before end, ends after end
-		]
+		$and: [{ uid: res.locals.uid }, {
+			$or: [
+				{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $gte: Number(req.query.endTime) } }, // starts after start, ends after end
+				{ startTime: { $lte: Number(req.query.startTime) }, endTime: { $gte: Number(req.query.startTime) } }, //start before start, ends after start
+				{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $lte: Number(req.query.endTime) } }, // start after start, ends before end
+				{ startTime: { $lte: Number(req.query.endTime) }, endTime: { $gte: Number(req.query.endTime) } } //Starts before end, ends after end
+			]
+		}]
 	}
 
 	const documents: documentObject[] = await getCollection("frontHistory").find(query).toArray()
