@@ -5,27 +5,27 @@ import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchColl
 import { validateSchema } from "../../util/validation";
 
 export const getRepeatedTimers = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "repeatedTimers", {});
+	fetchCollection(req, res, "repeatedReminders", {});
 }
 
 export const get = async (req: Request, res: Response) => {
-	fetchSimpleDocument(req, res, "repeatedTimers");
+	fetchSimpleDocument(req, res, "repeatedReminders");
 }
 
 export const add = async (req: Request, res: Response) => {
-	await addSimpleDocument(req, res, "repeatedTimers");
+	await addSimpleDocument(req, res, "repeatedReminders");
 	repeatRemindersEvent(res.locals.uid)
 }
 
 export const update = async (req: Request, res: Response) => {
-	await updateSimpleDocument(req, res, "repeatedTimers")
+	await updateSimpleDocument(req, res, "repeatedReminders")
 	repeatRemindersEvent(res.locals.uid)
 
 }
 
 export const del = async (req: Request, res: Response) => {
 	getCollection("queuedEvents").deleteMany({ uid: res.locals.uid, reminderId: req.params.id });
-	deleteSimpleDocument(req, res, "repeatedTimers");
+	deleteSimpleDocument(req, res, "repeatedReminders");
 }
 
 export const validateRepeatedTimerSchema = (body: any): { success: boolean, msg: string } => {
