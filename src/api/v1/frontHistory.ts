@@ -18,7 +18,6 @@ export const getFrontHistoryInRange = async (req: Request, res: Response) => {
 	}
 
 	const documents: documentObject[] = await getCollection("frontHistory").find(query).toArray()
-
 	sendDocuments(req, res, "frontHistory", documents);
 }
 
