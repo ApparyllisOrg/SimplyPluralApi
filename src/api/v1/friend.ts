@@ -127,6 +127,7 @@ export const getFriendFront = async (req: Request, res: Response) => {
 	for (let i = 0; i < friendFronts.length; ++i) {
 		const { member, customStatus } = friendFronts[i]
 		const memberDoc = await getCollection("members").findOne({ _id: parseId(member) });
+
 		if (memberDoc) {
 			const { preventTrusted } = memberDoc;
 

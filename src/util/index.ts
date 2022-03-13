@@ -28,18 +28,18 @@ export const notifyUser = async (uid: string, title: string, message: string) =>
 	const privateFriendData = await privateCollection.findOne({ uid: uid });
 	if (privateFriendData) {
 		privateCollection.updateOne({ uid, _id: uid }, {
-				$push: {
-						notificationHistory: {
-								$each: [
-										{
-												timestamp: Date.now(),
-												title,
-												message
-										}
-								],
-								$slice: -30
-						},
+			$push: {
+				notificationHistory: {
+					$each: [
+						{
+							timestamp: Date.now(),
+							title,
+							message
+						}
+					],
+					$slice: -30
 				},
+			},
 		});
 
 		const token = privateFriendData["notificationToken"];
@@ -83,7 +83,7 @@ export const getDocumentAccess = async (_req: Request, res: Response, document: 
 			return { access: false, statusCode: 401, message: "Access to document has been rejected." }
 		}
 
-		const friendLevel: FriendLevel = await getFriendLevel(res.locals.uid, document.uid);
+		const friendLevel: FriendLevel = await getFriendLevel(document.uid, res.locals.uid);
 		const isaFriend = isFriend(friendLevel);
 		if (!isaFriend) {
 			if (collection === "users" && !!(friendLevel & FriendLevel.Pending)) {

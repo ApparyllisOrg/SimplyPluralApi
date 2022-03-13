@@ -29,12 +29,15 @@ export const getMembers = async (req: Request, res: Response) => {
 				if (member.info) {
 					Object.keys(member.info).forEach((key) => {
 						const fieldSpec = ownerFields[key];
-						if (fieldSpec.private === true && fieldSpec.preventTrusted === false && isATrustedFriend) {
-							newFields[key] = member.info[key];
+						if (fieldSpec) {
+							if (fieldSpec.private === true && fieldSpec.preventTrusted === false && isATrustedFriend) {
+								newFields[key] = member.info[key] ?? "";
+							}
+							if (fieldSpec.private === false && fieldSpec.preventTrusted === false) {
+								newFields[key] = member.info[key] ?? "";
+							}
 						}
-						if (fieldSpec.private === false && fieldSpec.preventTrusted === false) {
-							newFields[key] = member.info[key];
-						}
+
 					});
 				}
 
