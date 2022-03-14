@@ -12,6 +12,7 @@ export const update151 = async (uid: string) => {
 
 			const keys = Object.keys(memberInfo);
 			const newFields: { [key: string]: string } = {}
+			let changed = false;
 			for (let x = 0; x < keys.length; ++x) {
 
 				const key: string = keys[x];
@@ -20,12 +21,15 @@ export const update151 = async (uid: string) => {
 				if (value) {
 					newFields[key] = value;
 				}
+				else 
+				{
+					changed = true;
+				}
 			}
 
-			if (memberInfo != newFields) {
+			if (changed === true) {
 				await getCollection("members").updateOne({ _id: parseId(member._id), uid }, { $set: { info: newFields } });
 			}
-
 		}
 	}
 }
