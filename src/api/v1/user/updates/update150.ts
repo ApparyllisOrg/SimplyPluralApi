@@ -17,10 +17,10 @@ export const update150 = async (uid: string) => {
 			const comment = comments[j]
 			if (comment.time && comment.time._seconds) {
 				// Convert seconds to milliseconds
-				commentsToInsert.push({ uid: "rXH5xlieFOZ4ulqAlLv3YXLmn532", time: comments[j].time._seconds * 1000, text: comments[j].text, collection: "frontHistory", documentId: entry._id })
+				commentsToInsert.push({ uid, time: comments[j].time._seconds * 1000, text: comments[j].text, collection: "frontHistory", documentId: entry._id })
 			}
 			else {
-				commentsToInsert.push({ uid: "rXH5xlieFOZ4ulqAlLv3YXLmn532", time: comments[j].time, text: comments[j].text, collection: "frontHistory", documentId: entry._id })
+				commentsToInsert.push({ uid, time: comments[j].time, text: comments[j].text, collection: "frontHistory", documentId: entry._id })
 			}
 		}
 
