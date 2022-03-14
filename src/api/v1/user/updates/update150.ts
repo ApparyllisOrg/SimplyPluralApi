@@ -14,8 +14,14 @@ export const update150 = async (uid: string) => {
 			continue
 
 		for (let j = 0; j < comments.length; ++j) {
-			// Convert seconds to milliseconds
-			commentsToInsert.push({ uid, time: comments[j].time._seconds * 1000, text: comments[j].text, collection: "frontHistory", documentId: entry._id })
+			const comment = comments[j]
+			if (comment.time && comment.time._seconds) {
+				// Convert seconds to milliseconds
+				commentsToInsert.push({ uid, time: comments[j].time._seconds * 1000, text: comments[j].text, collection: "frontHistory", documentId: entry._id })
+			}
+			else {
+				commentsToInsert.push({ uid, time: comments[j].time, text: comments[j].text, collection: "frontHistory", documentId: entry._id })
+			}
 		}
 
 		fhCollection.updateOne({ _id: entry._id }, { $set: { commentCount: comments.length } });
