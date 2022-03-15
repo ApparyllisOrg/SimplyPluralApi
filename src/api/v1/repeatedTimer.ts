@@ -1,15 +1,38 @@
 import { Request, Response } from "express";
 import { repeatRemindersEvent } from "../../modules/events/repeatReminders";
-import { getCollection } from "../../modules/mongo";
-import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
+import { getCollection, parseId } from "../../modules/mongo";
+import { addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument, sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 
+const convertTimerToInt = (document: any) => {
+	// Convert values to numbers, they were previously stored as strings
+	if (document) {
+		if (document.time) {
+			document.time.hour = Number(document.time.hour ?? 0)
+			document.time.minute = Number(document.time.minute ?? 0)
+		}
+
+		if (document.startTime) {
+			document.startTime.year = Number(document.startTime.year ?? 0)
+			document.startTime.month = Number(document.startTime.month ?? 0)
+			document.startTime.day = Number(document.startTime.day ?? 0)
+		}
+	}
+}
+
 export const getRepeatedTimers = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "repeatedReminders", {});
+	fetchCollection(req, res, "repeatedReminders", {}, (doc) => {
+		convertTimerToInt(doc)
+		return Promise.resolve();
+	});
 }
 
 export const get = async (req: Request, res: Response) => {
-	fetchSimpleDocument(req, res, "repeatedReminders");
+	const document = await getCollection("repeatedReminders").findOne({ _id: parseId(req.params.id), uid: req.params.system ?? res.locals.uid });
+
+	convertTimerToInt(document)
+
+	sendDocument(req, res, "repeatedReminders", document);
 }
 
 export const add = async (req: Request, res: Response) => {
