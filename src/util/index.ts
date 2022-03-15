@@ -163,7 +163,9 @@ export const deleteSimpleDocument = async (req: Request, res: Response, collecti
 	}
 }
 
-export const fetchCollection = async (req: Request, res: Response, collection: string, findQuery: { [key: string]: any }) => {
+export type forEachDocument = (document: any) => Promise<void>;
+
+export const fetchCollection = async (req: Request, res: Response, collection: string, findQuery: { [key: string]: any }, forEach?: forEachDocument) => {
 	findQuery.uid = req.params.system ?? res.locals.uid;
 	const query = Mongo.getCollection(collection).find(findQuery)
 
@@ -186,6 +188,13 @@ export const fetchCollection = async (req: Request, res: Response, collection: s
 	}
 
 	const documents = await query.toArray();
+
+	if (forEach) {
+		for (let i = 0; i < documents.length; ++i) {
+			await forEach(documents[i])
+		}
+	}
+
 	sendDocuments(req, res, collection, documents);
 }
 

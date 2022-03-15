@@ -93,20 +93,21 @@ export const update150 = async (uid: string) => {
 
 		const color: number = note.color
 
-		let colorString = "";
-		switch (color) {
-			case 0: colorString = "#000000"; break;
-			case 1: colorString = "#c83232"; break;
-			case 2: colorString = "#32c832"; break;
-			case 3: colorString = "#3232c8"; break;
-			case 4: colorString = "#eb0e58"; break;
-			case 5: colorString = "#56dceb"; break;
-			case 6: colorString = "#eb59da"; break;
-			case 7: colorString = "#f25d3b"; break;
-			default: "#ffffff";
+		if (typeof color !== "string") {
+			let colorString = "";
+			switch (color) {
+				case 0: colorString = "#000000"; break;
+				case 1: colorString = "#c83232"; break;
+				case 2: colorString = "#32c832"; break;
+				case 3: colorString = "#3232c8"; break;
+				case 4: colorString = "#eb0e58"; break;
+				case 5: colorString = "#56dceb"; break;
+				case 6: colorString = "#eb59da"; break;
+				case 7: colorString = "#f25d3b"; break;
+				default: "#ffffff";
+			}
+			await getCollection("notes").updateOne({ _id: parseId(note._id), uid }, { $set: { color: colorString } });
 		}
-
-		await getCollection("notes").updateOne({ _id: parseId(note._id), uid }, { $set: { color: colorString } });
 	}
 
 	// Fully deprecate old pk as sp ids,

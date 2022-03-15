@@ -8,9 +8,9 @@ export const logger = winston.createLogger({
 		format.printf(info => `${info.timestamp} ${info.level}: ${info.message}` + (info.splat !== undefined ? `${info.splat}` : " "))
 	),
 	transports: [
-		new winston.transports.File({ filename: "error.log", level: "error" }),
-		new winston.transports.File({ filename: "security.log", level: "security" }),
-		new winston.transports.File({ filename: "combined.log", }),
+		new winston.transports.File({ filename: "/var/log/simply-plural/error.log", level: "error", maxsize: 1000000 }),
+		new winston.transports.File({ filename: "/var/log/simply-plural/security.log", level: "security", maxsize: 1000000 }),
+		new winston.transports.File({ filename: "/var/log/simply-plural/combined.log", maxsize: 1000000, }),
 	],
 	exceptionHandlers: [
 		new transports.File({ filename: "exceptions.log" })
