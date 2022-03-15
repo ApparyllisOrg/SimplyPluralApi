@@ -1,3 +1,4 @@
+import { ObjectId } from "mongodb"
 import { getCollection, parseId } from "../../../../modules/mongo"
 
 export const update150 = async (uid: string) => {
@@ -13,14 +14,17 @@ export const update150 = async (uid: string) => {
 		if (!comments)
 			continue
 
+		const _id: string | ObjectId = entry._id;
+		const useId = _id.toString();
+
 		for (let j = 0; j < comments.length; ++j) {
 			const comment = comments[j]
 			if (comment.time && comment.time._seconds) {
 				// Convert seconds to milliseconds
-				commentsToInsert.push({ uid, time: comments[j].time._seconds * 1000, text: comments[j].text, collection: "frontHistory", documentId: entry._id })
+				commentsToInsert.push({ uid, time: comments[j].time._seconds * 1000, text: comments[j].text, collection: "frontHistory", documentId: useId })
 			}
 			else {
-				commentsToInsert.push({ uid, time: comments[j].time, text: comments[j].text, collection: "frontHistory", documentId: entry._id })
+				commentsToInsert.push({ uid, time: comments[j].time, text: comments[j].text, collection: "frontHistory", documentId: useId })
 			}
 		}
 
