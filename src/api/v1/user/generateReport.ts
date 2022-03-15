@@ -79,10 +79,18 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	result = result.replace("{{avatar}}", getAvatarString(user, uid));
 	result = result.replace("{{desc}}", getDescription(user, descTemplate));
 
+	const members = await getCollection("members").find({ uid: uid }).toArray();
+	members.sort((a, b) => {
+		const aName: string = a.name ?? "";
+		const bName: string = b.name ?? "";
+		const aLowerName: string = aName.toLocaleLowerCase().normalize();
+		const bLowerName: string = bName.toLocaleLowerCase().normalize();
+
+		return aLowerName < bLowerName ? -1 : 1;
+	});
+
 	if (query.members) {
 		let membersList = await getFile("./templates/members/reportMembers.html", "utf-8");
-
-		const members = await getCollection("members").find({ uid: uid }).collation({ locale: "en", strength: 2 }).sort({ "name": 1 }).toArray();
 
 		const memberTemplate = await getFile("./templates/members/reportMember.html", "utf-8");
 		const fieldsTemplate = await getFile("./templates/members/reportCustomFields.html", "utf-8");
@@ -92,7 +100,6 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 		let numMembersShown = 0;
 
 		members.forEach((memberData: any) => {
-
 			if (!meetsPrivacyLevel(memberData, query.members.privacyLevel)) {
 				return;
 			}
@@ -159,12 +166,21 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 		result = result.replace("{{members}}", "");
 	}
 
+	const customFronts = await getCollection("frontStatuses").find({ uid: uid }).toArray();
+	customFronts.sort((a, b) => {
+		const aName: string = a.name ?? "";
+		const bName: string = b.name ?? "";
+		const aLowerName: string = aName.toLocaleLowerCase().normalize();
+		const bLowerName: string = bName.toLocaleLowerCase().normalize();
+
+		return aLowerName < bLowerName ? -1 : 1;
+	});
 
 	if (query.customFronts) {
 		let customFrontsList = await getFile("./templates/customFronts/reportCustomFronts.html", "utf-8");
 		const fieldTemplate = await getFile("./templates/customFronts/reportCustomFront.html", "utf-8");
 		let customFrontCountTemplate = await getFile("./templates/customFronts/reportCustomFrontCount.html", "utf-8");
-		const customFronts = await getCollection("frontStatuses").find({ uid: uid }).collation({ locale: "en", strength: 2 }).sort({ "name": 1 }).toArray();
+
 
 		let generatedFronts = "";
 		let numFrontsShown = 0;
@@ -211,10 +227,8 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 
 		const searchQuery: frontHistoryQuery = { uid: uid, startTime: { $gte: query.frontHistory.start }, endTime: { $lte: query.frontHistory.end } }
 		const history = await getCollection("frontHistory").find(searchQuery).sort({ "startTime": -1 }).toArray();
-		const members = await getCollection("members").find({ uid: uid }).collation({ locale: "en", strength: 2 }).sort({ "name": 1 }).toArray();
-		const customFronts = await getCollection("frontStatuses").find({ uid: uid }).collation({ locale: "en", strength: 2 }).sort({ "name": 1 }).toArray();
 
-		const liveFronters = await getCollection("frontHistory").find({ "live": true }).sort({ "startTime": -1 }).toArray();
+		const liveFronters = await getCollection("frontHistory").find({ "live": true, uid }).sort({ "startTime": -1 }).toArray();
 
 		let frontEntries = "";
 
