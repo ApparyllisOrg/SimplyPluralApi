@@ -76,13 +76,15 @@ export const update150 = async (uid: string) => {
 		convertBinaryVotes(votes, abstain, "abstain");
 		convertBinaryVotes(votes, veto, "veto");
 
-		const oldVotes: { [key: string]: { comment: string, vote: string } }[] | undefined = poll.votes
+		const oldVotes: { [key: string]: { comment: string, vote: string } } | undefined = poll.votes
 
 		if (oldVotes) {
-			for (let i = 0; i < oldVotes.length; ++i) {
-				const oldVote: { [key: string]: { comment: string, vote: string } } = oldVotes[i];
-				const prop = Object.getOwnPropertyNames(oldVote)[0];
-				votes.push({ id: prop, vote: oldVote[prop].vote, comment: oldVote[prop].comment });
+			const oldKeys = Object.keys(oldVotes)
+			for (let i = 0; i < oldKeys.length; ++i) {
+				const key: string = oldKeys[i]
+				const oldVote: { comment: string, vote: string } = oldVotes[key];
+				const prop = key;
+				votes.push({ id: prop, vote: oldVote.vote, comment: oldVote.comment });
 			}
 		}
 
