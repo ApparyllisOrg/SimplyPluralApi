@@ -9,7 +9,7 @@ export const logger = winston.createLogger({
 	),
 	transports: [
 		new winston.transports.File({ filename: "/var/log/simply-plural/error.log", level: "error", maxsize: 1000000 }),
-		new winston.transports.File({ filename: "/var/log/simply-plural/security.log", level: "security", maxsize: 1000000 }),
+		new winston.transports.File({ filename: "/var/log/simply-plural/warn.log", level: "warn", maxsize: 1000000 }),
 		new winston.transports.File({ filename: "/var/log/simply-plural/combined.log", maxsize: 1000000, }),
 	],
 	exceptionHandlers: [
@@ -27,7 +27,7 @@ export const log = (message: string) => {
 };
 
 export const logSecurity = (message: string) => {
-	logger.log("security", message);
+	logger.log("warn", message);
 };
 
 export const consoleLogTimestamp = (str: string) => {

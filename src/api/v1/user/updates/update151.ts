@@ -21,8 +21,7 @@ export const update151 = async (uid: string) => {
 				if (value) {
 					newFields[key] = value;
 				}
-				else 
-				{
+				else {
 					changed = true;
 				}
 			}
