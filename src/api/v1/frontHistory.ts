@@ -44,8 +44,8 @@ export const add = async (req: Request, res: Response) => {
 		res.status(409).send("This member is already set to be fronting. Remove them from front prior to adding them to front")
 	}
 	else {
+		await addSimpleDocument(req, res, "frontHistory");
 		frontChange(res.locals.uid, false, req.body.member)
-		addSimpleDocument(req, res, "frontHistory");
 	}
 }
 
@@ -65,10 +65,11 @@ export const update = async (req: Request, res: Response) => {
 			}
 		}
 
+		await updateSimpleDocument(req, res, "frontHistory")
+
 		if (frontingDoc.live === true && req.body.live === false) {
 			frontChange(res.locals.uid, true, frontingDoc.member)
 		}
-		updateSimpleDocument(req, res, "frontHistory")
 	}
 	else {
 		res.status(404).send("Unable to find front document to remove")
@@ -78,15 +79,15 @@ export const update = async (req: Request, res: Response) => {
 export const del = async (req: Request, res: Response) => {
 	const frontingDoc = await getCollection("frontHistory").findOne({ _id: parseId(req.params.id) })
 
+	// Delete all attached comments
+	await getCollection("comments").deleteMany({ documentId: req.params.id, uid: res.locals.uid, collection: "frontHistory" });
+
 	// If a fronting document is deleted, and it's a live one, notify front change
 	if (frontingDoc) {
 		if (frontingDoc.live === true) {
 			frontChange(res.locals.uid, true, frontingDoc.member)
 		}
 	}
-
-	// Delete all attached comments
-	getCollection("comments").deleteMany({ documentId: req.params.id, uid: res.locals.uid, collection: "frontHistory" });
 
 	deleteSimpleDocument(req, res, "frontHistory");
 }
