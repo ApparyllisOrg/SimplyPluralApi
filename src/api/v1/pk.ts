@@ -32,7 +32,7 @@ export const performSyncMemberFromPk = async (req: Request, res: Response) => {
 }
 
 export const performSyncAllMembers = async (req: Request, res: Response) => {
-	if (req.params.direction === "push") {
+	if (req.query.direction === "push") {
 		performSyncAllMemberToPk(req, res);
 	}
 	else {
