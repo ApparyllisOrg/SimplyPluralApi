@@ -32,7 +32,7 @@ export const performSyncMemberFromPk = async (req: Request, res: Response) => {
 }
 
 export const performSyncAllMembers = async (req: Request, res: Response) => {
-	if (req.params.direction === "push") {
+	if (req.query.direction === "push") {
 		performSyncAllMemberToPk(req, res);
 	}
 	else {
@@ -43,7 +43,7 @@ export const performSyncAllMembers = async (req: Request, res: Response) => {
 const performSyncAllMemberToPk = async (req: Request, res: Response) => {
 	const result = await syncAllSpMembersToPk(req.body.options, req.body.syncOptions, req.body.token, res.locals.uid)
 	if (result.success) {
-		res.status(200).send({ success: true, msg: `Synced all members to PluralKit` });
+		res.status(200).send({ success: true, msg: `Syncing all members to PluralKit` });
 	}
 	else {
 		res.status(400).send({ success: false, msg: result.msg });

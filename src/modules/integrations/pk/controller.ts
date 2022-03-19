@@ -1,6 +1,7 @@
 import axios, { AxiosError, AxiosResponse } from "axios";
 import { logger } from "../../logger";
 import * as Sentry from "@sentry/node";
+import { nanoid } from "nanoid";
 
 export enum PkRequestType {
 	Get,
@@ -13,25 +14,29 @@ export interface PkRequest {
 	token: string,
 	data: any | undefined,
 	type: PkRequestType,
-	response: AxiosResponse<any> | null
+	response: AxiosResponse<any> | null,
+	id: string,
 }
 
 const pendingRequests: Array<PkRequest> = []
-const pendingResponses: Array<PkRequest> = []
+let pendingResponses: Array<PkRequest> = []
 
 let remainingRequestsThisSecond = 0;
 
 export const addPendingRequest = (request: PkRequest): Promise<AxiosResponse<any> | null> => {
 	return new Promise(function (resolve) {
+
+		request.id = nanoid()
+
 		// Add as pending request
 		pendingRequests.push(request);
 
 		// Wait until request was answered
 		(function waitForAnswer() {
-			const index = pendingResponses.indexOf(request)
-			if (index >= 0) {
-				const response = pendingResponses[index]
-				pendingResponses.splice(index, 1)
+			const response = pendingResponses.find((response) => response.id === request.id)
+
+			if (response) {
+				pendingResponses = pendingResponses.filter(response => response.id != request.id)
 				return resolve(response.response)
 			}
 
@@ -68,7 +73,7 @@ export const tick = async () => {
 		if (remainingRequestsThisSecond > 0) {
 			for (let i = 0; (i < remainingRequestsThisSecond && i < 2) && i < pendingRequests.length; ++i) {
 				dispatchTickRequests(pendingRequests[i]);
-				pendingRequests.splice(0, 1)
+				pendingRequests.splice(i, 1)
 				remainingRequestsThisSecond--;
 			}
 		}
@@ -79,7 +84,7 @@ export const tick = async () => {
 		Sentry.captureException(e);
 	}
 
-	setTimeout(tick, 10)
+	setTimeout(tick, 100)
 }
 
 export const dispatchTickRequests = async (request: PkRequest) => {

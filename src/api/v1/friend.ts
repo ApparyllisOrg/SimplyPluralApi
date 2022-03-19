@@ -15,7 +15,10 @@ export const getFriends = async (req: Request, res: Response) => {
 	const friendValues: any[] = []
 
 	for (let i = 0; i < friends.length; ++i) {
-		friendValues.push(await getCollection("users").findOne({ uid: friends[i].frienduid }))
+		const friend = await getCollection("users").findOne({ uid: friends[i].frienduid });
+		if (friend) {
+			friendValues.push(friend)
+		}
 	}
 
 	// Send users as collection as we are sending user objects, not friend (requests)
