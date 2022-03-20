@@ -1,6 +1,5 @@
 // Using Tailwind CSS.
 
-import { sanitize } from "express-validator";
 import { readFile } from "fs";
 import moment from "moment";
 import { promisify } from "util";
@@ -56,6 +55,17 @@ const getAvatarString = (data: any, uid: string): string => {
 
 	return avatar;
 }
+
+const stringFromField = (string: string) => xss(string)
+const colorFromField = (string: string) => `<div class="h-5 rounded" style="background-color: ${xss(string)};"></div>`
+const dateFromField = (string: string) => xss(moment(string).format("dddd, MMMM Do YYYY"))
+const monthFromField = (string: string) => xss(moment(string).format("MMMM"))
+const yearFromField = (string: string) => xss(moment(string).format("YYYY"))
+const monthYearFromField = (string: string) => xss(moment(string).format("MMMM YYYY"))
+const timestampFromField = (string: string) => xss(moment(string).format("dddd, MMMM Do YYYY, h:mm:ss a"))
+const monthDayFromField = (string: string) => xss(moment(string).format("dddd, MMMM Do"))
+
+const typeConverters = [stringFromField, colorFromField, dateFromField, monthFromField, yearFromField, monthYearFromField, timestampFromField, monthDayFromField]
 
 const getDescription = (data: any, template: string): string => {
 	let result = `${template}`;
@@ -129,18 +139,22 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 						const strValue: string = value as string;
 						if (value && strValue.length > 0) {
 
+							const fieldInfo = user.fields[key];
+
 							// Skip invalid fields
-							if (!user.fields[key]) {
+							if (!fieldInfo) {
 								continue;
 							}
 
-							if (!meetsPrivacyLevel(user.fields[key], query.members.privacyLevel)) {
+							if (!meetsPrivacyLevel(fieldInfo, query.members.privacyLevel)) {
 								continue;
 							}
 
 							let field = `${fieldTemplate}`;
 							field = field.replace("{{key}}", xss(fieldKeyToName(key, user)));
-							field = field.replace("{{value}}", xss(value as string));
+
+
+							field = field.replace("{{value}}", typeConverters[fieldInfo.type](value as string));
 							generatedFields = generatedFields + field;
 
 
