@@ -1,8 +1,10 @@
 // Using Tailwind CSS.
 
+import { sanitize } from "express-validator";
 import { readFile } from "fs";
 import moment from "moment";
 import { promisify } from "util";
+import xss from "xss";
 import { getCollection } from "../../../modules/mongo";
 import { queryObject } from "../../../modules/mongo/baseTypes";
 
@@ -74,10 +76,10 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	const descTemplate = await getFile("./templates/reportDescription.html", "utf-8");
 	let result = getFileResult;
 
-	result = result.replace("{{username}}", user.username);
-	result = result.replace("{{color}}", user.color);
-	result = result.replace("{{avatar}}", getAvatarString(user, uid));
-	result = result.replace("{{desc}}", getDescription(user, descTemplate));
+	result = result.replace("{{username}}", xss(user.username));
+	result = result.replace("{{color}}", xss(user.color));
+	result = result.replace("{{avatar}}", xss(getAvatarString(user, uid)));
+	result = result.replace("{{desc}}", xss(getDescription(user, descTemplate)));
 
 	const members = await getCollection("members").find({ uid: uid }).toArray();
 	members.sort((a, b) => {
@@ -108,12 +110,12 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 
 			numMembersShown++;
 
-			member = member.replace("{{name}}", memberData.name);
-			member = member.replace("{{pronouns}}", memberData.pronouns);
-			member = member.replace("{{color}}", memberData.color);
-			member = member.replace("{{avatar}}", getAvatarString(memberData, uid));
-			member = member.replace("{{privacy}}", getWrittenPrivacyLevel(memberData));
-			member = member.replace("{{desc}}", getDescription(memberData, descTemplate));
+			member = member.replace("{{name}}", xss(memberData.name));
+			member = member.replace("{{pronouns}}", xss(memberData.pronouns));
+			member = member.replace("{{color}}", xss(memberData.color));
+			member = member.replace("{{avatar}}", xss(getAvatarString(memberData, uid)));
+			member = member.replace("{{privacy}}", xss(getWrittenPrivacyLevel(memberData)));
+			member = member.replace("{{desc}}", xss(getDescription(memberData, descTemplate)));
 
 			if (query.members.includeCustomFields === false) {
 				member = member.replace("{{fields}}", "");
@@ -137,8 +139,8 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 							}
 
 							let field = `${fieldTemplate}`;
-							field = field.replace("{{key}}", fieldKeyToName(key, user));
-							field = field.replace("{{value}}", value as string);
+							field = field.replace("{{key}}", xss(fieldKeyToName(key, user)));
+							field = field.replace("{{value}}", xss(value as string));
 							generatedFields = generatedFields + field;
 
 
@@ -194,11 +196,11 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 
 			numFrontsShown++;
 
-			customFront = customFront.replace("{{name}}", frontData.name);
-			customFront = customFront.replace("{{color}}", frontData.color);
-			customFront = customFront.replace("{{avatar}}", getAvatarString(frontData, uid));
-			customFront = customFront.replace("{{privacy}}", getWrittenPrivacyLevel(frontData));
-			customFront = customFront.replace("{{desc}}", getDescription(frontData, descTemplate));
+			customFront = customFront.replace("{{name}}", xss(frontData.name));
+			customFront = customFront.replace("{{color}}", xss(frontData.color));
+			customFront = customFront.replace("{{avatar}}", xss(getAvatarString(frontData, uid)));
+			customFront = customFront.replace("{{privacy}}", xss(getWrittenPrivacyLevel(frontData)));
+			customFront = customFront.replace("{{desc}}", xss(getDescription(frontData, descTemplate)));
 
 			generatedFronts = generatedFronts + customFront;
 		})
@@ -245,26 +247,26 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 				if (!meetsPrivacyLevel(customFronts[foundFront], query.frontHistory.privacyLevel)) {
 					return;
 				}
-				name = customFronts[foundFront].name;
-				avatar = getAvatarString(customFronts[foundFront], uid);
+				name = xss(customFronts[foundFront].name);
+				avatar = xss(getAvatarString(customFronts[foundFront], uid));
 			}
 			else {
 				if (!meetsPrivacyLevel(members[foundMember], query.frontHistory.privacyLevel)) {
 					return;
 				}
-				name = members[foundMember].name;
-				avatar = getAvatarString(members[foundMember], uid);
+				name = xss(members[foundMember].name);
+				avatar = xss(getAvatarString(members[foundMember], uid));
 			}
 
 			let frontEntry = `${frontHistoryTemplate}`;
-			frontEntry = frontEntry.replace("{{name}}", name);
-			frontEntry = frontEntry.replace("{{avatar}}", avatar);
+			frontEntry = frontEntry.replace("{{name}}", xss(name));
+			frontEntry = frontEntry.replace("{{avatar}}", xss(avatar));
 
-			frontEntry = frontEntry.replace("{{start}}", moment(value.startTime).format("dddd, MMMM Do YYYY, h:mm:ss a"));
+			frontEntry = frontEntry.replace("{{start}}", xss(moment(value.startTime).format("dddd, MMMM Do YYYY, h:mm:ss a")));
 
 			const status = value.customStatus;
 			if (status) {
-				frontEntry = frontEntry.replace("{{customStatus}}", `Status: ${status}`);
+				frontEntry = frontEntry.replace("{{customStatus}}", xss(`Status: ${status}`));
 			}
 			else {
 				frontEntry = frontEntry.replace("{{customStatus}}", ``);
@@ -272,11 +274,11 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 
 			if (value.live === true) {
 				frontEntry = frontEntry.replace("{{end}}", "Active front");
-				frontEntry = frontEntry.replace("{{duration}}", moment.duration(moment.now() - value.startTime).humanize());
+				frontEntry = frontEntry.replace("{{duration}}", xss(moment.duration(moment.now() - value.startTime).humanize()));
 			}
 			else {
-				frontEntry = frontEntry.replace("{{end}}", moment(value.endTime).format("dddd, MMMM Do YYYY, h:mm:ss a"));
-				frontEntry = frontEntry.replace("{{duration}}", moment.duration(value.endTime - value.startTime).humanize());
+				frontEntry = frontEntry.replace("{{end}}", xss(moment(value.endTime).format("dddd, MMMM Do YYYY, h:mm:ss a")));
+				frontEntry = frontEntry.replace("{{duration}}", xss(moment.duration(value.endTime - value.startTime).humanize()));
 			}
 
 			frontEntries = frontEntries + frontEntry;

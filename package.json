@@ -51,7 +51,8 @@
 		"vhost": "^3.0.2",
 		"winston": "^3.6.0",
 		"winston-logzio": "^5.1.4",
-		"ws": "^8.2.3"
+		"ws": "^8.2.3",
+		"xss": "^1.0.11"
 	},
 	"devDependencies": {
 		"@types/chai": "^4.3.0",
