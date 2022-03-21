@@ -7,12 +7,13 @@ const scheduleReminder = async (uid: string, data: any, userData: any) => {
 
 	const now = new Date();
 
-	const hour = data.time.hour;
-	const minute = data.time.minute;
+	const hour: number = data.time.hour;
+	const minute: number = data.time.minute;
 
 	const timzone: string = userData.location;
-	const formattedTime = data.startTime.year + "-" + data.startTime.month
-		+ "-" + data.startTime.day + " " + hour + ":" + minute;
+	const formattedTime = data.startTime.year + "-" + ("00" + data.startTime.month).slice(-2)
+		+ "-" + data.startTime.day + " " + ("00" + hour).slice(-2) + ":" + ("00" + minute).slice(-2);
+
 	const initialTime = moment.tz(formattedTime, "YYYY-MM-DD HH:mm", true, timzone);
 
 	if (initialTime.valueOf() > now.valueOf()) {

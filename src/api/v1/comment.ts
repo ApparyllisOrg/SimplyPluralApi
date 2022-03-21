@@ -57,7 +57,6 @@ export const validateCommentSchema = (body: any): { success: boolean, msg: strin
 	return validateSchema(schema, body);
 }
 
-
 export const validateCommentPatchSchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
 		type: "object",

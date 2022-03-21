@@ -121,9 +121,6 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 	const friendCollection = getCollection("friends");
 	const foundFriends = await friendCollection.find({ uid: uid }).toArray();
 
-	if (foundFriends.length <= 0) {
-		return;
-	}
 
 	if (beforeFrontString !== frontNotificationString || beforeCustomFrontString !== customFrontString) {
 		performEvent("frontChangeShared", uid, 10 * 1000);
@@ -153,12 +150,17 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 			.catch(logger.error);
 
 	}
+
+	if (foundFriends.length <= 0) {
+		return;
+	}
+
 };
 
 export const notifySharedFrontDue = async (uid: string, _event: any) => {
 	const sharedCollection = getCollection("sharedFront");
 	const sharedData = await sharedCollection.findOne({ uid: uid, _id: uid });
-	notifyFront(sharedData.frontNotificationString, sharedData.customFrontString, uid, true);
+	notifyFront(sharedData.frontNotificationString, sharedData.customFrontString, uid, false);
 }
 
 export const notifyPrivateFrontDue = async (uid: string, _event: any) => {
@@ -173,9 +175,6 @@ const notifyFront = async (
 	uid: string,
 	trusted: boolean
 ) => {
-	const friendCollection = getCollection("friends")
-
-	const foundFriends = await friendCollection.find({ uid: uid }).toArray();
 	let message = "";
 
 	if (frontNotificationString.length > 0) {
@@ -193,8 +192,6 @@ const notifyFront = async (
 		return;
 	}
 
-
-
 	const userDoc = await getCollection("users").findOne({ uid: uid });
 
 	const trustedQuery: any[] = [];
@@ -206,6 +203,8 @@ const notifyFront = async (
 		trustedQuery.push({ "trusted": true });
 	}
 
+	const friendCollection = getCollection("friends")
+	const foundFriends = await friendCollection.find({ uid: uid }).toArray();
 	foundFriends.forEach(async (doc) => {
 		const getFrontNotif = doc["getFrontNotif"];
 

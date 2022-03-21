@@ -5,6 +5,7 @@ import { ObjectID } from "mongodb";
 import * as Mongo from "../modules/mongo";
 import { parseId } from "../modules/mongo";
 import { documentObject } from "../modules/mongo/baseTypes";
+import { dispatchDelete, notify as socketNotify, OperationType } from "../modules/socket";
 import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
 import { parseForAllowedReadValues } from "../security/readRules";
 
@@ -21,9 +22,26 @@ export function transformResultForClientRead(value: documentObject, requestorUid
 }
 
 export const notifyUser = async (uid: string, title: string, message: string) => {
+	socketNotify(uid, title, message);
+
 	const privateCollection = Mongo.getCollection("private");
 	const privateFriendData = await privateCollection.findOne({ uid: uid });
 	if (privateFriendData) {
+		privateCollection.updateOne({ uid, _id: uid }, {
+			$push: {
+				notificationHistory: {
+					$each: [
+						{
+							timestamp: Date.now(),
+							title,
+							message
+						}
+					],
+					$slice: -30
+				},
+			},
+		});
+
 		const token = privateFriendData["notificationToken"];
 		if (Array.isArray(token)) {
 			token.forEach((element) => {
@@ -65,7 +83,7 @@ export const getDocumentAccess = async (_req: Request, res: Response, document: 
 			return { access: false, statusCode: 401, message: "Access to document has been rejected." }
 		}
 
-		const friendLevel: FriendLevel = await getFriendLevel(res.locals.uid, document.uid);
+		const friendLevel: FriendLevel = await getFriendLevel(document.uid, res.locals.uid);
 		const isaFriend = isFriend(friendLevel);
 		if (!isaFriend) {
 			if (collection === "users" && !!(friendLevel & FriendLevel.Pending)) {
@@ -133,13 +151,21 @@ export const deleteSimpleDocument = async (req: Request, res: Response, collecti
 		]
 	});
 	if (result.deletedCount && result.deletedCount > 0) {
+		dispatchDelete({
+			operationType: OperationType.Delete,
+			uid: res.locals.uid,
+			documentId: req.params.id,
+			collection: collection
+		})
 		res.status(200).send();
 	} else {
 		res.status(404).send();
 	}
 }
 
-export const fetchCollection = async (req: Request, res: Response, collection: string, findQuery: { [key: string]: any }) => {
+export type forEachDocument = (document: any) => Promise<void>;
+
+export const fetchCollection = async (req: Request, res: Response, collection: string, findQuery: { [key: string]: any }, forEach?: forEachDocument) => {
 	findQuery.uid = req.params.system ?? res.locals.uid;
 	const query = Mongo.getCollection(collection).find(findQuery)
 
@@ -162,6 +188,13 @@ export const fetchCollection = async (req: Request, res: Response, collection: s
 	}
 
 	const documents = await query.toArray();
+
+	if (forEach) {
+		for (let i = 0; i < documents.length; ++i) {
+			await forEach(documents[i])
+		}
+	}
+
 	sendDocuments(req, res, collection, documents);
 }
 

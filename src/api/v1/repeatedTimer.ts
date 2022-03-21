@@ -1,26 +1,54 @@
 import { Request, Response } from "express";
-import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
+import { repeatRemindersEvent } from "../../modules/events/repeatReminders";
+import { getCollection, parseId } from "../../modules/mongo";
+import { addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument, sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 
+const convertTimerToInt = (document: any) => {
+	// Convert values to numbers, they were previously stored as strings
+	if (document) {
+		if (document.time) {
+			document.time.hour = Number(document.time.hour ?? 0)
+			document.time.minute = Number(document.time.minute ?? 0)
+		}
+
+		if (document.startTime) {
+			document.startTime.year = Number(document.startTime.year ?? 0)
+			document.startTime.month = Number(document.startTime.month ?? 0)
+			document.startTime.day = Number(document.startTime.day ?? 0)
+		}
+	}
+}
+
 export const getRepeatedTimers = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "repeatedTimers", {});
+	fetchCollection(req, res, "repeatedReminders", {}, (doc) => {
+		convertTimerToInt(doc)
+		return Promise.resolve();
+	});
 }
 
 export const get = async (req: Request, res: Response) => {
-	fetchSimpleDocument(req, res, "repeatedTimers");
+	const document = await getCollection("repeatedReminders").findOne({ _id: parseId(req.params.id), uid: req.params.system ?? res.locals.uid });
+
+	convertTimerToInt(document)
+
+	sendDocument(req, res, "repeatedReminders", document);
 }
 
 export const add = async (req: Request, res: Response) => {
-	console.log(req)
-	addSimpleDocument(req, res, "repeatedTimers");
+	await addSimpleDocument(req, res, "repeatedReminders");
+	repeatRemindersEvent(res.locals.uid)
 }
 
 export const update = async (req: Request, res: Response) => {
-	updateSimpleDocument(req, res, "repeatedTimers")
+	await updateSimpleDocument(req, res, "repeatedReminders")
+	repeatRemindersEvent(res.locals.uid)
+
 }
 
 export const del = async (req: Request, res: Response) => {
-	deleteSimpleDocument(req, res, "repeatedTimers");
+	getCollection("queuedEvents").deleteMany({ uid: res.locals.uid, reminderId: req.params.id });
+	deleteSimpleDocument(req, res, "repeatedReminders");
 }
 
 export const validateRepeatedTimerSchema = (body: any): { success: boolean, msg: string } => {

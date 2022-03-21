@@ -1,8 +1,10 @@
 // Using Tailwind CSS.
 
+import { sanitize } from "express-validator";
 import { readFile } from "fs";
 import moment from "moment";
 import { promisify } from "util";
+import xss from "xss";
 import { getCollection } from "../../../modules/mongo";
 import { queryObject } from "../../../modules/mongo/baseTypes";
 
@@ -11,18 +13,20 @@ const fieldKeyToName = (key: string, userData: any) => {
 }
 
 const meetsPrivacyLevel = (data: any, level: number): boolean => {
-	if (level < 1) {
-		if (data.private) {
-			return false;
-		}
-	}
-	else if (level < 2) {
-		if (data.private && data.preventTrusted) {
-			return false;
-		}
+
+	if (level == 0) {
+		return true;
 	}
 
-	return true;
+	if (level == 1) {
+		return !data.private || (data.private && !data.preventTrusted);
+	}
+
+	if (level == 2) {
+		return !data.private && !data.preventTrusted;
+	}
+
+	return false;
 }
 
 const getWrittenPrivacyLevel = (data: any): string => {
@@ -47,7 +51,7 @@ const getAvatarString = (data: any, uid: string): string => {
 
 	if (avatar.length == 0) {
 		// Todo: Make this a better link
-		avatar = "https://apparyllis.com/wp-content/uploads/2021/03/cropped-Apparyllis_Square.png";
+		avatar = "https://sfo3.digitaloceanspaces.com/simply-plural/content/resources/Logo_Apparyllis_Square_1024.png";
 	}
 
 	return avatar;
@@ -72,16 +76,23 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	const descTemplate = await getFile("./templates/reportDescription.html", "utf-8");
 	let result = getFileResult;
 
-	result = result.replace("{{username}}", user.username);
-	result = result.replace("{{color}}", user.color);
-	result = result.replace("{{desc}}", getDescription(user, descTemplate));
+	result = result.replace("{{username}}", xss(user.username));
+	result = result.replace("{{color}}", xss(user.color));
+	result = result.replace("{{avatar}}", xss(getAvatarString(user, uid)));
+	result = result.replace("{{desc}}", xss(getDescription(user, descTemplate)));
 
-	console.log(query)
+	const members = await getCollection("members").find({ uid: uid }).toArray();
+	members.sort((a, b) => {
+		const aName: string = a.name ?? "";
+		const bName: string = b.name ?? "";
+		const aLowerName: string = aName.toLocaleLowerCase().normalize();
+		const bLowerName: string = bName.toLocaleLowerCase().normalize();
+
+		return aLowerName < bLowerName ? -1 : 1;
+	});
 
 	if (query.members) {
 		let membersList = await getFile("./templates/members/reportMembers.html", "utf-8");
-
-		const members = await getCollection("members").find({ uid: uid }).sort({ "name": 1 }).toArray();
 
 		const memberTemplate = await getFile("./templates/members/reportMember.html", "utf-8");
 		const fieldsTemplate = await getFile("./templates/members/reportCustomFields.html", "utf-8");
@@ -91,7 +102,6 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 		let numMembersShown = 0;
 
 		members.forEach((memberData: any) => {
-
 			if (!meetsPrivacyLevel(memberData, query.members.privacyLevel)) {
 				return;
 			}
@@ -100,12 +110,12 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 
 			numMembersShown++;
 
-			member = member.replace("{{name}}", memberData.name);
-			member = member.replace("{{pronouns}}", memberData.pronouns);
-			member = member.replace("{{color}}", memberData.color);
-			member = member.replace("{{avatar}}", getAvatarString(memberData, uid));
-			member = member.replace("{{privacy}}", getWrittenPrivacyLevel(memberData));
-			member = member.replace("{{desc}}", getDescription(memberData, descTemplate));
+			member = member.replace("{{name}}", xss(memberData.name));
+			member = member.replace("{{pronouns}}", xss(memberData.pronouns));
+			member = member.replace("{{color}}", xss(memberData.color));
+			member = member.replace("{{avatar}}", xss(getAvatarString(memberData, uid)));
+			member = member.replace("{{privacy}}", xss(getWrittenPrivacyLevel(memberData)));
+			member = member.replace("{{desc}}", xss(getDescription(memberData, descTemplate)));
 
 			if (query.members.includeCustomFields === false) {
 				member = member.replace("{{fields}}", "");
@@ -129,8 +139,8 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 							}
 
 							let field = `${fieldTemplate}`;
-							field = field.replace("{{key}}", fieldKeyToName(key, user));
-							field = field.replace("{{value}}", value as string);
+							field = field.replace("{{key}}", xss(fieldKeyToName(key, user)));
+							field = field.replace("{{value}}", xss(value as string));
 							generatedFields = generatedFields + field;
 
 
@@ -155,14 +165,24 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	}
 	else {
 		result = result.replace("{{numMembers}}", "");
+		result = result.replace("{{members}}", "");
 	}
 
+	const customFronts = await getCollection("frontStatuses").find({ uid: uid }).toArray();
+	customFronts.sort((a, b) => {
+		const aName: string = a.name ?? "";
+		const bName: string = b.name ?? "";
+		const aLowerName: string = aName.toLocaleLowerCase().normalize();
+		const bLowerName: string = bName.toLocaleLowerCase().normalize();
+
+		return aLowerName < bLowerName ? -1 : 1;
+	});
 
 	if (query.customFronts) {
 		let customFrontsList = await getFile("./templates/customFronts/reportCustomFronts.html", "utf-8");
 		const fieldTemplate = await getFile("./templates/customFronts/reportCustomFront.html", "utf-8");
 		let customFrontCountTemplate = await getFile("./templates/customFronts/reportCustomFrontCount.html", "utf-8");
-		const customFronts = await getCollection("frontStatuses").find({ uid: uid }).sort({ "name": 1 }).toArray();
+
 
 		let generatedFronts = "";
 		let numFrontsShown = 0;
@@ -176,11 +196,11 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 
 			numFrontsShown++;
 
-			customFront = customFront.replace("{{name}}", frontData.name);
-			customFront = customFront.replace("{{color}}", frontData.color);
-			customFront = customFront.replace("{{avatar}}", getAvatarString(frontData, uid));
-			customFront = customFront.replace("{{privacy}}", getWrittenPrivacyLevel(frontData));
-			customFront = customFront.replace("{{desc}}", getDescription(frontData, descTemplate));
+			customFront = customFront.replace("{{name}}", xss(frontData.name));
+			customFront = customFront.replace("{{color}}", xss(frontData.color));
+			customFront = customFront.replace("{{avatar}}", xss(getAvatarString(frontData, uid)));
+			customFront = customFront.replace("{{privacy}}", xss(getWrittenPrivacyLevel(frontData)));
+			customFront = customFront.replace("{{desc}}", xss(getDescription(frontData, descTemplate)));
 
 			generatedFronts = generatedFronts + customFront;
 		})
@@ -209,12 +229,12 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 
 		const searchQuery: frontHistoryQuery = { uid: uid, startTime: { $gte: query.frontHistory.start }, endTime: { $lte: query.frontHistory.end } }
 		const history = await getCollection("frontHistory").find(searchQuery).sort({ "startTime": -1 }).toArray();
-		const members = await getCollection("members").find({ uid: uid }).sort({ "name": 1 }).toArray();
-		const customFronts = await getCollection("frontStatuses").find({ uid: uid }).sort({ "name": 1 }).toArray();
+
+		const liveFronters = await getCollection("frontHistory").find({ "live": true, uid }).sort({ "startTime": -1 }).toArray();
 
 		let frontEntries = "";
 
-		history.forEach((value) => {
+		const addEntry = (value: any) => {
 			const documentId = value.member;
 			const foundMember: number = members.findIndex((value) => value._id == documentId);
 			let name = "";
@@ -227,27 +247,49 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 				if (!meetsPrivacyLevel(customFronts[foundFront], query.frontHistory.privacyLevel)) {
 					return;
 				}
-				name = customFronts[foundFront].name;
-				avatar = getAvatarString(customFronts[foundFront], uid);
+				name = xss(customFronts[foundFront].name);
+				avatar = xss(getAvatarString(customFronts[foundFront], uid));
 			}
 			else {
 				if (!meetsPrivacyLevel(members[foundMember], query.frontHistory.privacyLevel)) {
 					return;
 				}
-				name = members[foundMember].name;
-				avatar = getAvatarString(members[foundMember], uid);
+				name = xss(members[foundMember].name);
+				avatar = xss(getAvatarString(members[foundMember], uid));
 			}
 
 			let frontEntry = `${frontHistoryTemplate}`;
-			frontEntry = frontEntry.replace("{{name}}", name);
-			frontEntry = frontEntry.replace("{{avatar}}", avatar);
+			frontEntry = frontEntry.replace("{{name}}", xss(name));
+			frontEntry = frontEntry.replace("{{avatar}}", xss(avatar));
 
-			frontEntry = frontEntry.replace("{{start}}", moment(value.startTime).format("dddd, MMMM Do YYYY, h:mm:ss a"));
-			frontEntry = frontEntry.replace("{{end}}", moment(value.endTime).format("dddd, MMMM Do YYYY, h:mm:ss a"));
-			frontEntry = frontEntry.replace("{{duration}}", moment.duration(value.endTime - value.startTime).humanize());
+			frontEntry = frontEntry.replace("{{start}}", xss(moment(value.startTime).format("dddd, MMMM Do YYYY, h:mm:ss a")));
+
+			const status = value.customStatus;
+			if (status) {
+				frontEntry = frontEntry.replace("{{customStatus}}", xss(`Status: ${status}`));
+			}
+			else {
+				frontEntry = frontEntry.replace("{{customStatus}}", ``);
+			}
+
+			if (value.live === true) {
+				frontEntry = frontEntry.replace("{{end}}", "Active front");
+				frontEntry = frontEntry.replace("{{duration}}", xss(moment.duration(moment.now() - value.startTime).humanize()));
+			}
+			else {
+				frontEntry = frontEntry.replace("{{end}}", xss(moment(value.endTime).format("dddd, MMMM Do YYYY, h:mm:ss a")));
+				frontEntry = frontEntry.replace("{{duration}}", xss(moment.duration(value.endTime - value.startTime).humanize()));
+			}
 
 			frontEntries = frontEntries + frontEntry;
+		}
 
+		liveFronters.forEach((value) => {
+			addEntry(value);
+		});
+
+		history.forEach((value) => {
+			addEntry(value);
 		});
 
 		frontHistory = frontHistory.replace("{{entries}}", frontEntries);

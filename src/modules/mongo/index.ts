@@ -23,12 +23,13 @@ export const db = () => _db;
 export const getCollection = (target: string): MongoDb.Collection<any> => _db!.collection(target);
 export const isLive = () => _client && _client.isConnected();
 export const parseId = (id: string): string | MongoDb.ObjectId => {
-	if (id.match(/^[0-9a-fA-F]{24}$/)) {
-		if (ObjectId.isValid(id)) {
-			return new MongoDb.ObjectId(id);
+	if (typeof (id) === "string") {
+		if (id.match(/^[0-9a-fA-F]{24}$/)) {
+			if (ObjectId.isValid(id)) {
+				return new MongoDb.ObjectId(id);
+			}
 		}
 	}
-
 	return id;
 };
 

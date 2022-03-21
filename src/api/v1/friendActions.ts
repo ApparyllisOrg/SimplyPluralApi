@@ -111,7 +111,7 @@ export const RespondToFriendRequest = async (req: Request, res: Response) => {
 
 	if (friendLevel & FriendLevel.Pending) {
 		await AcceptFriendRequest(targtUid, res.locals.uid, accept, req.body.settings);
-		res.status(200).send({ success: true, msg: "" });
+		res.status(200).send({ success: true, msg: accept ? "Friend request accepted" : "Friend request rejected" });
 		return;
 	}
 
@@ -184,7 +184,7 @@ export const CancelFriendRequest = async (req: Request, res: Response) => {
 			.deleteOne({
 				$or: [{ sender: res.locals.uid, receiver: targtUid }],
 			});
-		res.status(200).send({ success: true, msg: "" });
+		res.status(200).send({ success: true, msg: "Friend request cancelled" });
 		return;
 	}
 
@@ -214,5 +214,5 @@ export const RemoveFriend = async (req: Request, res: Response) => {
 			],
 		});
 
-	res.status(200).send({ success: true, msg: "Success" });
+	res.status(200).send({ success: true, msg: "Friend removed" });
 };

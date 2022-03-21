@@ -4,6 +4,7 @@ import { logger } from "./modules/logger";
 
 import * as socket from "./modules/socket";
 import { setupV1routes } from "./api/v1/routes";
+import setupBaseRoutes from "./api/routes";
 import { startCollectingUsage } from "./modules/usage";
 
 import admin, { ServiceAccount } from "firebase-admin";
@@ -13,23 +14,31 @@ import helmet from "helmet";
 import http from "http";
 import dotenv from "dotenv";
 import express from "express";
-import cors from "cors";
 import { validateGetParams, validateOperationTime } from "./util/validation";
 import { startPkController } from "./modules/integrations/pk/controller";
 import { NextFunction, Request, Response } from "express-serve-static-core";
+import { startMailTransport } from "./modules/mail";
+import cors from "cors";
+
+if (process.env.DEVELOPMENT) {
+	process.on('uncaughtException', console.error);
+	process.on('unhandledRejection', console.error);
+}
 
 const app = express();
+
+if (process.env.DEVELOPMENT) {
+	app.use(cors())
+}
 
 dotenv.config();
 
 if (!process.env.DEVELOPMENT) {
-	Sentry.init({ dsn: process.env.SENTRY_DSN });
+	if (process.env.SENTRY_DSN) {
+		Sentry.init({ dsn: process.env.SENTRY_DSN });
+	}
 	app.use(Sentry.Handlers.requestHandler());
 	app.use(helmet());
-
-}
-else {
-	app.use(cors())
 }
 
 const accJson = JSON.parse(fs.readFileSync("./spGoogle.json").toString());
@@ -40,7 +49,7 @@ acc.clientEmail = accJson.client_email;
 
 admin.initializeApp({
 	credential: admin.credential.cert(acc),
-	databaseURL: "https://frontime-7aace.firebaseio.com",
+	databaseURL: `https://${accJson.project_id}.firebaseio.com`,
 });
 
 startCollectingUsage();
@@ -61,6 +70,7 @@ app.use(validateGetParams);
 app.use(validateOperationTime);
 
 setupV1routes(app);
+setupBaseRoutes(app);
 
 // Has to be *after* all controllers
 app.use(Sentry.Handlers.errorHandler());
@@ -77,6 +87,7 @@ const initializeServer = async () => {
 	server.listen(port, () => logger.info(`Initiating Apparyllis API at :${port}`));
 
 	startPkController();
+	startMailTransport();
 }
 
 initializeServer();
