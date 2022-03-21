@@ -100,6 +100,8 @@ export const setupV1routes = (app: core.Express) => {
 	// Private
 	app.get("/v1/user/private/:id", isUserAuthenticated(ApiKeyAccessType.Read), priv.get)
 	app.patch("/v1/user/private/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(priv.validatePrivateSchema), priv.update)
+	app.get("/v1/private/:id", isUserAuthenticated(ApiKeyAccessType.Read), priv.get)
+	app.patch("/v1/private/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(priv.validatePrivateSchema), priv.update)
 
 	// Friends
 	app.get("/v1/friends/", isUserAuthenticated(ApiKeyAccessType.Read), friend.getFriends)
