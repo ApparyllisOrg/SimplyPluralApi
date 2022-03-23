@@ -58,7 +58,7 @@ const resetGenerationLimit = async (uid: string) => {
 const updateGenerationLimit = async (uid: string, doc: any) => {
 	if (doc?.lastGenerationReset) {
 		let last = moment(doc.lastGenerationReset)
-		last = last.add("7 days")
+		last = last.add(7, "days")
 
 		if (moment.now() >= last.valueOf()) {
 			await resetGenerationLimit(uid);

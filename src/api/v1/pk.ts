@@ -14,7 +14,7 @@ export const performSyncMember = async (req: Request, res: Response) => {
 export const performSyncMemberToPk = async (req: Request, res: Response) => {
 	const result = await syncMemberToPk(req.body.options, req.body.member, req.body.token, res.locals.uid)
 	if (result.success) {
-		res.status(200).send({ success: true, msgg: `Synced member with id ${req.body.member} to PluralKit` });
+		res.status(200).send({ success: true, msg: result.msg });
 	}
 	else {
 		res.status(400).send(result.msg);
@@ -24,7 +24,7 @@ export const performSyncMemberToPk = async (req: Request, res: Response) => {
 export const performSyncMemberFromPk = async (req: Request, res: Response) => {
 	const result = await syncMemberFromPk(req.body.options, req.body.member, req.body.token, res.locals.uid, undefined, undefined)
 	if (result.success) {
-		res.status(200).send({ success: true, msgg: `Synced member with id ${req.body.member} from PluralKit` });
+		res.status(200).send({ success: true, msg: result.msg });
 	}
 	else {
 		res.status(400).send(result.msg);

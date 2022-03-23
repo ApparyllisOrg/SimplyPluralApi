@@ -56,21 +56,39 @@ const getAvatarString = (data: any, uid: string): string => {
 	return avatar;
 }
 
-const stringFromField = (string: string) => xss(string)
-const colorFromField = (string: string) => `<div class="h-5 rounded" style="background-color: ${xss(string)};"></div>`
-const dateFromField = (string: string) => xss(moment(string).format("dddd, MMMM Do YYYY"))
-const monthFromField = (string: string) => xss(moment(string).format("MMMM"))
-const yearFromField = (string: string) => xss(moment(string).format("YYYY"))
-const monthYearFromField = (string: string) => xss(moment(string).format("MMMM YYYY"))
-const timestampFromField = (string: string) => xss(moment(string).format("dddd, MMMM Do YYYY, h:mm:ss a"))
-const monthDayFromField = (string: string) => xss(moment(string).format("dddd, MMMM Do"))
+
+const getMoment = (timestamp: string | undefined, func: (timestamp: string) => string) => {
+	if (timestamp && timestamp.length > 0) {
+		return xss(func(timestamp));
+	}
+	return undefined;
+}
+
+const getColor = (colorStr: string | undefined) => {
+	if (colorStr && colorStr.length > 0) {
+		if (RegExp("^((#[a-fA-F0-9]{6})|(#[a-fA-F0-9]{8})|([a-fA-F0-9]{6})|([a-fA-F0-9]{8}))$").test(colorStr)) {
+			return `<div class="h-5 rounded" style="background-color: ${xss(colorStr)};"></div>`;
+		}
+		return undefined
+	}
+	return undefined;
+}
+
+const stringFromField = (string: string): string | undefined => xss(string)
+const colorFromField = (string: string): string | undefined => getColor(string)
+const dateFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("dddd, MMMM Do YYYY"))
+const monthFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("MMMM"))
+const yearFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("YYYY"))
+const monthYearFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("MMMM YYYY"))
+const timestampFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("dddd, MMMM Do YYYY, h:mm:ss a"))
+const monthDayFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("dddd, MMMM Do"))
 
 const typeConverters = [stringFromField, colorFromField, dateFromField, monthFromField, yearFromField, monthYearFromField, timestampFromField, monthDayFromField]
 
 const getDescription = (data: any, template: string): string => {
 	let result = `${template}`;
 	if (data.desc) {
-		result = result.replace("{{desc}}", data.desc);
+		result = result.replace("{{desc}}", xss(data.desc));
 		return result;
 	}
 
@@ -125,7 +143,7 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 			member = member.replace("{{color}}", xss(memberData.color));
 			member = member.replace("{{avatar}}", xss(getAvatarString(memberData, uid)));
 			member = member.replace("{{privacy}}", xss(getWrittenPrivacyLevel(memberData)));
-			member = member.replace("{{desc}}", xss(getDescription(memberData, descTemplate)));
+			member = member.replace("{{desc}}", getDescription(memberData, descTemplate));
 
 			if (query.members.includeCustomFields === false) {
 				member = member.replace("{{fields}}", "");
@@ -150,14 +168,13 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 								continue;
 							}
 
-							let field = `${fieldTemplate}`;
-							field = field.replace("{{key}}", xss(fieldKeyToName(key, user)));
-
-
-							field = field.replace("{{value}}", typeConverters[fieldInfo.type](value as string));
-							generatedFields = generatedFields + field;
-
-
+							const fieldResult = typeConverters[fieldInfo.type](value as string);
+							if (fieldResult) {
+								let field = `${fieldTemplate}`;
+								field = field.replace("{{key}}", xss(fieldKeyToName(key, user)));
+								field = field.replace("{{value}}", fieldResult);
+								generatedFields = generatedFields + field;
+							}
 						}
 					}
 
