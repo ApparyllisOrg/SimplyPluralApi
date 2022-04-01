@@ -65,7 +65,7 @@ export const updateFriend = async (req: Request, res: Response) => {
 	res.status(200).send();
 }
 
-export const getFiendFrontValues = async (req: Request, res: Response) => {
+export const getFriendFrontValues = async (req: Request, res: Response) => {
 	const friends = getCollection("friends");
 
 	const sharedFront = getCollection("sharedFront");

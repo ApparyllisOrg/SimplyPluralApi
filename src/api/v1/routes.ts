@@ -16,11 +16,11 @@ import * as friend from './friend';
 import * as poll from './poll';
 import * as storage from './storage';
 import * as friendActions from './friendActions';
-import * as frontHistrory from './frontHistory';
+import * as frontHistory from './frontHistory';
 import * as pk from './pk';
 import * as token from './tokens';
 
-// Todo: Verify all access types are setup correctly before moving to procuction
+// Todo: Verify all access types are setup correctly before moving to production
 export const setupV1routes = (app: core.Express) => {
 	// Members
 	app.get("/v1/member/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), member.get)
@@ -72,16 +72,16 @@ export const setupV1routes = (app: core.Express) => {
 	app.delete("/v1/timer/repeated/:id", isUserAuthenticated(ApiKeyAccessType.Delete), repeatedTimer.del)
 
 	// Fronting
-	app.get("/v1/fronters/", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFronters)
+	app.get("/v1/fronters/", isUserAuthenticated(ApiKeyAccessType.Read), frontHistory.getFronters)
 
 	// Front History
-	app.get("/v1/frontHistory/:system", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(frontHistrory.validateGetfrontHistorychema), frontHistrory.getFrontHistoryInRange)
-	app.get("/v1/frontHistory", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFrontHistory)
-	app.get("/v1/frontHistory/member/:id", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.getFrontHistoryForMember)
-	app.get("/v1/frontHistory/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), frontHistrory.get)
-	app.post("/v1/frontHistory/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(frontHistrory.validatefrontHistoryPostSchema), validateId, frontHistrory.add)
-	app.patch("/v1/frontHistory/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(frontHistrory.validatefrontHistoryPatchSchema), frontHistrory.update)
-	app.delete("/v1/frontHistory/:id", isUserAuthenticated(ApiKeyAccessType.Delete), frontHistrory.del)
+	app.get("/v1/frontHistory/:system", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(frontHistory.validateGetfrontHistorychema), frontHistory.getFrontHistoryInRange)
+	app.get("/v1/frontHistory", isUserAuthenticated(ApiKeyAccessType.Read), frontHistory.getFrontHistory)
+	app.get("/v1/frontHistory/member/:id", isUserAuthenticated(ApiKeyAccessType.Read), frontHistory.getFrontHistoryForMember)
+	app.get("/v1/frontHistory/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), frontHistory.get)
+	app.post("/v1/frontHistory/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(frontHistory.validatefrontHistoryPostSchema), validateId, frontHistory.add)
+	app.patch("/v1/frontHistory/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(frontHistory.validatefrontHistoryPatchSchema), frontHistory.update)
+	app.delete("/v1/frontHistory/:id", isUserAuthenticated(ApiKeyAccessType.Delete), frontHistory.del)
 
 	// Groups
 	app.get("/v1/group/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), group.get)
@@ -108,8 +108,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/friends/requests/incoming", isUserAuthenticated(ApiKeyAccessType.Read), friend.getIngoingFriendRequests)
 	app.get("/v1/friends/requests/outgoing", isUserAuthenticated(ApiKeyAccessType.Read), friend.getOutgoingFriendRequests)
 	app.get("/v1/friends/getFrontValues", isUserAuthenticated(ApiKeyAccessType.Read), friend.getAllFriendFrontValues);
-	app.get("/v1/friends/getFrontValues", isUserAuthenticated(ApiKeyAccessType.Read), friend.getAllFriendFrontValues);
-	app.get("/v1/friend/:system/getFrontValue", isUserAuthenticated(ApiKeyAccessType.Read), friend.getFiendFrontValues);
+	app.get("/v1/friend/:system/getFrontValue", isUserAuthenticated(ApiKeyAccessType.Read), friend.getFriendFrontValues);
 	app.post("/v1/friends/request/add/:id", isUserAuthenticated(ApiKeyAccessType.Write), friendActions.AddFriend)
 	app.post("/v1/friends/request/respond/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(friendActions.validateRespondToFrienqRequestSchema), friendActions.RespondToFriendRequest)
 	app.delete("/v1/friends/request/:id", isUserAuthenticated(ApiKeyAccessType.Delete), friendActions.CancelFriendRequest)
