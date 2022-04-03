@@ -90,27 +90,25 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 			const pkMemberResult = await addPendingRequest(getRequest)
 			if (pkMemberResult) {
 				if (pkMemberResult.status == 200) {
-
 					const patchRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${spMemberResult.pkId}`, token, response: null, data: memberDataToSync, type: PkRequestType.Patch, id: "" }
 					const patchResult = await addPendingRequest(patchRequest)
 					if (patchResult) {
 						if (patchResult.status === 200) {
-							return { success: true, msg: "Member updated on Plural Kit" }
+							return { success: true, msg: `${name} added to PluralKit` }
 						}
 						else {
 							return { success: false, msg: `${patchResult.status.toString()} - ${patchResult.statusText}` }
 						}
 					}
 				}
-				else if (pkMemberResult && pkMemberResult.status === 404) {
-
+				else if (pkMemberResult && (pkMemberResult.status === 404 || pkMemberResult.status === 403)) {
 					memberDataToSync.name = name;
 					const postRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members`, token, response: null, data: memberDataToSync, type: PkRequestType.Post, id: "" }
 					const postResult = await addPendingRequest(postRequest)
 					if (postResult) {
 						if (postResult.status === 200) {
 							await getCollection("members").updateOne({ uid: userId, _id: parseId(spMemberId) }, { $set: { pkId: postResult.data.id } })
-							return { success: true, msg: "Member added to Plural Kit" }
+							return { success: true, msg: `${name} added to PluralKit` }
 						}
 						else {
 							return { success: false, msg: `${postResult.status.toString()} - ${postResult.statusText}` }
@@ -121,6 +119,8 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 					return { success: false, msg: `${pkMemberResult.status.toString()} - ${pkMemberResult.statusText}` }
 				}
 			}
+
+			return { success: false, msg: `Unable to reach PluralKit's servers` }
 		}
 		else {
 			memberDataToSync.name = name;
@@ -130,12 +130,14 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 			if (postResult) {
 				if (postResult.status === 200) {
 					await getCollection("members").updateOne({ uid: userId, _id: parseId(spMemberId) }, { $set: { pkId: postResult.data.id } })
-					return { success: true, msg: "Member added to Plural Kit" }
+					return { success: true, msg: `${name} added to PluralKit` }
 				}
 				else {
 					return { success: false, msg: `${postResult.status.toString()} - ${postResult.statusText}` }
 				}
 			}
+
+			return { success: false, msg: `Unable to reach PluralKit's servers` }
 		}
 	}
 
@@ -158,7 +160,7 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 			}
 		}
 		else {
-			return { success: false, msg: `Internal error in plural kit controller` }
+			return { success: false, msg: `Unable to reach PluralKit's servers` }
 		}
 	}
 
@@ -190,7 +192,7 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 			}
 
 		}
-		return { success: true, msg: "Member updated on Simply Plural" }
+		return { success: true, msg: `${spMemberResult.name ?? ""} updated on Simply Plural` }
 	}
 	else {
 		memberDataToSync.uid = userId;
@@ -214,7 +216,7 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 			await getCollection("members").insertOne(memberDataToSync)
 		}
 
-		return { success: true, msg: "Member added to Simply Plural" }
+		return { success: true, msg: `${memberData.name} added to Simply Plural` }
 	}
 }
 
@@ -222,7 +224,7 @@ export const syncAllSpMembersToPk = async (options: syncOptions, _allSyncOptions
 	const spMembersResult = await getCollection("members").find({ uid: userId }).toArray()
 	for (let i = 0; i < spMembersResult.length; ++i) {
 		const member = spMembersResult[i];
-		syncMemberToPk(options, member._id, token, userId);
+		await syncMemberToPk(options, member._id, token, userId);
 	}
 	return { success: true, msg: "Syncing in progress" }
 }
@@ -262,6 +264,6 @@ export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions:
 		}
 	}
 	else {
-		return { success: false, msg: `Internal error in plural kit controller` }
+		return { success: false, msg: `Unable to reach PluralKit's servers` }
 	}
 }
