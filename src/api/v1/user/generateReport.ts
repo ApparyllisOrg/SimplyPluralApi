@@ -139,7 +139,7 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 			numMembersShown++;
 
 			member = member.replace("{{name}}", xss(memberData.name));
-			member = member.replace("{{pronouns}}", xss(memberData.pronouns));
+			member = member.replace("{{pronouns}}", xss(memberData.pronouns ?? ""));
 			member = member.replace("{{color}}", xss(memberData.color));
 			member = member.replace("{{avatar}}", xss(getAvatarString(memberData, uid)));
 			member = member.replace("{{privacy}}", xss(getWrittenPrivacyLevel(memberData)));
