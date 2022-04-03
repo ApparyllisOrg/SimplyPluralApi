@@ -55,6 +55,11 @@ export const notifyUser = async (uid: string, title: string, message: string) =>
 						body: message,
 					},
 					token: element,
+					apns: {
+						headers: {
+							"apns-expiration": "216000"
+						}
+					}
 				};
 
 				messaging()
@@ -62,6 +67,11 @@ export const notifyUser = async (uid: string, title: string, message: string) =>
 					.catch((error) => {
 						if (error.code === "messaging/registration-token-not-registered") {
 							privateCollection.updateOne({ uid: uid }, { $pull: { notificationToken: { element } } });
+						} else if (error.code === "app/network-timeout" || error.code === "messaging/server-unavailable") {
+							// Retry sending when it timed out
+							notifyUser(uid, title, message)
+						} else if (error.code === "messaging/invalid-argument") {
+							Sentry.captureMessage("Error during notification: " + error + " " + JSON.stringify(payload));
 						} else if (error.code !== "messaging/internal-error") {
 							Sentry.captureMessage("Error during notification: " + error);
 						}
@@ -203,7 +213,15 @@ export const addSimpleDocument = async (req: Request, res: Response, collection:
 	dataObj._id = res.locals.useId ?? new ObjectID();
 	dataObj.uid = res.locals.uid;
 	dataObj.lastOperationTime = res.locals.operationTime;
-	const result = await Mongo.getCollection(collection).insertOne(dataObj);
+	const result = await Mongo.getCollection(collection).insertOne(dataObj).catch(() => {
+		return {
+			insertedCount: 0,
+			ops: [],
+			insertedId: dataObj._id,
+			connection: null,
+			result: { ok: 0, n: 0 },
+		}
+	});
 	if (result.result.n === 0) {
 		res.status(500).send("Server processed your request, however was unable to enter a document into the database");
 		return;

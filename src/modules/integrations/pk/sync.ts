@@ -255,7 +255,9 @@ export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions:
 
 			await Promise.all(promises);
 
-			getCollection("members").bulkWrite(bulkWrites);
+			if (bulkWrites && bulkWrites.length > 0) {
+				getCollection("members").bulkWrite(bulkWrites);
+			}
 
 			return { success: true, msg: "" }
 		}
