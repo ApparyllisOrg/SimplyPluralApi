@@ -243,3 +243,17 @@ export const updateSimpleDocument = async (req: Request, res: Response, collecti
 
 	res.status(200).send();
 }
+
+export const isMember = async (uid: string, id: string) => {
+	const member = await Mongo.getCollection("members").findOne({ uid, _id: parseId(id) })
+	return !!member
+}
+
+export const isCustomFront = async (uid: string, id: string) => {
+	const cf = await Mongo.getCollection("frontStatuses").findOne({ uid, _id: parseId(id) })
+	return !!cf
+}
+
+export const isMemberOrCustomFront = async (uid: string, id: string) => {
+	return isMember(uid, id) || isCustomFront(uid, id)
+}
