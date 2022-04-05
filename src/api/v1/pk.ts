@@ -22,7 +22,7 @@ export const performSyncMemberToPk = async (req: Request, res: Response) => {
 }
 
 export const performSyncMemberFromPk = async (req: Request, res: Response) => {
-	const result = await syncMemberFromPk(req.body.options, req.body.member, req.body.token, res.locals.uid, undefined, undefined)
+	const result = await syncMemberFromPk(req.body.options, req.body.member, req.body.token, res.locals.uid, undefined, undefined, false)
 	if (result.success) {
 		res.status(200).send({ success: true, msg: result.msg });
 	}
@@ -128,10 +128,11 @@ export const validateSyncMembersSchema = (body: any): { success: boolean, msg: s
 				properties: {
 					add: { type: "boolean", },
 					overwrite: { type: "boolean" },
+					privateByDefault: { type: "boolean" },
 				},
 				nullable: false,
 				additionalProperties: false,
-				required: ["add", "overwrite"]
+				required: ["add", "overwrite", "privateByDefault"]
 			}
 		},
 		nullable: false,

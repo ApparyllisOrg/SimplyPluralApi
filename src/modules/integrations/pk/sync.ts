@@ -13,7 +13,8 @@ export interface syncOptions {
 
 export interface syncAllOptions {
 	overwrite: boolean,
-	add: boolean
+	add: boolean,
+	privateByDefault: boolean
 }
 
 // Simply Plural colors are supported in a wide variety.
@@ -144,7 +145,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 	return { success: false, msg: "Member does not exist in Simply Plural for this account." }
 }
 
-export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string, token: string, userId: string, memberData: any | undefined, batch: BulkWriteOperation<any>[] | undefined): Promise<{ success: boolean, msg: string }> => {
+export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string, token: string, userId: string, memberData: any | undefined, batch: BulkWriteOperation<any>[] | undefined, privateByDefault: boolean): Promise<{ success: boolean, msg: string }> => {
 
 	let data: any | undefined = memberData;
 
@@ -198,7 +199,7 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 		memberDataToSync.uid = userId;
 		memberDataToSync.pkId = pkMemberId;
 
-		if (memberData.privacy?.visibility === "private") {
+		if (memberData.privacy?.visibility === "private" || privateByDefault) {
 			memberDataToSync.private = true;
 			memberDataToSync.preventTrusted = true;
 		}
@@ -245,11 +246,11 @@ export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions:
 
 				const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: parseId(member.id) })
 				if (spMemberResult && allSyncOptions.overwrite) {
-					promises.push(syncMemberFromPk(options, member.id, token, userId, foundMembers[i], bulkWrites));
+					promises.push(syncMemberFromPk(options, member.id, token, userId, foundMembers[i], bulkWrites, allSyncOptions.privateByDefault));
 				}
 
 				if (!spMemberResult && allSyncOptions.add) {
-					promises.push(syncMemberFromPk(options, member.id, token, userId, foundMembers[i], bulkWrites));
+					promises.push(syncMemberFromPk(options, member.id, token, userId, foundMembers[i], bulkWrites, allSyncOptions.privateByDefault));
 				}
 			}
 

@@ -107,7 +107,7 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	result = result.replace("{{username}}", xss(user.username));
 	result = result.replace("{{color}}", xss(user.color));
 	result = result.replace("{{avatar}}", xss(getAvatarString(user, uid)));
-	result = result.replace("{{desc}}", xss(getDescription(user, descTemplate)));
+	result = result.replace("{{desc}}", getDescription(user, descTemplate));
 
 	const members = await getCollection("members").find({ uid: uid }).toArray();
 	members.sort((a, b) => {
@@ -231,7 +231,7 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 			customFront = customFront.replace("{{color}}", xss(frontData.color));
 			customFront = customFront.replace("{{avatar}}", xss(getAvatarString(frontData, uid)));
 			customFront = customFront.replace("{{privacy}}", xss(getWrittenPrivacyLevel(frontData)));
-			customFront = customFront.replace("{{desc}}", xss(getDescription(frontData, descTemplate)));
+			customFront = customFront.replace("{{desc}}", getDescription(frontData, descTemplate));
 
 			generatedFronts = generatedFronts + customFront;
 		})
