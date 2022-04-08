@@ -40,4 +40,4 @@ The Simply Plural API has a host of functionalities.
 - `SPACES_KEY`, `SPACES_SECRET`: Key ID and secret for DigitalOcean Spaces
 
 ## Pull Requests
-When doing cosmetic pull requests, such as typo fixes, formatting fixes, please PR into main. For any other pull requests, such as feature changes, new features, fixes, etc. please PR into the pretesting branch,
+When doing cosmetic pull requests (such as typo fixes, formatting fixes), please PR into main. For any other pull requests (such as feature changes, new features, fixes, etc.), please PR into the pretesting branch.
