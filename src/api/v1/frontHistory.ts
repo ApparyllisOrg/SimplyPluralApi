@@ -46,7 +46,7 @@ export const add = async (req: Request, res: Response) => {
 	else {
 		const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member);
 		if (!isValidMemberId) {
-			res.status(400).send("This member does not exist for this account")
+			res.status(404).send("This member does not exist for this account")
 			return
 		}
 
@@ -64,10 +64,14 @@ export const update = async (req: Request, res: Response) => {
 		}
 
 		if (req.body.member != null && req.body.member != undefined && frontingDoc.live === true) {
-			const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member);
-			if (!isValidMemberId) {
-				res.status(400).send("This member does not exist for this account")
-				return
+
+			// Only allow changing of a member value to a valid member value
+			if (req.body.member != frontingDoc.member) {
+				const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member);
+				if (!isValidMemberId) {
+					res.status(404).send("This member does not exist for this account")
+					return
+				}
 			}
 
 			const alreadyFrontingDoc = await getCollection("frontHistory").findOne({ member: req.body.member, live: true })
