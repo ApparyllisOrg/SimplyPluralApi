@@ -11,8 +11,9 @@ export default class Connection {
 
 	private onMessage = async (message: string) => {
 
-		// Ignore ping messages
-		if (message == "ping") return;
+		if (message == "ping") {
+			return this.send("pong");
+		}
 
 		let json;
 		try {
