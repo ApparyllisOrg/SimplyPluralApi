@@ -24,14 +24,9 @@ const scheduleReminder = async (uid: string, data: any, userData: any) => {
 		return;
 	}
 
-	const intervalInDays = data.dayInterval;
-	// Todo: Take in account DST changes
-	const intervalInMs = (intervalInDays * 86400000); // 86400000ms is one day
+	const intervalInDays : number = data.dayInterval;
 
-	const differenceInMs = now.valueOf() - initialTime.valueOf();
-
-	const numTimesRan = differenceInMs / intervalInMs;
-	const nextDue = initialTime.valueOf() + (Math.ceil(numTimesRan) * intervalInMs);
+	const nextDue = initialTime.add(intervalInDays, "days").valueOf();
 
 	queuedEvents.insertOne({ uid: uid, event: "scheduledRepeatReminder", due: nextDue, message: data.message, reminderId: data._id });
 };
