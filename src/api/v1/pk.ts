@@ -132,7 +132,7 @@ export const validateSyncMembersSchema = (body: any): { success: boolean, msg: s
 				},
 				nullable: false,
 				additionalProperties: false,
-				required: ["add", "overwrite", "privateByDefault"]
+				required: ["add", "overwrite"]
 			}
 		},
 		nullable: false,
