@@ -95,7 +95,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 					const patchResult = await addPendingRequest(patchRequest)
 					if (patchResult) {
 						if (patchResult.status === 200) {
-							return { success: true, msg: `${name} added to PluralKit` }
+							return { success: true, msg: `${name} updated on PluralKit` }
 						}
 						else {
 							return { success: false, msg: `${patchResult.status.toString()} - ${patchResult.statusText}` }
