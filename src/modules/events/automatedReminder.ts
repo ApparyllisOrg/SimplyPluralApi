@@ -11,7 +11,7 @@ export const notifyOfFrontChange = async (uid: string, removed: boolean, memberI
 	const foundReminders = await automatedReminders.find({ uid: uid }).toArray();
 
 	const foundMember = await getCollection("members").findOne({ _id: parseId(memberId) })
-	const custom = !!foundMember
+	const custom = !foundMember
 
 	// enum ESelectedAction { MemberFront, Customfront, AnyFront } <= Dart code
 	foundReminders.forEach((reminder: any) => {

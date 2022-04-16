@@ -1,4 +1,6 @@
 import { Request, Response } from "express";
+import moment from "moment";
+import { frontChange } from "../../modules/events/frontChange";
 import { getCollection } from "../../modules/mongo";
 import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security";
 import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendDocuments, updateSimpleDocument } from "../../util";
@@ -62,12 +64,25 @@ export const add = async (req: Request, res: Response) => {
 
 export const update = async (req: Request, res: Response) => {
 	updateSimpleDocument(req, res, "members")
+
+	// If this member is fronting, we need to notify and update current fronters
+	const fhLive = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.params.id, live: true })
+	if (fhLive) {
+		frontChange(res.locals.uid, false, req.params.id);
+	}
 }
 
 export const del = async (req: Request, res: Response) => {
 
+	// If this member is fronting, we need to notify and update current fronters
+	const fhLive = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.params.id, live: true })
+
 	// Delete live fronts of this member
-	getCollection("frontHistory").deleteMany({ uid: res.locals.uid, member: req.params.id, live: true });
+	await getCollection("frontHistory").updateOne({ uid: res.locals.uid, member: req.params.id, live: true }, { $set: { live: false, endTime: moment.now() } });
+
+	if (fhLive) {
+		frontChange(res.locals.uid, true, req.params.id);
+	}
 
 	// Delete this member from any groups they're in
 	getCollection("groups").updateMany({ uid: res.locals.uid }, { $pull: { members: req.params.id } });
