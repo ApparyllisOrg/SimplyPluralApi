@@ -39,20 +39,22 @@ export const get = async (req: Request, res: Response) => {
 }
 
 export const add = async (req: Request, res: Response) => {
-	const potentiallyFrontingDoc = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.body.member, live: true })
-	if (potentiallyFrontingDoc) {
-		res.status(409).send("This member is already set to be fronting. Remove them from front prior to adding them to front")
-	}
-	else {
-		const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member);
-		if (!isValidMemberId) {
-			res.status(404).send("This member does not exist for this account")
+	if (req.body.live === true) {
+		const potentiallyFrontingDoc = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.body.member, live: true })
+		if (potentiallyFrontingDoc) {
+			res.status(409).send("This member is already set to be fronting. Remove them from front prior to adding them to front")
 			return
 		}
-
-		await addSimpleDocument(req, res, "frontHistory");
-		frontChange(res.locals.uid, false, req.body.member)
 	}
+
+	const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member);
+	if (!isValidMemberId) {
+		res.status(404).send("This member does not exist for this account")
+		return
+	}
+
+	await addSimpleDocument(req, res, "frontHistory");
+	frontChange(res.locals.uid, false, req.body.member)
 }
 
 export const update = async (req: Request, res: Response) => {
