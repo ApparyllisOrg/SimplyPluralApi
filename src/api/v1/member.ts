@@ -28,7 +28,7 @@ export const getMembers = async (req: Request, res: Response) => {
 
 				const newFields: any = {}
 
-				if (member.info) {
+				if (member.info && ownerFields) {
 					Object.keys(member.info).forEach((key) => {
 						const fieldSpec = ownerFields[key];
 						if (fieldSpec) {

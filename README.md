@@ -38,3 +38,6 @@ The Simply Plural API has a host of functionalities.
 - `PORT`: port to listen on (same for http or https - *defaults to 8443*)
 - `DISABLE_TLS`: will disable HTTPS (for example, when behind a proxy or load balancer)
 - `SPACES_KEY`, `SPACES_SECRET`: Key ID and secret for DigitalOcean Spaces
+
+## Pull Requests
+When doing cosmetic pull requests, such as typo fixes, formatting fixes, please PR into main. For any other pull requests, such as feature changes, new features, fixes, etc. please PR into the pretesting branch,

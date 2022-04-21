@@ -30,7 +30,10 @@ export const getIngoingFriendRequests = async (req: Request, res: Response) => {
 	const friendValues: any[] = []
 
 	for (let i = 0; i < documents.length; ++i) {
-		friendValues.push(await getCollection("users").findOne({ uid: documents[i].sender }))
+		const friend =await getCollection("users").findOne({ uid: documents[i].sender });
+		if (friend) {
+			friendValues.push(friend)
+		}
 	}
 
 	// Send users as collection as we are sending user objects, not friend (requests)
@@ -42,7 +45,10 @@ export const getOutgoingFriendRequests = async (req: Request, res: Response) => 
 	const friendValues: any[] = []
 
 	for (let i = 0; i < documents.length; ++i) {
-		friendValues.push(await getCollection("users").findOne({ uid: documents[i].receiver }))
+		const friend = await getCollection("users").findOne({ uid: documents[i].receiver });
+		if (friend) {
+			friendValues.push(friend)
+		}
 	}
 
 	// Send users as collection as we are sending user objects, not friend (requests)
