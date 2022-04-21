@@ -271,5 +271,5 @@ export const isCustomFront = async (uid: string, id: string) => {
 }
 
 export const isMemberOrCustomFront = async (uid: string, id: string) => {
-	return isMember(uid, id) || isCustomFront(uid, id)
+	return (await isMember(uid, id)) || (await isCustomFront(uid, id))
 }
