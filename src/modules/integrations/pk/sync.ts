@@ -1,5 +1,6 @@
 import { BulkWriteOperation } from "mongodb";
 import { getCollection, parseId } from "../../mongo"
+import { dispatchCustomEvent } from "../../socket";
 import { addPendingRequest, PkRequest, PkRequestType } from "./controller"
 
 export interface syncOptions {
@@ -43,8 +44,8 @@ const spColorToPkColor = (color: string | undefined): string | undefined => {
 
 const limitStringLength = (value: string | undefined, length: number) => {
 
-	let newValue = undefined;
-	if (value) {
+	let newValue = null;
+	if (value != null && value != undefined) {
 		if (value.length > length) {
 			newValue = value.substring(0, length)
 		}
@@ -55,7 +56,7 @@ const limitStringLength = (value: string | undefined, length: number) => {
 	return newValue;
 }
 
-export const syncMemberToPk = async (options: syncOptions, spMemberId: string, token: string, userId: string): Promise<{ success: boolean, msg: string }> => {
+export const syncMemberToPk = async (options: syncOptions, spMemberId: string, token: string, userId: string, memberData: any | undefined,): Promise<{ success: boolean, msg: string }> => {
 	const spMemberResult = await getCollection("members").findOne({ uid: userId, _id: parseId(spMemberId) })
 
 	let { name, avatarUrl, pronouns, desc } = spMemberResult;
@@ -66,6 +67,8 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 	pronouns = limitStringLength(pronouns, 100)
 	desc = limitStringLength(desc, 1000)
 
+		console.log(desc)
+
 	const memberDataToSync: any = {}
 	if (options.name) {
 		if (options.useDisplayName) {
@@ -74,9 +77,11 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 			memberDataToSync.name = name;
 		}
 	}
+
+
 	if (options.avatar && avatarUrl) memberDataToSync.avatar_url = avatarUrl;
 	if (options.pronouns && pronouns) memberDataToSync.pronouns = pronouns;
-	if (options.description && desc) memberDataToSync.description = desc;
+	if (options.description && desc != null) memberDataToSync.description = desc;
 	if (options.color && color) {
 		const updateColor = spColorToPkColor(color)
 		if (updateColor) {
@@ -88,7 +93,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 		const pkId: string | undefined | null = spMemberResult.pkId;
 		if (pkId && pkId.length === 5) {
 			const getRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${spMemberResult.pkId}`, token, response: null, data: undefined, type: PkRequestType.Get, id: "" }
-			const pkMemberResult = await addPendingRequest(getRequest)
+			const pkMemberResult = memberData ?? await addPendingRequest(getRequest)
 			if (pkMemberResult) {
 				if (pkMemberResult.status == 200) {
 					const patchRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${spMemberResult.pkId}`, token, response: null, data: memberDataToSync, type: PkRequestType.Patch, id: "" }
@@ -223,14 +228,32 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 
 export const syncAllSpMembersToPk = async (options: syncOptions, _allSyncOptions: syncAllOptions, token: string, userId: string): Promise<{ success: boolean, msg: string }> => {
 	const spMembersResult = await getCollection("members").find({ uid: userId }).toArray()
+
+	dispatchCustomEvent({uid: userId, type: "syncToUpdate", data: "Starting Sync"})
+
+	const getRequest: PkRequest = { path: `https://api.pluralkit.me/v2/systems/@me/members`, token, response: null, data: undefined, type: PkRequestType.Get, id: "" }
+	const pkMembersResult = await addPendingRequest(getRequest)
+
+	const foundMembers: any[] = pkMembersResult?.data ?? []
+
 	for (let i = 0; i < spMembersResult.length; ++i) {
 		const member = spMembersResult[i];
-		await syncMemberToPk(options, member._id, token, userId);
+
+		const currentCount = i + 1;
+		dispatchCustomEvent({uid: userId, type: "syncToUpdate", data: `Syncing ${member.name}, ${currentCount.toString()} out of ${spMembersResult.length.toString()}`})
+
+		const foundMember : any | undefined = foundMembers.find((value) => value.id === member.pkId)
+
+		pkMembersResult?.data.forE
+
+		await syncMemberToPk(options, member._id, token, userId, foundMember);
 	}
 	return { success: true, msg: "Syncing in progress" }
 }
 
 export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions: syncAllOptions, token: string, userId: string): Promise<{ success: boolean, msg: string }> => {
+	dispatchCustomEvent({uid: userId, type: "syncFromUpdate", data: "Starting Sync"})
+
 	const getRequest: PkRequest = { path: `https://api.pluralkit.me/v2/systems/@me/members`, token, response: null, data: undefined, type: PkRequestType.Get, id: "" }
 	const pkMembersResult = await addPendingRequest(getRequest)
 	if (pkMembersResult) {
@@ -243,6 +266,8 @@ export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions:
 
 			for (let i = 0; i < foundMembers.length; ++i) {
 				const member = foundMembers[i];
+				const currentCount = i + 1;
+                dispatchCustomEvent({uid: userId, type: "syncFromUpdate", data: `Syncing ${member.name}, ${currentCount.toString()} out of ${foundMembers.length.toString()}`})
 
 				const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: parseId(member.id) })
 				if (spMemberResult && allSyncOptions.overwrite) {

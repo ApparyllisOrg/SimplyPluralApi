@@ -21,6 +21,35 @@ export function transformResultForClientRead(value: documentObject, requestorUid
 	};
 }
 
+const wait = (time: number): Promise<void> =>
+	new Promise<void>((res) => setTimeout(res, time));
+
+const sendNotification = async (payload: {notification: {title: string, body: string}, data: {title: string, body: string}, token: string, }, uid: string) =>
+{
+	const privateCollection = Mongo.getCollection("private");
+	const privateFriendData = await privateCollection.findOne({ uid: uid });
+
+	const sendPayload = {...payload, apns:  {headers: {	"apns-expiration": "216000"}}}
+	messaging()
+		.send(sendPayload)
+		.catch(async (error) => {
+			if (error.code === "messaging/registration-token-not-registered") {
+				const tokenToRemove = payload.token;
+				privateCollection.updateOne({ uid: uid }, { $pull: { notificationToken: { tokenToRemove } } });
+			} else if (error.code === "app/network-timeout" || error.code === "messaging/server-unavailable") {
+
+				// Retry sending when it timed out
+				await wait(1000);
+				sendNotification(payload, uid)
+				
+			} else if (error.code === "messaging/invalid-argument") {
+				Sentry.captureMessage("Error during notification: " + error + " " + JSON.stringify(payload));
+			} else if (error.code !== "messaging/internal-error") {
+				Sentry.captureMessage("Error during notification: " + error);
+			}
+		});
+}
+
 export const notifyUser = async (uid: string, title: string, message: string) => {
 	socketNotify(uid, title, message);
 
@@ -62,20 +91,7 @@ export const notifyUser = async (uid: string, title: string, message: string) =>
 					}
 				};
 
-				messaging()
-					.send(payload)
-					.catch((error) => {
-						if (error.code === "messaging/registration-token-not-registered") {
-							privateCollection.updateOne({ uid: uid }, { $pull: { notificationToken: { element } } });
-						} else if (error.code === "app/network-timeout" || error.code === "messaging/server-unavailable") {
-							// Retry sending when it timed out
-							notifyUser(uid, title, message)
-						} else if (error.code === "messaging/invalid-argument") {
-							Sentry.captureMessage("Error during notification: " + error + " " + JSON.stringify(payload));
-						} else if (error.code !== "messaging/internal-error") {
-							Sentry.captureMessage("Error during notification: " + error);
-						}
-					});
+				sendNotification(payload, uid)
 			});
 		}
 	}

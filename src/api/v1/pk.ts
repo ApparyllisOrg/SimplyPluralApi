@@ -12,7 +12,7 @@ export const performSyncMember = async (req: Request, res: Response) => {
 }
 
 export const performSyncMemberToPk = async (req: Request, res: Response) => {
-	const result = await syncMemberToPk(req.body.options, req.body.member, req.body.token, res.locals.uid)
+	const result = await syncMemberToPk(req.body.options, req.body.member, req.body.token, res.locals.uid, undefined)
 	if (result.success) {
 		res.status(200).send({ success: true, msg: result.msg });
 	}
