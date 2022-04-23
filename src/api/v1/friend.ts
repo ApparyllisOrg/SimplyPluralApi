@@ -82,11 +82,11 @@ export const getFriendFrontValues = async (req: Request, res: Response) => {
 	if (friendSettingsDoc.seeFront === true) {
 		if (friendSettingsDoc.trusted === true) {
 			const front = await privateFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
-			res.status(200).send({ frontString: front.frontString, customFrontString: front.customFrontString });
+			res.status(200).send({ frontString: front?.frontString ?? "", customFrontString: front?.customFrontString ?? "" });
 		}
 		else {
 			const front = await sharedFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
-			res.status(200).send({ frontString: front.frontString, customFrontString: front.customFrontString });
+			res.status(200).send({ frontString: front?.frontString ?? "", customFrontString: front?.customFrontString ?? ""});
 		}
 	}
 
