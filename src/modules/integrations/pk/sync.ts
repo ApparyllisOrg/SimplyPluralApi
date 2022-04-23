@@ -67,8 +67,6 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 	pronouns = limitStringLength(pronouns, 100)
 	desc = limitStringLength(desc, 1000)
 
-		console.log(desc)
-
 	const memberDataToSync: any = {}
 	if (options.name) {
 		if (options.useDisplayName) {
@@ -243,8 +241,6 @@ export const syncAllSpMembersToPk = async (options: syncOptions, _allSyncOptions
 		dispatchCustomEvent({uid: userId, type: "syncToUpdate", data: `Syncing ${member.name}, ${currentCount.toString()} out of ${spMembersResult.length.toString()}`})
 
 		const foundMember : any | undefined = foundMembers.find((value) => value.id === member.pkId)
-
-		pkMembersResult?.data.forE
 
 		await syncMemberToPk(options, member._id, token, userId, foundMember);
 	}
