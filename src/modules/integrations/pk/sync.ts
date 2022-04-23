@@ -98,7 +98,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 							return { success: true, msg: `${name} updated on PluralKit` }
 						}
 						else {
-							return { success: false, msg: `${patchResult.status.toString()} - ${patchResult.statusText}` }
+							return { success: false, msg: `${patchResult.status?.toString() ?? ""} - ${patchResult.statusText}` }
 						}
 					}
 				}
@@ -112,12 +112,12 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 							return { success: true, msg: `${name} added to PluralKit` }
 						}
 						else {
-							return { success: false, msg: `${postResult.status.toString()} - ${postResult.statusText}` }
+							return { success: false, msg: `${postResult.status?.toString() ?? ""} - ${postResult.statusText}` }
 						}
 					}
 				}
 				else {
-					return { success: false, msg: `${pkMemberResult.status.toString()} - ${pkMemberResult.statusText}` }
+					return { success: false, msg: `${pkMemberResult.status?.toString() ?? ""} - ${pkMemberResult.statusText}` }
 				}
 			}
 
@@ -134,7 +134,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 					return { success: true, msg: `${name} added to PluralKit` }
 				}
 				else {
-					return { success: false, msg: `${postResult.status.toString()} - ${postResult.statusText}` }
+					return { success: false, msg: `${postResult.status?.toString() ?? ""} - ${postResult.statusText}` }
 				}
 			}
 
@@ -157,7 +157,7 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 				data = pkMemberResult.data;
 			}
 			else {
-				return { success: false, msg: `${pkMemberResult.status.toString()} - ${pkMemberResult.statusText}` }
+				return { success: false, msg: `${pkMemberResult.status?.toString() ?? ""} - ${pkMemberResult.statusText}` }
 			}
 		}
 		else {
@@ -263,7 +263,7 @@ export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions:
 			return { success: true, msg: "" }
 		}
 		else {
-			return { success: false, msg: `${pkMembersResult.status.toString()} - ${pkMembersResult.statusText}` }
+			return { success: false, msg: `${pkMembersResult.status?.toString() ?? ""} - ${pkMembersResult.statusText}` }
 		}
 	}
 	else {
