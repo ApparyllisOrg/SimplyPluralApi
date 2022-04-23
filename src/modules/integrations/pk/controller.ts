@@ -88,22 +88,52 @@ export const tick = async () => {
 }
 
 export const dispatchTickRequests = async (request: PkRequest) => {
+
+	let debug = false;
+	if (process.env.DEVELOPMENT) {
+		debug = true
+	}
+	
 	const type = request.type;
 	switch (type) {
 		case PkRequestType.Get: {
+			if (debug)
+			{
+				console.log("GET=>"+ request.path)
+			}
 			const result = await axios.get(request.path, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError)
+			if (debug)
+			{
+				console.log("Response for GET=>"+ request.path)
+			}
 			request.response = result
 			pendingResponses.push(request)
 			break
 		}
 		case PkRequestType.Post: {
+			if (debug)
+			{
+				console.log("POST=>"+ request.path)
+			}
 			const result = await axios.post(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError)
+			if (debug)
+			{
+				console.log("Response for POST=>"+ request.path)
+			}			
 			request.response = result
 			pendingResponses.push(request)
 			break
 		}
 		case PkRequestType.Patch: {
+			if (debug)
+			{
+				console.log("PATCH=>"+ request.path)
+			}
 			const result = await axios.patch(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError)
+			if (debug)
+			{
+				console.log("Response for PATCH=>"+ request.path)
+			}
 			request.response = result
 			pendingResponses.push(request)
 			break

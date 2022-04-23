@@ -181,6 +181,14 @@ async function dispatchInner(uid: any, event: ChangeEventNative) {
 	}
 }
 
+export async function dispatchCustomEvent(data: {uid: string, type: string, data: string}) {
+    const payload = { msg: data.type,  data: data.data };
+
+    for (const conn of getUserConnections(data.uid)) {
+        conn.send(payload);
+    }
+}
+
 const logCurrentConnection = () => {
 	console.log("Current socket connections:" + _wss?.clients.size.toString());
 	setTimeout(logCurrentConnection, 10000);
