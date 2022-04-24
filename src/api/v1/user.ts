@@ -116,6 +116,10 @@ export const get = async (req: Request, res: Response) => {
 
 	const ownDocument = req.params.id === res.locals.uid;
 
+	if (!document && !ownDocument) {
+		return res.status(404).send("User document does not exist");
+	}
+
 	// create the user
 	if (!document && ownDocument) {
 		await createUser(res.locals.uid);

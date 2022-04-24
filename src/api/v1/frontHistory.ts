@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { frontChange } from "../../modules/events/frontChange";
 import { getCollection, parseId } from "../../modules/mongo";
 import { documentObject } from "../../modules/mongo/baseTypes";
-import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection } from "../../util";
+import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection, isMemberOrCustomFront, isCustomFront } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 export const getFrontHistoryInRange = async (req: Request, res: Response) => {
@@ -39,14 +39,22 @@ export const get = async (req: Request, res: Response) => {
 }
 
 export const add = async (req: Request, res: Response) => {
-	const potentiallyFrontingDoc = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.body.member, live: true })
-	if (potentiallyFrontingDoc) {
-		res.status(409).send("This member is already set to be fronting. Remove them from front prior to adding them to front")
+	if (req.body.live === true) {
+		const potentiallyFrontingDoc = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.body.member, live: true })
+		if (potentiallyFrontingDoc) {
+			res.status(409).send("This member is already set to be fronting. Remove them from front prior to adding them to front")
+			return
+		}
 	}
-	else {
-		await addSimpleDocument(req, res, "frontHistory");
-		frontChange(res.locals.uid, false, req.body.member)
+
+	const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member);
+	if (!isValidMemberId) {
+		res.status(404).send("This member does not exist for this account")
+		return
 	}
+
+	await addSimpleDocument(req, res, "frontHistory");
+	frontChange(res.locals.uid, false, req.body.member)
 }
 
 export const update = async (req: Request, res: Response) => {
@@ -58,6 +66,16 @@ export const update = async (req: Request, res: Response) => {
 		}
 
 		if (req.body.member != null && req.body.member != undefined && frontingDoc.live === true) {
+
+			// Only allow changing of a member value to a valid member value
+			if (req.body.member != frontingDoc.member) {
+				const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member);
+				if (!isValidMemberId) {
+					res.status(404).send("This member does not exist for this account")
+					return
+				}
+			}
+
 			const alreadyFrontingDoc = await getCollection("frontHistory").findOne({ member: req.body.member, live: true })
 			if (alreadyFrontingDoc && alreadyFrontingDoc._id != req.params.id) {
 				res.status(409).send("You cannot change an active front entry to this member, they are already fronting")
@@ -67,8 +85,11 @@ export const update = async (req: Request, res: Response) => {
 
 		await updateSimpleDocument(req, res, "frontHistory")
 
+		const isCustom = await isCustomFront(res.locals.uid, req.body.member ?? frontingDoc.member);
+		await getCollection("frontHistory").updateOne({ _id: parseId(req.params.id) }, { $set: { custom: isCustom } })
+
 		if (frontingDoc.live === true && req.body.live === false) {
-			frontChange(res.locals.uid, true, frontingDoc.member)
+			frontChange(res.locals.uid, false, req.body.member ?? frontingDoc.member)
 		}
 	}
 	else {
