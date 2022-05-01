@@ -53,6 +53,11 @@ const sendNotification = async (payload: {notification: {title: string, body: st
 export const notifyUser = async (uid: string, title: string, message: string) => {
 	socketNotify(uid, title, message);
 
+	if (message.length > 1000)
+	{
+		message = message.substring(0, 999)
+	}
+
 	const privateCollection = Mongo.getCollection("private");
 	const privateFriendData = await privateCollection.findOne({ uid: uid });
 	if (privateFriendData) {
