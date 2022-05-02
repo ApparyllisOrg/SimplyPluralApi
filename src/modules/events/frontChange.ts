@@ -124,12 +124,11 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 	const friendCollection = getCollection("friends");
 	const foundFriends = await friendCollection.find({ uid: uid }).toArray();
 
-
 	if (beforeFrontString !== frontNotificationString || beforeCustomFrontString !== customFrontString) {
 		performEvent("frontChangeShared", uid, 10 * 1000);
 		sharedCollection
 			.updateOne(
-				{ uid: uid },
+				{ uid: uid, _id: uid },
 				{ $set: { beforeFrontNotificationString: frontNotificationString, beforeCustomFrontString: customFrontString } },
 				{ upsert: true }
 			)
@@ -146,7 +145,7 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 		performEvent("frontChangePrivate", uid, 10 * 1000);
 		privateCollection
 			.updateOne(
-				{ uid: uid },
+				{ uid: uid, _id: uid },
 				{ $set: { beforeFrontNotificationString: frontNotificationString, beforeCustomFrontString: customFrontString } },
 				{ upsert: true }
 			)
