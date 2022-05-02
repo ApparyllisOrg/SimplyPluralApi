@@ -31,7 +31,7 @@ export const update = async (req: Request, res: Response) => {
 	// If this cf is fronting, we need to notify and update current fronters
 	const fhLive = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.params.id, live: true })
 	if (fhLive) {
-		frontChange(res.locals.uid, false, req.params.id);
+		frontChange(res.locals.uid, false, req.params.id, false);
 	}
 }
 
@@ -42,7 +42,7 @@ export const del = async (req: Request, res: Response) => {
 	await getCollection("frontHistory").updateOne({ uid: res.locals.uid, member: req.params.id, live: true }, { $set: { live: false, endTime: moment.now() } });
 
 	if (fhLive) {
-		frontChange(res.locals.uid, true, req.params.id);
+		frontChange(res.locals.uid, true, req.params.id, false);
 	}
 
 	deleteSimpleDocument(req, res, "frontStatuses");

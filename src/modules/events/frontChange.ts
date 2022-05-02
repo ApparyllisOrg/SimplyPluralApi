@@ -4,9 +4,12 @@ import { getCollection, parseId } from "../mongo";
 import { notifyOfFrontChange } from "./automatedReminder";
 import { performEvent } from "./eventController";
 
-export const frontChange = async (uid: string, removed: boolean, memberId: string) => {
+export const frontChange = async (uid: string, removed: boolean, memberId: string, notifyReminders: boolean) => {
 
-	notifyOfFrontChange(uid, removed, memberId)
+	if (notifyReminders === true)
+	{
+		notifyOfFrontChange(uid, removed, memberId)
+	}
 
 	const sharedCollection = getCollection("sharedFront");
 	const privateCollection = getCollection("privateFront");
