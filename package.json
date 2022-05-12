@@ -35,7 +35,7 @@
 		"aws-sdk": "^2.1079.0",
 		"axios": "^0.26.0",
 		"cors": "^2.8.5",
-		"dotenv": "^10.0.0",
+		"dotenv": "^16.0.1",
 		"express": "^4.17.3",
 		"express-rate-limit": "^5.5.1",
 		"express-validator": "^6.14.0",
