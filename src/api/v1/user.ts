@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import shortUUID from "short-uuid";
 import { logger, userLog } from "../../modules/logger";
-import { db, getCollection } from "../../modules/mongo";
-import { sendDocument } from "../../util";
+import { db, getCollection, parseId } from "../../modules/mongo";
+import { fetchCollection, sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
 import { createUser } from "./user/migrate";
@@ -65,6 +65,8 @@ const canGenerateReport = async (res: Response): Promise<boolean> => {
 	return true;
 }
 
+const reportBaseUrl = "https://simply-plural.sfo3.digitaloceanspaces.com/";
+
 const performReportGeneration = async (req: Request, res: Response) => {
 	const htmlFile = await generateUserReport(req.body, res.locals.uid);
 
@@ -82,7 +84,7 @@ const performReportGeneration = async (req: Request, res: Response) => {
 		ContentType: 'text/html'
 	};
 
-	const reportUrl = "https://simply-plural.sfo3.digitaloceanspaces.com/" + path;
+	const reportUrl = reportBaseUrl + path;
 
 	const getFile = promisify(readFile);
 	let emailTemplate = await getFile("./templates/userReportEmail.html", "utf-8");
@@ -106,6 +108,34 @@ const performReportGeneration = async (req: Request, res: Response) => {
 			res.status(500).send(err);
 		} else {
 			res.status(200).send({ success: true, msg: reportUrl });
+		}
+	});
+}
+
+export const getReports = async (req: Request, res: Response) => {
+	fetchCollection(req, res, "reports", {});
+}
+
+
+export const deleteReport = async (req: Request, res: Response) => {
+
+	const report = await getCollection("reports").findOne({ uid: res.locals.uid, _id: parseId(req.params.reportid) });
+
+	const url : string = report.url;
+
+	const reportPath = url.replace(reportBaseUrl, "");
+
+	const params = {
+		Bucket: "simply-plural",
+		Key: `reports/${res.locals.uid}/${reportPath}`,
+	};
+		s3.deleteObject(params, async function (err) {
+		if (err) {
+			logger.error(err)
+			res.status(500).send(err);
+		} else {
+			getCollection("reports").deleteMany({ uid: res.locals.uid, _id: parseId(req.params.reportid) });
+			res.status(200).send({ success: true });
 		}
 	});
 }
