@@ -15,6 +15,7 @@ import { mailerTransport } from "../../modules/mail";
 import { readFile } from "fs";
 import { promisify } from "util";
 import moment from "moment";
+import Mail from "nodemailer/lib/mailer";
 
 const spacesEndpoint = new AWS.Endpoint("sfo3.digitaloceanspaces.com");
 const s3 = new AWS.S3({
@@ -115,7 +116,6 @@ const performReportGeneration = async (req: Request, res: Response) => {
 export const getReports = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "reports", {});
 }
-
 
 export const deleteReport = async (req: Request, res: Response) => {
 
@@ -292,22 +292,71 @@ export const deleteAccount = async (req: Request, res: Response) => {
 };
 
 export const exportUserData = async (_req: Request, res: Response) => {
+	const privateUser = await getCollection("private").findOne({uid: res.locals.uid})
+
+	if (!privateUser)
+	{
+		res.status(404).send("Can't find user")
+		return;
+	}
+
+	const lastExport : number = privateUser.lastExport ?? 0;
+	if (moment(lastExport).diff(moment(moment.now()), "hours") < 24)
+	{
+		res.status(403).send({success:false, msg:'You already exported your data in the last 24 hours'})
+		return;
+	}
+
 	const collections = await db()!.listCollections().toArray();
 
-	const allData: Array<any> = [];
+	let allData: Array<any> = [];
 
-	collections.forEach(async (collection) => {
+	for (let i = 0; i < collections.length; ++i)
+	{	
+		const collection = collections[i];
 		const name: string = collection.name;
 		const split = name.split(".");
 		const actualName = split[split.length - 1];
 
 		const collectionData = await getCollection(actualName).find({ uid: res.locals.uid }).toArray();
-		allData.concat(collectionData);
-	});
+		allData = allData.concat(collectionData);
+	}
 
-	// TODO: Send email to user at registered user address with a plain json file of all data
-	res.status(200).send({});
-	userLog(res.locals.uid, "Exported user data.");
+	const user = await auth().getUser(res.locals.uid)
+
+	const email = user.email ?? "";
+
+	const getFile = promisify(readFile);
+	let emailTemplate = await getFile("./templates/exportEmailTemplate.html", "utf-8");
+
+	const attachement : Mail.Attachment ={
+			filename: "export.json",
+			content: JSON.stringify(allData)
+		};
+
+	const resolution = await mailerTransport?.sendMail({
+		from: '"Apparyllis" <noreply@apparyllis.com>',
+		to: email,
+		subject: "Your user report",
+		html: emailTemplate,
+		attachments: [attachement]
+	}).catch((e) => {
+		console.log(e)
+		return "ERR";
+	})
+
+	if (resolution === "ERR")
+	{
+		res.status(500).send({success:false, msg:"Unable to deliver the data to your email. Does the email"});
+	}
+	else
+	{
+		await getCollection("private").updateOne({uid: res.locals.uid, _id: parseId(res.locals.uid)}, {$set: {lastExport : moment.now()}})
+		await getCollection("securityLogs").insertOne({uid: res.locals.uid, at: moment.now(), action: "Exported user account"});
+
+		res.status(200).send({success:true});
+		userLog(res.locals.uid, `Exported user data and sent to ${email}.`);
+	}
 };
 
 export const setupNewUser = async (uid: string) => {
