@@ -301,7 +301,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 	}
 
 	const lastExport : number = privateUser.lastExport ?? 0;
-	if (moment(lastExport).diff(moment(moment.now()), "hours") < 24)
+	if (moment(moment.now()).diff(moment(lastExport), "hours") < 24)
 	{
 		res.status(403).send({success:false, msg:'You already exported your data in the last 24 hours'})
 		return;
