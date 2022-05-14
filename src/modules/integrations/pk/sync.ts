@@ -1,3 +1,4 @@
+import { AxiosResponse } from "axios";
 import { BulkWriteOperation } from "mongodb";
 import { getCollection, parseId } from "../../mongo"
 import { dispatchCustomEvent } from "../../socket";
@@ -56,6 +57,15 @@ const limitStringLength = (value: string | undefined, length: number) => {
 	return newValue;
 }
 
+const handlePkResponse = (requestResponse: AxiosResponse<any, any>) =>
+{ 	
+	if (requestResponse.status === 401) {
+		return { success: false, msg: `Failed to sync. PluralKit token is invalid.` }
+	} else {
+		return { success: false, msg: `${requestResponse.status?.toString() ?? ""} - ${requestResponse.statusText}` }
+	}
+}
+
 export const syncMemberToPk = async (options: syncOptions, spMemberId: string, token: string, userId: string, memberData: any | undefined,): Promise<{ success: boolean, msg: string }> => {
 	const spMemberResult = await getCollection("members").findOne({ uid: userId, _id: parseId(spMemberId) })
 
@@ -101,7 +111,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 							return { success: true, msg: `${name} updated on PluralKit` }
 						}
 						else {
-							return { success: false, msg: `${patchResult.status.toString()} - ${patchResult.statusText}` }
+							return handlePkResponse(patchResult);
 						}
 					}
 				}
@@ -115,12 +125,12 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 							return { success: true, msg: `${name} added to PluralKit` }
 						}
 						else {
-							return { success: false, msg: `${postResult.status.toString()} - ${postResult.statusText}` }
+							return handlePkResponse(postResult);
 						}
 					}
 				}
 				else {
-					return { success: false, msg: `${pkMemberResult.status.toString()} - ${pkMemberResult.statusText}` }
+					return handlePkResponse(pkMemberResult);
 				}
 			}
 
@@ -136,9 +146,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 					await getCollection("members").updateOne({ uid: userId, _id: parseId(spMemberId) }, { $set: { pkId: postResult.data.id } })
 					return { success: true, msg: `${name} added to PluralKit` }
 				}
-				else {
-					return { success: false, msg: `${postResult.status.toString()} - ${postResult.statusText}` }
-				}
+				return handlePkResponse(postResult);
 			}
 
 			return { success: false, msg: `Unable to reach PluralKit's servers` }
@@ -159,8 +167,9 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 			if (pkMemberResult.status === 200) {
 				data = pkMemberResult.data;
 			}
-			else {
-				return { success: false, msg: `${pkMemberResult.status.toString()} - ${pkMemberResult.statusText}` }
+			else 
+			{
+				return handlePkResponse(pkMemberResult);
 			}
 		}
 		else {
@@ -194,7 +203,6 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 					await getCollection("members").updateOne({ uid: userId, pkId: pkMemberId }, { $set: memberDataToSync }, {})
 				}
 			}
-
 		}
 		return { success: true, msg: `${spMemberResult.name ?? ""} updated on Simply Plural` }
 	}
@@ -283,8 +291,9 @@ export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions:
 
 			return { success: true, msg: "" }
 		}
-		else {
-			return { success: false, msg: `${pkMembersResult.status.toString()} - ${pkMembersResult.statusText}` }
+		else 
+		{
+			return handlePkResponse(pkMembersResult);
 		}
 	}
 	else {

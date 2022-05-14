@@ -54,7 +54,7 @@ export const add = async (req: Request, res: Response) => {
 	}
 
 	await addSimpleDocument(req, res, "frontHistory");
-	frontChange(res.locals.uid, false, req.body.member)
+	frontChange(res.locals.uid, false, req.body.member, true)
 }
 
 export const update = async (req: Request, res: Response) => {
@@ -89,7 +89,7 @@ export const update = async (req: Request, res: Response) => {
 		await getCollection("frontHistory").updateOne({ _id: parseId(req.params.id) }, { $set: { custom: isCustom } })
 
 		if (frontingDoc.live === true && req.body.live === false) {
-			frontChange(res.locals.uid, false, req.body.member ?? frontingDoc.member)
+			frontChange(res.locals.uid, false, req.body.member ?? frontingDoc.member, true)
 		}
 	}
 	else {
@@ -106,7 +106,7 @@ export const del = async (req: Request, res: Response) => {
 	// If a fronting document is deleted, and it's a live one, notify front change
 	if (frontingDoc) {
 		if (frontingDoc.live === true) {
-			frontChange(res.locals.uid, true, frontingDoc.member)
+			frontChange(res.locals.uid, true, frontingDoc.member, true)
 		}
 	}
 
