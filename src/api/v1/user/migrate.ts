@@ -23,7 +23,7 @@ export const createUser = async (uid: string) => {
 
 		if (!user.exists || !user)
 		{
-			await getCollection("private").updateOne({ _id: uid, uid: uid }, { $set: {
+			await getCollection("users").updateOne({ _id: uid, uid: uid }, { $set: {
 				_id: uid, uid: uid, isAsystem: true,
 			} }, { upsert: true });
 		} else {
