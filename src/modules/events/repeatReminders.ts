@@ -12,7 +12,7 @@ const scheduleReminder = async (uid: string, data: any, userData: any) => {
 
 	const timzone: string = userData.location;
 	const formattedTime = data.startTime.year + "-" + ("00" + data.startTime.month).slice(-2)
-		+ "-" + data.startTime.day + " " + ("00" + hour).slice(-2) + ":" + ("00" + minute).slice(-2);
+		+ "-" + ("00" + data.startTime.day).slice(-2) + " " + ("00" + hour).slice(-2) + ":" + ("00" + minute).slice(-2);
 
 	const initialTime = moment.tz(formattedTime, "YYYY-MM-DD HH:mm", true, timzone);
 

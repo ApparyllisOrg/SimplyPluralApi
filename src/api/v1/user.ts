@@ -187,6 +187,35 @@ export const SetUsername = async (req: Request, res: Response) => {
 	}
 };
 
+const deleteUploadedUserFolder = async (uid: string, prefix: string) =>
+{
+	const listParams = {
+		Bucket: "simply-plural",
+		Prefix: `${prefix}/${uid}/`
+	};
+
+	const listedObjects = await s3.listObjectsV2(listParams).promise();
+	if (listedObjects)
+	{
+		const deleteParams : {Bucket: string, Delete: { Objects: { Key: string; }[]}} = {
+			Bucket: "simply-plural",
+			Delete: { Objects: [] }
+		};
+
+		listedObjects.Contents?.forEach(({ Key }) => {
+			if (Key) {
+				deleteParams.Delete.Objects.push({ Key });
+			}
+		});
+
+		userLog(uid, `Deleting ${deleteParams.Delete.Objects.length.toString()} of type ${prefix} in storage`);
+
+		await s3.deleteObjects(deleteParams).promise();
+
+		userLog(uid, `Deleted ${deleteParams.Delete.Objects.length.toString()} of type ${prefix} in storage`);
+	}
+}
+
 export const deleteAccount = async (req: Request, res: Response) => {
 	const perform: boolean = req.body["performDelete"];
 
@@ -215,6 +244,11 @@ export const deleteAccount = async (req: Request, res: Response) => {
 		.deleteMany({ sender: { $eq: res.locals.uid } });
 
 	const user = await auth().getUser(res.locals.uid)
+
+	{
+		await deleteUploadedUserFolder(res.locals.uid, "reports")
+		await deleteUploadedUserFolder(res.locals.uid, "avatars")
+	}
 
 	const email = user.email ?? "";
 

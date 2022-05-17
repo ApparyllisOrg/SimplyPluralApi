@@ -19,14 +19,25 @@ export const logger = winston.createLogger({
 
 
 export const userLog = (uid: string, message: string) => {
-	logger.info("USER: [" + uid + "] " + message);
+	const msg = "USER: [" + uid + "] " + message
+	if (process.env.DEVELOPMENT) {
+		console.log(msg)
+	}
+	logger.info(msg);
 };
 
 export const log = (message: string) => {
-	logger.info("SYSTEM: " + message);
+	const msg = "SYSTEM: " + message
+	if (process.env.DEVELOPMENT) {
+		console.log(msg)
+	}
+	logger.info(msg);
 };
 
 export const logSecurity = (message: string) => {
+	if (process.env.DEVELOPMENT) {
+		console.log(message)
+	}
 	logger.log("warn", message);
 };
 
