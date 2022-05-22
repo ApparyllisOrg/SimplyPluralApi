@@ -19,7 +19,7 @@ interface frontAnalyticValueType
 }
 
 export const get = async (req: Request, res: Response) => {
-	const results : { timings: { morningFronters : frontAnalyticValueType[], dayFronters:frontAnalyticValueType[], eveningFronters:frontAnalyticValueType[], nightFronters: frontAnalyticValueType[] }, values: {sums: frontAnalyticValueType[], averages: frontAnalyticValueType[], maxes: frontAnalyticValueType[], mins: frontAnalyticValueType[]} } = { timings: { morningFronters : [], dayFronters:[], eveningFronters:[], nightFronters:[] }, values: {sums: [], averages: [], maxes: [], mins: []} }
+	const results : { timings: { morningFronters : frontAnalyticValueType[], dayFronters:frontAnalyticValueType[], eveningFronters:frontAnalyticValueType[], nightFronters: frontAnalyticValueType[] }, values: {sums: frontAnalyticValueType[], averages: frontAnalyticValueType[], maxes: frontAnalyticValueType[], mins: frontAnalyticValueType[], nums: frontAnalyticValueType[]} } = { timings: { morningFronters : [], dayFronters:[], eveningFronters:[], nightFronters:[] }, values: {sums: [], averages: [], maxes: [], mins: [], nums: []} }
 	const frontResults = await getCollection("frontHistory").find(getFrontTimeRangeQuery(req, res)).toArray()
 
 	const frontDurationsData : { [key: string]: frontDurationType } = {}
@@ -27,6 +27,7 @@ export const get = async (req: Request, res: Response) => {
 	for (let i = 0; i < frontResults.length; ++i)
 	{
 		const frontEntry = frontResults[i];
+		console.log(frontEntry)
 		let value : frontDurationType | undefined = frontDurationsData[frontEntry.member];
 		let duration = frontEntry.endTime - frontEntry.startTime
 		if (value)
@@ -55,6 +56,7 @@ export const get = async (req: Request, res: Response) => {
 		results.values.mins.push({id: memberKey, value: frontDurationsData[memberKey].min})
 		results.values.maxes.push({id: memberKey, value: frontDurationsData[memberKey].max})
 		results.values.sums.push({id: memberKey, value: frontDurationsData[memberKey].value})
+		results.values.nums.push({id: memberKey, value: frontDurationsData[memberKey].num})
 	})
 
 	console.log(results)

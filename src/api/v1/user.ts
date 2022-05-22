@@ -337,7 +337,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 	const resolution = await mailerTransport?.sendMail({
 		from: '"Apparyllis" <noreply@apparyllis.com>',
 		to: email,
-		subject: "Your user report",
+		subject: "Your requested data export",
 		html: emailTemplate,
 		attachments: [attachement]
 	}).catch((e) => {
