@@ -27,7 +27,6 @@ export const get = async (req: Request, res: Response) => {
 	for (let i = 0; i < frontResults.length; ++i)
 	{
 		const frontEntry = frontResults[i];
-		console.log(frontEntry)
 		let value : frontDurationType | undefined = frontDurationsData[frontEntry.member];
 		let duration = frontEntry.endTime - frontEntry.startTime
 		if (value)
@@ -47,7 +46,6 @@ export const get = async (req: Request, res: Response) => {
 		}
 	}
 
-	console.log(frontDurationsData)
 
 	const keys = Object.keys(frontDurationsData);
 	keys.forEach((memberKey) => {
