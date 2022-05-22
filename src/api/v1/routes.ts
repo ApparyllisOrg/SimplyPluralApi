@@ -19,6 +19,7 @@ import * as friendActions from './friendActions';
 import * as frontHistory from './frontHistory';
 import * as pk from './pk';
 import * as token from './tokens';
+import * as analytics from './analytics';
 
 // Todo: Verify all access types are setup correctly before moving to production
 export const setupV1routes = (app: core.Express) => {
@@ -89,6 +90,9 @@ export const setupV1routes = (app: core.Express) => {
 	app.post("/v1/group/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateGroupSchema), validateId, group.add)
 	app.patch("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateGroupSchema), group.update)
 	app.delete("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Delete), group.del)
+
+	// Analytics
+	app.get("/v1/user/analytics", isUserAuthenticated(ApiKeyAccessType.Read), analytics.get)
 
 	// User
 	app.get("/v1/user/:id", isUserAuthenticated(ApiKeyAccessType.Read), user.get)

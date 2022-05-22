@@ -5,9 +5,8 @@ import { documentObject } from "../../modules/mongo/baseTypes";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection, isMemberOrCustomFront, isCustomFront } from "../../util";
 import { validateSchema } from "../../util/validation";
 
-export const getFrontHistoryInRange = async (req: Request, res: Response) => {
-	const query = {
-		$and: [{ uid: res.locals.uid }, {
+export const getFrontTimeRangeQuery = (req: Request, res: Response) => {
+	return  { $and: [{ uid: res.locals.uid }, {
 			$or: [
 				{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $gte: Number(req.query.endTime) } }, // starts after start, ends after end
 				{ startTime: { $lte: Number(req.query.startTime) }, endTime: { $gte: Number(req.query.startTime) } }, //start before start, ends after start
@@ -15,8 +14,11 @@ export const getFrontHistoryInRange = async (req: Request, res: Response) => {
 				{ startTime: { $lte: Number(req.query.endTime) }, endTime: { $gte: Number(req.query.endTime) } } //Starts before end, ends after end
 			]
 		}]
-	}
+	};
+}
 
+export const getFrontHistoryInRange = async (req: Request, res: Response) => {
+	const query = getFrontTimeRangeQuery(req, res)
 	const documents: documentObject[] = await getCollection("frontHistory").find(query).toArray()
 	sendDocuments(req, res, "frontHistory", documents);
 }
