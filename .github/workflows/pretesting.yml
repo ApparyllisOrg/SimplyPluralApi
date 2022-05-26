@@ -19,7 +19,7 @@ on:
 
 jobs:
   build:
-    runs-on: self-hosted
+    runs-on: pretesting
     steps:
     - uses: actions/checkout@v2
       with:
