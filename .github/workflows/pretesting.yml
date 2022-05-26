@@ -26,7 +26,7 @@ jobs:
         ref: pretesting
     - run: npm install
     - run: npm run build
-    - run: cp /deploy/pretesting/.env ./dist/.env
-    - run: cp /deploy/pretesting/spGoogle.json ./dist/spGoogle.json
+    - run: cp /home/actions_runner_pretesting/.env ./dist/.env
+    - run: cp /home/actions_runner_pretesting/spGoogle.json ./dist/spGoogle.json
     - run: cp -R ./templates ./dist/templates
-    - run: runuser -l api -c "pm2 restart pretesting"
+    - run: pm2 restart pretesting
