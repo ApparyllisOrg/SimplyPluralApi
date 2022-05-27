@@ -17,14 +17,14 @@ on:
 
 jobs:
   build:
-    runs-on: prod
+    runs-on: prod2
     steps:
     - uses: actions/checkout@v2
       with:
         ref: main
     - run: npm install
     - run: npm run build
-    - run: cp /deploy/production/.env ./dist/.env
-    - run: cp /deploy/production/spGoogle.json ./dist/spGoogle.json
+    - run: cp /home/actions_runner/.env ./dist/.env
+    - run: cp /home/actions_runner/spGoogle.json ./dist/spGoogle.json
     - run: cp -R ./templates ./dist/templates
-    - run: runuser -l api -c "pm2 restart main"
+    - run: pm2 restart main
