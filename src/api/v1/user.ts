@@ -14,14 +14,16 @@ import { getFriendLevel, isTrustedFriend } from "../../security";
 import { mailerTransport } from "../../modules/mail";
 import { readFile } from "fs";
 import { promisify } from "util";
-import moment from "moment";
+import moment, { min } from "moment";
 import Mail from "nodemailer/lib/mailer";
+import * as minio from "minio";
 
-const spacesEndpoint = new AWS.Endpoint("sfo3.digitaloceanspaces.com");
-const s3 = new AWS.S3({
-	endpoint: spacesEndpoint,
-	accessKeyId: process.env.SPACES_KEY,
-	secretAccessKey: process.env.SPACES_SECRET,
+const minioClient = new minio.Client({
+    endPoint: 'localhost',
+    port: 9001,
+	useSSL: false,
+    accessKey: process.env.SPACES_KEY!,
+    secretKey: process.env.SPACES_SECRET!
 });
 
 export const generateReport = async (req: Request, res: Response) => {
@@ -77,14 +79,6 @@ const performReportGeneration = async (req: Request, res: Response) => {
 
 	const path = `reports/${res.locals.uid}/${randomId}/${randomId2}/${randomId3}.html`;
 
-	const params = {
-		Bucket: "simply-plural",
-		Key: path,
-		Body: htmlFile,
-		ACL: "public-read",
-		ContentType: 'text/html'
-	};
-
 	const reportUrl = reportBaseUrl + path;
 
 	const getFile = promisify(readFile);
@@ -103,14 +97,10 @@ const performReportGeneration = async (req: Request, res: Response) => {
 	// TODO: Expose a getter for all reports associated with a user
 	getCollection("reports").insertOne({ uid: res.locals.uid, url: reportUrl, createdAt: moment.now(), usedSettings: req.body })
 
-	s3.putObject(params, async function (err) {
-		if (err) {
-			logger.error(err)
-			res.status(500).send(err);
-		} else {
-			res.status(200).send({ success: true, msg: reportUrl });
-		}
-	});
+	minioClient.putObject("spaces", path, htmlFile).catch((e) => {
+		logger.error(e)
+		res.status(500).send("Error uploading report");
+	}).then(() => res.status(200).send({ success: true, msg: reportUrl }))
 }
 
 export const getReports = async (req: Request, res: Response) => {
@@ -125,19 +115,15 @@ export const deleteReport = async (req: Request, res: Response) => {
 
 	const reportPath = url.replace(reportBaseUrl, "");
 
-	const params = {
-		Bucket: "simply-plural",
-		Key: `reports/${res.locals.uid}/${reportPath}`,
-	};
-		s3.deleteObject(params, async function (err) {
-		if (err) {
-			logger.error(err)
-			res.status(500).send(err);
-		} else {
-			getCollection("reports").deleteMany({ uid: res.locals.uid, _id: parseId(req.params.reportid) });
-			res.status(200).send({ success: true });
-		}
-	});
+	minioClient.removeObject("spaces",`reports/${res.locals.uid}/${reportPath}`).then(() => 
+	{
+		getCollection("reports").deleteMany({ uid: res.locals.uid, _id: parseId(req.params.reportid) });
+		res.status(200).send({ success: true });
+		
+	}).catch((e) => {
+		logger.error(e)
+		res.status(500).send("Error deleting report");
+	})
 }
 
 export const get = async (req: Request, res: Response) => {
@@ -219,31 +205,40 @@ export const SetUsername = async (req: Request, res: Response) => {
 
 const deleteUploadedUserFolder = async (uid: string, prefix: string) =>
 {
-	const listParams = {
-		Bucket: "simply-plural",
-		Prefix: `${prefix}/${uid}/`
-	};
+	
 
-	const listedObjects = await s3.listObjectsV2(listParams).promise();
-	if (listedObjects)
-	{
-		const deleteParams : {Bucket: string, Delete: { Objects: { Key: string; }[]}} = {
-			Bucket: "simply-plural",
-			Delete: { Objects: [] }
-		};
+	const deleteFolderPromise = new Promise<any>( async (resolve, reject) => {
+		const listedObjects = await minioClient.listObjectsV2("spaces", `${prefix}/${uid}/`)
+		if (listedObjects)
+		{
+			var list : minio.BucketItem[] = []
+			var toDeleteList : string[] = []
 
-		listedObjects.Contents?.forEach(({ Key }) => {
-			if (Key) {
-				deleteParams.Delete.Objects.push({ Key });
-			}
-		});
+			listedObjects.on('data', function(item) {
+				list.push(item)
+			})
 
-		userLog(uid, `Deleting ${deleteParams.Delete.Objects.length.toString()} of type ${prefix} in storage`);
+			listedObjects.on('error', function(e) {	})
 
-		await s3.deleteObjects(deleteParams).promise();
+			listedObjects.on('end', async function() {
+				const deleteParams : {Bucket: string, Delete: { Objects: { Key: string; }[]}} = {
+				Bucket: "simply-plural",
+				Delete: { Objects: [] }
+				};
 
-		userLog(uid, `Deleted ${deleteParams.Delete.Objects.length.toString()} of type ${prefix} in storage`);
-	}
+				list.forEach(({ prefix, name }) => {
+					toDeleteList.push(prefix + name)
+				});
+
+				userLog(uid, `Deleting ${deleteParams.Delete.Objects.length.toString()} of type ${prefix} in storage`);
+				
+				await minioClient.removeObjects("spaces", toDeleteList);
+
+				userLog(uid, `Deleted ${deleteParams.Delete.Objects.length.toString()} of type ${prefix} in storage`);
+			})
+		}
+	})
+	await deleteFolderPromise
 }
 
 export const deleteAccount = async (req: Request, res: Response) => {
