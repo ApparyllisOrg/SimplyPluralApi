@@ -69,6 +69,7 @@ const canGenerateReport = async (res: Response): Promise<boolean> => {
 }
 
 const reportBaseUrl = "https://simply-plural.sfo3.digitaloceanspaces.com/";
+const reportBaseUrl_V2 = "https://serve.apparyllis.com/";
 
 const performReportGeneration = async (req: Request, res: Response) => {
 	const htmlFile = await generateUserReport(req.body, res.locals.uid);
@@ -79,7 +80,7 @@ const performReportGeneration = async (req: Request, res: Response) => {
 
 	const path = `reports/${res.locals.uid}/${randomId}/${randomId2}/${randomId3}.html`;
 
-	const reportUrl = reportBaseUrl + path;
+	const reportUrl = reportBaseUrl_V2 + path;
 
 	const getFile = promisify(readFile);
 	let emailTemplate = await getFile("./templates/userReportEmail.html", "utf-8");
@@ -113,13 +114,13 @@ export const deleteReport = async (req: Request, res: Response) => {
 
 	const url : string = report.url;
 
-	const reportPath = url.replace(reportBaseUrl, "");
+	let reportPath = url.replace(reportBaseUrl, "");
+	reportPath = url.replace(reportBaseUrl_V2, "");
 
 	minioClient.removeObject("spaces",`reports/${res.locals.uid}/${reportPath}`).then(() => 
 	{
 		getCollection("reports").deleteMany({ uid: res.locals.uid, _id: parseId(req.params.reportid) });
 		res.status(200).send({ success: true });
-		
 	}).catch((e) => {
 		logger.error(e)
 		res.status(500).send("Error deleting report");
