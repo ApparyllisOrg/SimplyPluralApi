@@ -8,8 +8,8 @@ const minioClient = new minio.Client({
     endPoint: 'localhost',
     port: 9001,
 	useSSL: false,
-    accessKey: process.env.SPACES_KEY!,
-    secretKey: process.env.SPACES_SECRET!
+    accessKey: process.env.MINIO_KEY!,
+    secretKey: process.env.MINIO_SECRET!
 });
 
 export function Store(req: Request, res: Response) {
@@ -19,7 +19,7 @@ export function Store(req: Request, res: Response) {
 
 	minioClient.putObject("spaces", path, buffer).catch((e) => {
 		logger.error(e)
-		res.status(500).send("Error uploading report");
+		res.status(500).send("Error uploading avatar");
 	}).then(() =>{
 		res.status(200).send({ success: true, msg: { url: "https://serve.apparyllis.com/avatars/" + path }})
 		userLog(res.locals.uid, "Stored avatar with size: " + buffer.length);
