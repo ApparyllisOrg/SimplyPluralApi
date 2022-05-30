@@ -19,6 +19,7 @@ import * as friendActions from './friendActions';
 import * as frontHistory from './frontHistory';
 import * as pk from './pk';
 import * as token from './tokens';
+import * as analytics from './analytics';
 
 // Todo: Verify all access types are setup correctly before moving to production
 export const setupV1routes = (app: core.Express) => {
@@ -90,8 +91,14 @@ export const setupV1routes = (app: core.Express) => {
 	app.patch("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateGroupSchema), group.update)
 	app.delete("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Delete), group.del)
 
+	// Analytics
+	app.get("/v1/user/analytics", isUserAuthenticated(ApiKeyAccessType.Read), analytics.get)
+
 	// User
 	app.get("/v1/user/:id", isUserAuthenticated(ApiKeyAccessType.Read), user.get)
+	app.get("/v1/user/:id/reports", isUserAuthenticated(ApiKeyAccessType.Read), user.getReports)
+	app.delete("/v1/user/:id/report/:reportid", isUserAppJwtAuthenticated, user.deleteReport)
+	app.post("/v1/user/:id/export", isUserAuthenticated(ApiKeyAccessType.Read), user.exportUserData)
 	app.post("/v1/user/generateReport", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(user.validateUserReportSchema), user.generateReport)
 	app.patch("/v1/user/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(user.validateUserSchema), user.update)
 	app.patch("/v1/user/username/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(user.validateUsernameSchema), user.SetUsername)
