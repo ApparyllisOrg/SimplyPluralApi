@@ -5,7 +5,7 @@ import addFormats from "ajv-formats"
 import Ajv from "ajv";
 import { ObjectId } from "mongodb";
 import moment from "moment";
-const ajv = new Ajv({ allErrors: true, $data: true })
+const ajv = new Ajv({ allErrors: true, $data: true, verbose: true })
 addFormats(ajv)
 
 export async function validateData(req: Request, res: Response, next: any) {
@@ -48,8 +48,6 @@ export const validateBody = (func: schemavalidation) => {
 }
 
 export const validateSchema = (schema: any, body: any): { success: boolean, msg: string } => {
-	// todo: check if compiling here is expensive, and if so only do it once on bootup for all
-	// available schemas..
 	const validate = ajv.compile(schema)
 
 	const valid = validate(body);
@@ -57,7 +55,23 @@ export const validateSchema = (schema: any, body: any): { success: boolean, msg:
 		return { success: true, msg: "" }
 	}
 	else {
-		return { success: false, msg: ajv.errorsText(validate.errors) }
+		let fullError = "";
+		validate.errors?.forEach((err) => {
+			console.log(err)
+			if (err.keyword == "additionalProperties")
+			{
+				fullError += `Error at ${err.params.additionalProperty}, this is not a valid property name.`
+			} 
+			else if (err.keyword == "type")
+			{
+				fullError += `Error at ${err.instancePath}, the property must be of type ${err.schema}.`
+			}
+			else {
+				fullError += `Error at ${JSON.stringify(err.params)} with error ${err.message}`;
+			}
+			fullError += "\n"
+		});
+		return { success: false, msg: fullError }
 	}
 }
 
