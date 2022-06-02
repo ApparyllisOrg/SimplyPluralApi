@@ -24,6 +24,9 @@ export const get = async (req: Request, res: Response) => {
 	const frontResults = await getCollection("frontHistory").find(getFrontTimeRangeQuery(req, res)).toArray()
 	const currentFronters = await getCollection("frontHistory").find({uid: res.locals.uid, live: true}).toArray()
 
+	const startQuery = Number(req.query.startTime);
+	const endQuery = Number(req.query.endTime);
+
 	const frontDurationsData : { [key: string]: frontDurationType } = {}
 
 	const allResults = frontResults.concat(currentFronters);
@@ -33,9 +36,17 @@ export const get = async (req: Request, res: Response) => {
 		const frontEntry = allResults[i];
 		let value : frontDurationType | undefined = frontDurationsData[frontEntry.member];
 		let duration = (frontEntry.endTime ?? moment.now()) - frontEntry.startTime
+		duration = Math.min(duration, endQuery - startQuery)
+
+		let countAdd = 1
+		if (frontEntry.startTime < startQuery || frontEntry.startTime > endQuery)
+		{
+			countAdd = 0
+		}
+
 		if (value)
 		{
-			value.num = value.num + 1;
+			value.num = value.num + countAdd;
 			value.value = value.value + duration;
 			value.min = Math.min(value.min, duration);
 			value.min = Math.max(value.max, duration);
@@ -65,6 +76,12 @@ export const get = async (req: Request, res: Response) => {
 	for (let i = 0; i < allResults.length; ++i)
 	{
 		const frontEntry = allResults[i];
+
+		// Don't track entries that started before the start range as that would give the wrong results
+		if (frontEntry.startTime < startQuery || frontEntry.startTime > endQuery)
+		{
+			continue;
+		}
 
 		const startTime = moment.tz(frontEntry.startTime, timezone)
 		const hour = startTime.hour()

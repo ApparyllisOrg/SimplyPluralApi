@@ -206,8 +206,6 @@ export const SetUsername = async (req: Request, res: Response) => {
 
 const deleteUploadedUserFolder = async (uid: string, prefix: string) =>
 {
-	
-
 	const deleteFolderPromise = new Promise<any>( async (resolve, reject) => {
 		const listedObjects = await minioClient.listObjectsV2("spaces", `${prefix}/${uid}/`)
 		if (listedObjects)
@@ -343,7 +341,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 
 	if (resolution === "ERR")
 	{
-		res.status(500).send({success:false, msg:"Unable to deliver the data to your email. Does the email"});
+		res.status(500).send({success:false, msg:"Unable to deliver the data to your email. Does the email exist?"});
 	}
 	else
 	{
