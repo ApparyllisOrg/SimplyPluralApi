@@ -14,6 +14,7 @@ export const logger = winston.createLogger({
 	transports: [
 		new winston.transports.File({ filename: `/var/log/simply-plural/${logPrefix}-error.log`, level: "error", maxsize: 1000000 }),
 		new winston.transports.File({ filename: `/var/log/simply-plural/${logPrefix}-warn.log`, level: "warn", maxsize: 1000000 }),
+		new winston.transports.File({ filename: `/var/log/simply-plural/${logPrefix}-info.log`, level: "info", maxsize: 1000000 }),
 		new winston.transports.File({ filename: `/var/log/simply-plural/${logPrefix}-combined.log`, maxsize: 1000000, }),
 	],
 	exceptionHandlers: [
