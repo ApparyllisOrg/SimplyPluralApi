@@ -20,7 +20,7 @@ export const validateToken = async (tokenStr: string): Promise<{ uid: string | u
 }
 
 const rejectEntry = (req: Request, res: Response, msg: string, ip: string) => {
-	logSecurity(`[${ip}] Attempted to access the API at ${req.route} but was rejected because: ${msg}`);
+	logSecurity(`[${ip}] Attempted to access the API at ${req.originalUrl} but was rejected because: ${msg}`);
 	return res.status(401).send(msg);
 }
 
