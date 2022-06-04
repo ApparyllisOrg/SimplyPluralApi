@@ -14,7 +14,8 @@
     ],
     "exclude": [
         "node_modules",
-        ".vscode"
+        ".vscode",
+        "src/tests/**"
     ],
     "skipLibCheck": true,
 }
