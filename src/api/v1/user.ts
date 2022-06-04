@@ -194,9 +194,10 @@ export const SetUsername = async (req: Request, res: Response) => {
 	const potentiallyAlreadyTakenUserDoc = await getCollection("users").findOne({ username: { $regex: "^" + newUsername + "$", $options: "i" }, uid: { $ne: res.locals.uid } });
 
 	if (potentiallyAlreadyTakenUserDoc === null) {
+		const user = await getCollection("users").findOne({ uid: res.locals.uid });
 		getCollection("users").updateOne({ uid: res.locals.uid }, { $set: { username: newUsername } });
 		res.status(200).send({ success: true });
-		userLog(res.locals.uid, "Updated username to: " + newUsername);
+		userLog(res.locals.uid, "Updated username to: " + newUsername + ", changed from " + user.username);
 		return;
 	} else {
 		res.status(200).send({ success: false, msg: "This username is already taken" });
