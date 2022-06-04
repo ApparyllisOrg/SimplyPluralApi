@@ -245,8 +245,10 @@ export const syncAllSpMembersToPk = async (options: syncOptions, _allSyncOptions
 	const foundMembers: any[] = pkMembersResult?.data ?? []
 	if (!Array.isArray(foundMembers))
 	{
-		Sentry.setExtra("payload", pkMembersResult?.data)
-		Sentry.captureMessage(`ErrorCode(${ERR_FUNCTIONALITY_EXPECTED_ARRAY})`);
+		Sentry.captureMessage(`ErrorCode(${ERR_FUNCTIONALITY_EXPECTED_ARRAY})`, scope => {
+			scope.setExtra("payload", pkMembersResult?.data)
+			return scope;
+		});
 		return { success: true, msg: `Something went wrong, please try again later. ErrorCode(${ERR_FUNCTIONALITY_EXPECTED_ARRAY})` }
 	}
 
