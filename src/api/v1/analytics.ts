@@ -49,7 +49,7 @@ export const get = async (req: Request, res: Response) => {
 			value.num = value.num + countAdd;
 			value.value = value.value + duration;
 			value.min = Math.min(value.min, duration);
-			value.min = Math.max(value.max, duration);
+			value.max = Math.max(value.max, duration);
 		} else {
 			const newValue : frontDurationType = {
 				value: duration,
