@@ -21,7 +21,7 @@ export const validateToken = async (tokenStr: string): Promise<{ uid: string | u
 
 const getIp = (req: Request) => 
 {
-	const connectingHeaders = req.headers["CF-Connecting-IP"] ?? [];
+	const connectingHeaders = req.headers["cf-connecting-ip"] ?? [];
 	if (Array.isArray(connectingHeaders) && connectingHeaders.length > 0)
 	{
 		return connectingHeaders[0];
