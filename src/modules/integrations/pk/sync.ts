@@ -1,8 +1,10 @@
 import { AxiosResponse } from "axios";
 import { BulkWriteOperation } from "mongodb";
+import { ERR_FUNCTIONALITY_EXPECTED_ARRAY } from "../../errors";
 import { getCollection, parseId } from "../../mongo"
 import { dispatchCustomEvent } from "../../socket";
 import { addPendingRequest, PkRequest, PkRequestType } from "./controller"
+import * as Sentry from "@sentry/node";
 
 export interface syncOptions {
 	name: boolean,
@@ -241,6 +243,12 @@ export const syncAllSpMembersToPk = async (options: syncOptions, _allSyncOptions
 	const pkMembersResult = await addPendingRequest(getRequest)
 
 	const foundMembers: any[] = pkMembersResult?.data ?? []
+	if (!Array.isArray(foundMembers))
+	{
+		Sentry.setExtra("payload", pkMembersResult?.data)
+		Sentry.captureMessage(`ErrorCode(${ERR_FUNCTIONALITY_EXPECTED_ARRAY})`);
+		return { success: true, msg: `Something went wrong, please try again later. ErrorCode(${ERR_FUNCTIONALITY_EXPECTED_ARRAY})` }
+	}
 
 	for (let i = 0; i < spMembersResult.length; ++i) {
 		const member = spMembersResult[i];
