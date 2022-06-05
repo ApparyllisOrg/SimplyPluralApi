@@ -38,6 +38,12 @@ export const get = async (req: Request, res: Response) => {
 		let duration = (frontEntry.endTime ?? moment.now()) - frontEntry.startTime
 		duration = Math.min(duration, endQuery - startQuery)
 
+		// TODO: Why do we have a NaN endtime?
+		if (isNaN(frontEntry.endTime))
+		{
+			continue;
+		}
+
 		let countAdd = 1
 		if (frontEntry.startTime < startQuery || frontEntry.startTime > endQuery)
 		{

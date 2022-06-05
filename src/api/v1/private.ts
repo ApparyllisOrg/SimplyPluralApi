@@ -10,7 +10,9 @@ import { updateUser } from "./user/updates/updateUser";
 export const get = async (req: Request, res: Response) => {
 	const privateDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) })
 	if (!privateDocument && req.params.id === res.locals.uid) {
-		await getCollection("private").insertOne({ uid: res.locals.uid, _id: res.locals.uid, termsOfServicesAccepted: false });
+		await getCollection("private").insertOne({ uid: res.locals.uid, _id: res.locals.uid, termsOfServicesAccepted: false }).catch((e) => {
+
+		});
 	}
 	await updateGenerationLimit(res.locals.uid, privateDocument);
 	fetchSimpleDocument(req, res, "private");

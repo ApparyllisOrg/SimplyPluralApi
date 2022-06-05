@@ -14,8 +14,6 @@ on:
         description: 'Test scenario tags'  
   push:
     branches: [ pretesting ]
-  pull_request:
-    branches: [ pretesting ]
 
 jobs:
   build:

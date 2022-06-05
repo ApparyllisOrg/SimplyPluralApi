@@ -17,6 +17,8 @@ import { promisify } from "util";
 import moment, { min } from "moment";
 import Mail from "nodemailer/lib/mailer";
 import * as minio from "minio";
+import * as Sentry from "@sentry/node";
+import { ERR_FUNCTIONALITY_EXPECTED_VALID } from "../../modules/errors";
 
 const minioClient = new minio.Client({
     endPoint: 'localhost',
@@ -147,6 +149,14 @@ export const get = async (req: Request, res: Response) => {
 	if (!document.fields && ownDocument) {
 		await initializeCustomFields(res.locals.uid);
 		document = await getCollection("users").findOne({ uid: res.locals.uid })
+	}
+
+	if (!document)
+	{
+		Sentry.setExtra("payload", res.locals.uid)
+		Sentry.captureMessage(`ErrorCode(${ERR_FUNCTIONALITY_EXPECTED_VALID})`);
+		res.status(400)
+		return;
 	}
 
 	// Remove fields that aren't shared to the friend
