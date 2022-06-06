@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import shortUUID from "short-uuid";
 import { logger, userLog } from "../../modules/logger";
-import { db, getCollection } from "../../modules/mongo";
-import { sendDocument } from "../../util";
+import { db, getCollection, parseId } from "../../modules/mongo";
+import { fetchCollection, sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
 import { createUser } from "./user/migrate";
@@ -14,13 +14,18 @@ import { getFriendLevel, isTrustedFriend } from "../../security";
 import { mailerTransport } from "../../modules/mail";
 import { readFile } from "fs";
 import { promisify } from "util";
-import moment from "moment";
+import moment, { min } from "moment";
+import Mail from "nodemailer/lib/mailer";
+import * as minio from "minio";
+import * as Sentry from "@sentry/node";
+import { ERR_FUNCTIONALITY_EXPECTED_VALID } from "../../modules/errors";
 
-const spacesEndpoint = new AWS.Endpoint("sfo3.digitaloceanspaces.com");
-const s3 = new AWS.S3({
-	endpoint: spacesEndpoint,
-	accessKeyId: process.env.SPACES_KEY,
-	secretAccessKey: process.env.SPACES_SECRET,
+const minioClient = new minio.Client({
+    endPoint: 'localhost',
+    port: 9001,
+	useSSL: false,
+    accessKey: process.env.MINIO_KEY!,
+    secretKey: process.env.MINIO_SECRET!
 });
 
 export const generateReport = async (req: Request, res: Response) => {
@@ -65,6 +70,9 @@ const canGenerateReport = async (res: Response): Promise<boolean> => {
 	return true;
 }
 
+const reportBaseUrl = "https://simply-plural.sfo3.digitaloceanspaces.com/";
+const reportBaseUrl_V2 = "https://serve.apparyllis.com/";
+
 const performReportGeneration = async (req: Request, res: Response) => {
 	const htmlFile = await generateUserReport(req.body, res.locals.uid);
 
@@ -74,15 +82,7 @@ const performReportGeneration = async (req: Request, res: Response) => {
 
 	const path = `reports/${res.locals.uid}/${randomId}/${randomId2}/${randomId3}.html`;
 
-	const params = {
-		Bucket: "simply-plural",
-		Key: path,
-		Body: htmlFile,
-		ACL: "public-read",
-		ContentType: 'text/html'
-	};
-
-	const reportUrl = "https://simply-plural.sfo3.digitaloceanspaces.com/" + path;
+	const reportUrl = reportBaseUrl_V2 + path;
 
 	const getFile = promisify(readFile);
 	let emailTemplate = await getFile("./templates/userReportEmail.html", "utf-8");
@@ -100,14 +100,33 @@ const performReportGeneration = async (req: Request, res: Response) => {
 	// TODO: Expose a getter for all reports associated with a user
 	getCollection("reports").insertOne({ uid: res.locals.uid, url: reportUrl, createdAt: moment.now(), usedSettings: req.body })
 
-	s3.putObject(params, async function (err) {
-		if (err) {
-			logger.error(err)
-			res.status(500).send(err);
-		} else {
-			res.status(200).send({ success: true, msg: reportUrl });
-		}
-	});
+	minioClient.putObject("spaces", path, htmlFile).catch((e) => {
+		logger.error(e)
+		res.status(500).send("Error uploading report");
+	}).then(() => res.status(200).send({ success: true, msg: reportUrl }))
+}
+
+export const getReports = async (req: Request, res: Response) => {
+	fetchCollection(req, res, "reports", {});
+}
+
+export const deleteReport = async (req: Request, res: Response) => {
+
+	const report = await getCollection("reports").findOne({ uid: res.locals.uid, _id: parseId(req.params.reportid) });
+
+	const url : string = report.url;
+
+	let reportPath = url.replace(reportBaseUrl, "");
+	reportPath = url.replace(reportBaseUrl_V2, "");
+
+	minioClient.removeObject("spaces",`reports/${res.locals.uid}/${reportPath}`).then(() => 
+	{
+		getCollection("reports").deleteMany({ uid: res.locals.uid, _id: parseId(req.params.reportid) });
+		res.status(200).send({ success: true });
+	}).catch((e) => {
+		logger.error(e)
+		res.status(500).send("Error deleting report");
+	})
 }
 
 export const get = async (req: Request, res: Response) => {
@@ -130,6 +149,14 @@ export const get = async (req: Request, res: Response) => {
 	if (!document.fields && ownDocument) {
 		await initializeCustomFields(res.locals.uid);
 		document = await getCollection("users").findOne({ uid: res.locals.uid })
+	}
+
+	if (!document)
+	{
+		Sentry.setExtra("payload", res.locals.uid)
+		Sentry.captureMessage(`ErrorCode(${ERR_FUNCTIONALITY_EXPECTED_VALID})`);
+		res.status(400)
+		return;
 	}
 
 	// Remove fields that aren't shared to the friend
@@ -177,9 +204,10 @@ export const SetUsername = async (req: Request, res: Response) => {
 	const potentiallyAlreadyTakenUserDoc = await getCollection("users").findOne({ username: { $regex: "^" + newUsername + "$", $options: "i" }, uid: { $ne: res.locals.uid } });
 
 	if (potentiallyAlreadyTakenUserDoc === null) {
+		const user = await getCollection("users").findOne({ uid: res.locals.uid });
 		getCollection("users").updateOne({ uid: res.locals.uid }, { $set: { username: newUsername } });
 		res.status(200).send({ success: true });
-		userLog(res.locals.uid, "Updated username to: " + newUsername);
+		userLog(res.locals.uid, "Updated username to: " + newUsername + ", changed from " + user.username);
 		return;
 	} else {
 		res.status(200).send({ success: false, msg: "This username is already taken" });
@@ -189,31 +217,38 @@ export const SetUsername = async (req: Request, res: Response) => {
 
 const deleteUploadedUserFolder = async (uid: string, prefix: string) =>
 {
-	const listParams = {
-		Bucket: "simply-plural",
-		Prefix: `${prefix}/${uid}/`
-	};
+	const deleteFolderPromise = new Promise<any>( async (resolve, reject) => {
+		const listedObjects = await minioClient.listObjectsV2("spaces", `${prefix}/${uid}/`)
+		if (listedObjects)
+		{
+			var list : minio.BucketItem[] = []
+			var toDeleteList : string[] = []
 
-	const listedObjects = await s3.listObjectsV2(listParams).promise();
-	if (listedObjects)
-	{
-		const deleteParams : {Bucket: string, Delete: { Objects: { Key: string; }[]}} = {
-			Bucket: "simply-plural",
-			Delete: { Objects: [] }
-		};
+			listedObjects.on('data', function(item) {
+				list.push(item)
+			})
 
-		listedObjects.Contents?.forEach(({ Key }) => {
-			if (Key) {
-				deleteParams.Delete.Objects.push({ Key });
-			}
-		});
+			listedObjects.on('error', function(e) {	})
 
-		userLog(uid, `Deleting ${deleteParams.Delete.Objects.length.toString()} of type ${prefix} in storage`);
+			listedObjects.on('end', async function() {
+				const deleteParams : {Bucket: string, Delete: { Objects: { Key: string; }[]}} = {
+				Bucket: "simply-plural",
+				Delete: { Objects: [] }
+				};
 
-		await s3.deleteObjects(deleteParams).promise();
+				list.forEach(({ prefix, name }) => {
+					toDeleteList.push(prefix + name)
+				});
 
-		userLog(uid, `Deleted ${deleteParams.Delete.Objects.length.toString()} of type ${prefix} in storage`);
-	}
+				userLog(uid, `Deleting ${deleteParams.Delete.Objects.length.toString()} of type ${prefix} in storage`);
+				
+				await minioClient.removeObjects("spaces", toDeleteList);
+
+				userLog(uid, `Deleted ${deleteParams.Delete.Objects.length.toString()} of type ${prefix} in storage`);
+			})
+		}
+	})
+	await deleteFolderPromise
 }
 
 export const deleteAccount = async (req: Request, res: Response) => {
@@ -262,22 +297,71 @@ export const deleteAccount = async (req: Request, res: Response) => {
 };
 
 export const exportUserData = async (_req: Request, res: Response) => {
+	const privateUser = await getCollection("private").findOne({uid: res.locals.uid})
+
+	if (!privateUser)
+	{
+		res.status(404).send("Can't find user")
+		return;
+	}
+
+	const lastExport : number = privateUser.lastExport ?? 0;
+	if (moment(moment.now()).diff(moment(lastExport), "hours") < 24)
+	{
+		res.status(403).send({success:false, msg:'You already exported your data in the last 24 hours'})
+		return;
+	}
+
 	const collections = await db()!.listCollections().toArray();
 
-	const allData: Array<any> = [];
+	let allData: Array<any> = [];
 
-	collections.forEach(async (collection) => {
+	for (let i = 0; i < collections.length; ++i)
+	{	
+		const collection = collections[i];
 		const name: string = collection.name;
 		const split = name.split(".");
 		const actualName = split[split.length - 1];
 
 		const collectionData = await getCollection(actualName).find({ uid: res.locals.uid }).toArray();
-		allData.concat(collectionData);
-	});
+		allData = allData.concat(collectionData);
+	}
 
-	// TODO: Send email to user at registered user address with a plain json file of all data
-	res.status(200).send({});
-	userLog(res.locals.uid, "Exported user data.");
+	const user = await auth().getUser(res.locals.uid)
+
+	const email = user.email ?? "";
+
+	const getFile = promisify(readFile);
+	let emailTemplate = await getFile("./templates/exportEmailTemplate.html", "utf-8");
+
+	const attachement : Mail.Attachment ={
+			filename: "export.json",
+			content: JSON.stringify(allData)
+		};
+
+	const resolution = await mailerTransport?.sendMail({
+		from: '"Apparyllis" <noreply@apparyllis.com>',
+		to: email,
+		subject: "Your requested data export",
+		html: emailTemplate,
+		attachments: [attachement]
+	}).catch((e) => {
+		console.log(e)
+		return "ERR";
+	})
+
+	if (resolution === "ERR")
+	{
+		res.status(500).send({success:false, msg:"Unable to deliver the data to your email. Does the email exist?"});
+	}
+	else
+	{
+		await getCollection("private").updateOne({uid: res.locals.uid, _id: parseId(res.locals.uid)}, {$set: {lastExport : moment.now()}})
+		await getCollection("securityLogs").insertOne({uid: res.locals.uid, at: moment.now(), action: "Exported user account"});
+
+		res.status(200).send({success:true});
+		userLog(res.locals.uid, `Exported user data and sent to ${email}.`);
+	}
 };
 
 export const setupNewUser = async (uid: string) => {

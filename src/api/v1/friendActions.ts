@@ -44,7 +44,7 @@ export const AddFriend = async (req: Request, res: Response) => {
 		return;
 	}
 
-	const { seeMembers, seeFront, getFrontNotif, trusted } = req.body.settings;
+	const { seeMembers, seeFront, getFrontNotif, trusted, message } = req.body.settings;
 
 	await getCollection("pendingFriendRequests").insertOne({
 		sender: res.locals.uid,
@@ -53,6 +53,7 @@ export const AddFriend = async (req: Request, res: Response) => {
 		seeFront: seeFront,
 		getFrontNotif: getFrontNotif,
 		trusted: trusted,
+		message: message
 	});
 
 	const selfDoc = await getCollection("users").findOne({ uid: res.locals.uid });

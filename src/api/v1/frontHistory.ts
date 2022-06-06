@@ -1,22 +1,26 @@
 import { Request, Response } from "express";
+import moment from "moment";
+import { min } from "moment";
 import { frontChange } from "../../modules/events/frontChange";
 import { getCollection, parseId } from "../../modules/mongo";
 import { documentObject } from "../../modules/mongo/baseTypes";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection, isMemberOrCustomFront, isCustomFront } from "../../util";
 import { validateSchema } from "../../util/validation";
 
-export const getFrontHistoryInRange = async (req: Request, res: Response) => {
-	const query = {
-		$and: [{ uid: res.locals.uid }, {
+export const getFrontTimeRangeQuery = (req: Request, res: Response) => {
+	return  { $and: [{ uid: res.locals.uid }, {
 			$or: [
-				{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $gte: Number(req.query.endTime) } }, // starts after start, ends after end
+				{ $and: [ {endTime: { $gte: Number(req.query.endTime) } }, { startTime: { $lte: Number(req.query.startTime) }}, { endTime: { $gte: Number(req.query.startTime) }} ]},  // starts after start, ends after end, but doesn't start after end
 				{ startTime: { $lte: Number(req.query.startTime) }, endTime: { $gte: Number(req.query.startTime) } }, //start before start, ends after start
 				{ startTime: { $gte: Number(req.query.startTime) }, endTime: { $lte: Number(req.query.endTime) } }, // start after start, ends before end
 				{ startTime: { $lte: Number(req.query.endTime) }, endTime: { $gte: Number(req.query.endTime) } } //Starts before end, ends after end
 			]
 		}]
-	}
+	};
+}
 
+export const getFrontHistoryInRange = async (req: Request, res: Response) => {
+	const query = getFrontTimeRangeQuery(req, res)
 	const documents: documentObject[] = await getCollection("frontHistory").find(query).toArray()
 	sendDocuments(req, res, "frontHistory", documents);
 }
@@ -53,6 +57,9 @@ export const add = async (req: Request, res: Response) => {
 		return
 	}
 
+	req.body.startTime = Math.min(moment.now(), Number(req.body.startTime))
+	req.body.endTime = Math.min(moment.now(), Number(req.body.endTime))
+
 	await addSimpleDocument(req, res, "frontHistory");
 	frontChange(res.locals.uid, false, req.body.member, true)
 }
@@ -81,6 +88,16 @@ export const update = async (req: Request, res: Response) => {
 				res.status(409).send("You cannot change an active front entry to this member, they are already fronting")
 				return
 			}
+		}
+
+		if (req.body.startTime)
+		{
+			req.body.startTime = Math.min(moment.now(), Number(req.body.startTime))
+		}
+
+		if (req.body.endTime)
+		{
+			req.body.endTime = Math.min(moment.now(), Number(req.body.endTime))
 		}
 
 		await updateSimpleDocument(req, res, "frontHistory")

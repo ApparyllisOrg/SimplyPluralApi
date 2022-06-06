@@ -19,27 +19,38 @@ export const validateToken = async (tokenStr: string): Promise<{ uid: string | u
 	}
 }
 
+const getIp = (req: Request) => 
+{
+	const connectingHeaders = req.headers["cf-connecting-ip"] ?? [];
+	if (Array.isArray(connectingHeaders) && connectingHeaders.length > 0)
+	{
+		return connectingHeaders[0];
+	}
+
+	return req.ip;
+}
+
 const rejectEntry = (req: Request, res: Response, msg: string, ip: string) => {
-	logSecurity(`[${ip}] Attempted to access the API at ${req.route} but was rejected because: ${msg}`);
+	logSecurity(`[${ip}] Attempted to access the API at ${req.originalUrl} but was rejected because: ${msg}`);
 	return res.status(401).send(msg);
 }
 
-export type authMiddleware = (_req: Request, _res: Response, _next: any) => void
+export type authMiddleware = (req: Request, _res: Response, _next: any) => void
 export const isUserAuthenticated = function (accessRequested: number): authMiddleware {
 	return async (req: Request, res: Response, next: any) => {
 
 		const authorization = req.headers.authorization;
 
 		if (authorization == null || authorization == undefined) {
-			return rejectEntry(req, res, "An authorization token is required.", req.ip);
+			return rejectEntry(req, res, "An authorization token is required.", getIp(req));
 		}
 
 		const result = await validateToken(req.headers.authorization as string);
 		if (!result.uid)
-			return rejectEntry(req, res, "Authorization token is missing or invalid.", req.ip);
+			return rejectEntry(req, res, "Authorization token is missing or invalid.", getIp(req));
 
 		if (!(result.accessType & accessRequested)) {
-			return rejectEntry(req, res, "Authorization token does not have the requested permissions.", req.ip);
+			return rejectEntry(req, res, "Authorization token does not have the requested permissions.",getIp(req));
 		}
 
 		res.locals.uid = result.uid;
@@ -56,7 +67,7 @@ export const isUserAppJwtAuthenticated = async (req: Request, res: Response, nex
 	const authorization = req.headers.authorization;
 
 	if (authorization == null || authorization == undefined) {
-		return rejectEntry(req, res, "An authorization token is required.", req.ip);
+		return rejectEntry(req, res, "An authorization token is required.", getIp(req));
 	}
 
 	const result = await validateToken(req.headers.authorization as string);
@@ -67,5 +78,5 @@ export const isUserAppJwtAuthenticated = async (req: Request, res: Response, nex
 		return;
 
 	}
-	return rejectEntry(req, res, "You require to be authenticated using a JWT.", req.ip);
+	return rejectEntry(req, res, "You require to be authenticated using a JWT.", getIp(req));
 }

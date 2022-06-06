@@ -117,10 +117,10 @@ export const getDocumentAccess = async (_req: Request, res: Response, document: 
 		const friendLevel: FriendLevel = await getFriendLevel(document.uid, res.locals.uid);
 		const isaFriend = isFriend(friendLevel);
 		if (!isaFriend) {
-			if (collection === "users" && !!(friendLevel & FriendLevel.Pending)) {
+			if (collection === "users" && !!(friendLevel == FriendLevel.Pending)) {
 
 				// Only send relevant data
-				document = { uid: document.uid, _id: document._id, username: document.username }
+				document = { uid: document.uid, _id: document._id, username: document.username, message: document.message }
 
 				return { access: true, statusCode: 200, message: "" }
 			}
