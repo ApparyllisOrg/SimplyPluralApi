@@ -33,13 +33,14 @@ export const get = async (req: Request, res: Response) => {
 
 	for (let i = 0; i < allResults.length; ++i)
 	{
-		const frontEntry = allResults[i];
-		let value : frontDurationType | undefined = frontDurationsData[frontEntry.member];
-		let duration = (frontEntry.endTime ?? moment.now()) - frontEntry.startTime
+		const frontEntry = allResults[i]
+		let value : frontDurationType | undefined = frontDurationsData[frontEntry.member]
+		let endTime = (frontEntry.endTime ?? moment.now())
+		let duration = endTime - frontEntry.startTime
 		duration = Math.min(duration, endQuery - startQuery)
 
 		// TODO: Why do we have a NaN endtime?
-		if (isNaN(frontEntry.endTime))
+		if (isNaN(endTime))
 		{
 			continue;
 		}
