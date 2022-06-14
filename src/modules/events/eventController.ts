@@ -1,5 +1,5 @@
 import { logger } from "../logger";
-import { getCollection, isLive } from "../mongo";
+import { getCollection } from "../mongo";
 import { automatedRemindersDueEvent, removeDeletedReminders } from "./automatedReminder";
 import { notifyPrivateFrontDue, notifySharedFrontDue } from "./frontChange";
 import { repeatRemindersDueEvent, repeatRemindersEvent } from "./repeatReminders";
@@ -7,11 +7,6 @@ type bindFunc = (uid: string, event: any) => void;
 const _boundEvents = new Map<string, bindFunc>();
 
 const bindEvents = async () => {
-	if (!isLive()) {
-		setTimeout(bindEvents, 100);
-		return;
-	}
-
 	_boundEvents.set("repeatReminders", repeatRemindersEvent);
 	_boundEvents.set("automatedReminders", removeDeletedReminders);
 	_boundEvents.set("scheduledRepeatReminder", repeatRemindersDueEvent);
@@ -21,11 +16,6 @@ const bindEvents = async () => {
 };
 
 const runEvents = async () => {
-	if (!isLive()) {
-		setTimeout(runEvents, 100);
-		return;
-	}
-
 	const now = Date.now();
 	const queuedEvents = getCollection("queuedEvents");
 	const overdueEvents = await queuedEvents.find({ due: { $lte: now } }).toArray();

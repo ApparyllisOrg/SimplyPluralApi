@@ -27,8 +27,7 @@ const wait = (time: number): Promise<void> =>
 const sendNotification = async (payload: {notification: {title: string, body: string}, data: {title: string, body: string}, token: string, }, uid: string) =>
 {
 	const privateCollection = Mongo.getCollection("private");
-	const privateFriendData = await privateCollection.findOne({ uid: uid });
-
+	
 	const sendPayload = {...payload, apns:  {headers: {	"apns-expiration": "216000"}}}
 	messaging()
 		.send(sendPayload)
@@ -236,14 +235,12 @@ export const addSimpleDocument = async (req: Request, res: Response, collection:
 	dataObj.lastOperationTime = res.locals.operationTime;
 	const result = await Mongo.getCollection(collection).insertOne(dataObj).catch(() => {
 		return {
-			insertedCount: 0,
-			ops: [],
-			insertedId: dataObj._id,
-			connection: null,
-			result: { ok: 0, n: 0 },
+			insertedId: "",
+			acknowledged: false
 		}
 	});
-	if (result.result.n === 0) {
+
+	if (result.insertedId.toString().length <= 0) {
 		res.status(500).send("Server processed your request, however was unable to enter a document into the database");
 		return;
 	}

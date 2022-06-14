@@ -94,14 +94,13 @@ const performReportGeneration = async (req: Request, res: Response) => {
 		to: req.body.sendTo,
 		cc: req.body.cc,
 		subject: "Your user report",
-		html: emailTemplate,
 	})
 
-	// TODO: Expose a getter for all reports associated with a user
 	getCollection("reports").insertOne({ uid: res.locals.uid, url: reportUrl, createdAt: moment.now(), usedSettings: req.body })
 
 	minioClient.putObject("spaces", path, htmlFile).catch((e) => {
 		logger.error(e)
+		console.log(e)
 		res.status(500).send("Error uploading report");
 	}).then(() => res.status(200).send({ success: true, msg: reportUrl }))
 }

@@ -1,5 +1,9 @@
 // Using Tailwind CSS.
-
+const md = require('markdown-it')({
+  html: true,
+  linkify: true,
+  typographer: true
+});
 import { readFile } from "fs";
 import moment from "moment";
 import { promisify } from "util";
@@ -50,15 +54,22 @@ const getAvatarString = (data: any, uid: string): string => {
 
 	if (avatar.length == 0) {
 		// Todo: Make this a better link
-		avatar = "https://sfo3.digitaloceanspaces.com/simply-plural/content/resources/Logo_Apparyllis_Square_1024.png";
+		avatar = "https://apparyllis.com/wp-content/uploads/2021/03/Apparylls_Image.png";
 	}
 
 	return avatar;
 }
 
-
+// ISO 8601 https://stackoverflow.com/questions/12756159/regex-and-iso8601-formatted-datetime
+const re = /^([\+-]?\d{4}(?!\d{2}\b))((-?)((0[1-9]|1[0-2])(\3([12]\d|0[1-9]|3[01]))?|W([0-4]\d|5[0-2])(-?[1-7])?|(00[1-9]|0[1-9]\d|[12]\d{2}|3([0-5]\d|6[1-6])))([T\s]((([01]\d|2[0-3])((:?)[0-5]\d)?|24\:?00)([\.,]\d+(?!:))?)?(\17[0-5]\d([\.,]\d+)?)?([zZ]|([\+-])([01]\d|2[0-3]):?([0-5]\d)?)?)?)?$/
 const getMoment = (timestamp: string | undefined, func: (timestamp: string) => string) => {
 	if (timestamp && timestamp.length > 0) {
+
+		if (!re.test(timestamp))
+		{
+		return "Invalid data"
+		}
+
 		return xss(func(timestamp));
 	}
 	return undefined;
@@ -74,7 +85,7 @@ const getColor = (colorStr: string | undefined) => {
 	return undefined;
 }
 
-const stringFromField = (string: string): string | undefined => xss(string)
+const stringFromField = (string: string): string | undefined => md.render(xss(string))
 const colorFromField = (string: string): string | undefined => getColor(string)
 const dateFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("dddd, MMMM Do YYYY"))
 const monthFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("MMMM"))
@@ -88,7 +99,7 @@ const typeConverters = [stringFromField, colorFromField, dateFromField, monthFro
 const getDescription = (data: any, template: string): string => {
 	let result = `${template}`;
 	if (data.desc) {
-		result = result.replace("{{desc}}", xss(data.desc));
+		result = result.replace("{{desc}}", md.render(xss(data.desc)));
 		return result;
 	}
 
