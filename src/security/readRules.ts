@@ -1,8 +1,8 @@
-import { ObjectID } from "mongodb";
+import { ObjectId } from "mongodb";
 import { documentObject } from "../modules/mongo/baseTypes";
 
 export interface UserField {
-	_id?: ObjectID,
+	_id?: ObjectId,
 	name: string,
 	order: number,
 	private: boolean,
@@ -11,7 +11,7 @@ export interface UserField {
 }
 
 export interface UserItem {
-	_id?: ObjectID,
+	_id?: ObjectId,
 	fields: Map<string, UserField>
 }
 

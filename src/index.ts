@@ -1,3 +1,6 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import * as Mongo from "./modules/mongo";
 import * as Sentry from "@sentry/node";
 import { logger } from "./modules/logger";
@@ -12,7 +15,8 @@ import * as fs from 'fs';
 
 import helmet from "helmet";
 import http from "http";
-import dotenv from "dotenv";
+
+
 import express from "express";
 import { validateGetParams, validateOperationTime } from "./util/validation";
 import { startPkController } from "./modules/integrations/pk/controller";
@@ -24,14 +28,11 @@ if (process.env.DEVELOPMENT) {
 	process.on('uncaughtException', console.error);
 	process.on('unhandledRejection', console.error);
 }
-
 const app = express();
 
 if (process.env.DEVELOPMENT) {
 	app.use(cors())
 }
-
-dotenv.config();
 
 if (!process.env.DEVELOPMENT) {
 	if (process.env.SENTRY_DSN) {
