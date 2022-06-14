@@ -34,7 +34,7 @@
 		"@types/ws": "^7.4.7",
 		"@typescript-eslint/eslint-plugin": "^4.33.0",
 		"@typescript-eslint/parser": "^4.33.0",
-		"@google-cloud/common": "^3.9.0",
+		"@google-cloud/common": "^4.0.0",
 		"@sentry/node": "^6.17.9",
 		"ajv": "^8.10.0",
 		"ajv-formats": "^2.1.1",
