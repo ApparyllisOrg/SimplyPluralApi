@@ -1,5 +1,5 @@
 import { AxiosResponse } from "axios";
-import { BulkWriteOperation } from "mongodb";
+import { AnyBulkWriteOperation } from "mongodb";
 import { ERR_FUNCTIONALITY_EXPECTED_ARRAY } from "../../errors";
 import { getCollection, parseId } from "../../mongo"
 import { dispatchCustomEvent } from "../../socket";
@@ -158,7 +158,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 	return { success: false, msg: "Member does not exist in Simply Plural for this account." }
 }
 
-export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string, token: string, userId: string, memberData: any | undefined, batch: BulkWriteOperation<any>[] | undefined, privateByDefault: boolean): Promise<{ success: boolean, msg: string }> => {
+export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string, token: string, userId: string, memberData: any | undefined, batch: AnyBulkWriteOperation<any>[] | undefined, privateByDefault: boolean): Promise<{ success: boolean, msg: string }> => {
 
 	let data: any | undefined = memberData;
 
@@ -276,7 +276,7 @@ export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions:
 			const foundMembers: any[] = pkMembersResult.data
 			const promises: Promise<{ success: boolean, msg: string }>[] = [];
 
-			const bulkWrites: BulkWriteOperation<any>[] = []
+			const bulkWrites: AnyBulkWriteOperation<any>[] = []
 
 			for (let i = 0; i < foundMembers.length; ++i) {
 				const member = foundMembers[i];

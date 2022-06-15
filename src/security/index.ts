@@ -18,8 +18,8 @@ export enum FriendLevel {
 	Trusted = 3
 }
 
-const friendLevelLRU = new LRU<string, FriendLevel>({ max: 10000, maxAge: 1000 * 5 });
-const seeMembersLRU = new LRU<string, boolean>({ max: 10000, maxAge: 1000 * 5 });
+const friendLevelLRU = new LRU<string, FriendLevel>({ max: 10000, ttl: 1000 * 5 });
+const seeMembersLRU = new LRU<string, boolean>({ max: 10000, ttl: 1000 * 5 });
 
 export const getFriendLevel = async (owner: string, requestor: string): Promise<FriendLevel> => {
 

@@ -65,7 +65,7 @@ export const updateFriend = async (req: Request, res: Response) => {
 			{ lastOperationTime: { $lte: res.locals.operationTime } }
 		]
 	}, { $set: setBody })
-	if (result.result.n === 0) {
+	if (result.modifiedCount === 0) {
 		res.status(404).send();
 		return;
 	}

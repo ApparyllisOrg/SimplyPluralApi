@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import moment from "moment";
 import { frontChange } from "../../modules/events/frontChange";
-import { getCollection } from "../../modules/mongo";
+import { getCollection, parseId } from "../../modules/mongo";
 import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security";
 import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendDocuments, updateSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
@@ -85,7 +85,14 @@ export const del = async (req: Request, res: Response) => {
 	}
 
 	// Delete this member from any groups they're in
-	getCollection("groups").updateMany({ uid: res.locals.uid }, { $pull: { members: req.params.id } });
+	getCollection("groups").find({ uid: res.locals.uid }).forEach((group: any) => {
+		const members : string[] = group.members ?? []
+		let newMembers = members.filter((member) => member != req.params.id);
+		getCollection("groups").updateOne({uid: res.locals.uid, _id: parseId(group._id)}, {$set: {members: newMembers}})
+	})
+
+	// Commented out due to typescript/mongodb error
+	//getCollection("groups").updateMany({ uid: res.locals.uid }, { $pull: { members: req.params.id } });
 
 	// Delete notes that belong to this member
 	getCollection("notes").deleteMany({ uid: res.locals.uid, member: req.params.id });
