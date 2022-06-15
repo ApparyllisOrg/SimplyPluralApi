@@ -93,6 +93,7 @@ const performReportGeneration = async (req: Request, res: Response) => {
 		from: '"Apparyllis" <noreply@apparyllis.com>',
 		to: req.body.sendTo,
 		cc: req.body.cc,
+		html: emailTemplate,
 		subject: "Your user report",
 	})
 
