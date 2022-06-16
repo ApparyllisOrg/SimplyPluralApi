@@ -73,7 +73,7 @@ if (process.env.DEVELOPMENT) {
 	const register = new Registry();
 	collectDefaultMetrics({ register });
 
-	const metricsMiddleware = prom({includeMethod: true});
+	const metricsMiddleware = prom({includeMethod: true, includePath: true, includeStatusCode: true});
 	app.use(metricsMiddleware);
 }
 
