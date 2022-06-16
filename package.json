@@ -58,6 +58,7 @@
 		"prom-client": "^14.0.1",
 		"redis": "^4.0.4",
 		"short-uuid": "^4.2.0",
+		"url-value-parser": "^2.1.0",
 		"vhost": "^3.0.2",
 		"winston": "^3.7.2",
 		"ws": "^8.8.0",

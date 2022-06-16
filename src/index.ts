@@ -26,6 +26,7 @@ import cors from "cors";
 
 import prom from "express-prom-bundle"
 import promclient from "prom-client"
+import urlparser from "url-value-parser"
 
 if (process.env.DEVELOPMENT) {
 	process.on('uncaughtException', console.error);
@@ -73,7 +74,22 @@ if (process.env.DEVELOPMENT) {
 	const register = new Registry();
 	collectDefaultMetrics({ register });
 
-	const metricsMiddleware = prom({includeMethod: true, includePath: true, includeStatusCode: true});
+	const metricsMiddleware = prom({includeMethod: true, includePath: true, includeStatusCode: true, normalizePath: (req, opts) => {
+		let path : string = req.path;
+
+		const queryId = req.params.id ?? "";
+
+		const urlEnding = `/${queryId}`;
+
+		if (path.endsWith(urlEnding))
+		{
+			path = path.substring(0, path.length - urlEnding.length)
+		}
+
+		const parser = new urlparser();
+		return parser.replacePathValues(path, '#id');
+	}});
+
 	app.use(metricsMiddleware);
 }
 
