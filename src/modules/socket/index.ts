@@ -10,6 +10,8 @@ import Connection from './connection';
 import crypto from "crypto";
 import { ChangeStream } from "mongodb";
 
+import promclient from "prom-client"
+
 export enum OperationType {
 	Read,
 	Add,
@@ -50,6 +52,19 @@ export const init = (server: http.Server) => {
 			threshold: 100
 		}
 	});
+
+	if (process.env.DATABASE === "SimplyPlural")
+	{
+		const gauge = new promclient.Gauge({
+		name: 'apparyllis_api_sockets',
+		help: 'Amount of sockets currently connected to the server',
+		collect() {
+			this.set(_wss?.clients.size ?? 0);
+		}
+		});
+	}
+
+
 	_wss.on("connection", (ws) => {
 		const uniqueId = crypto.randomBytes(64).toString("base64")
 		ws?.on('close', () => connections.delete(uniqueId));

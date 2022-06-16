@@ -24,6 +24,10 @@ import { NextFunction, Request, Response } from "express-serve-static-core";
 import { startMailTransport } from "./modules/mail";
 import cors from "cors";
 
+import prom from "express-prom-bundle"
+import promclient from "prom-client"
+import urlparser from "url-value-parser"
+
 if (process.env.DEVELOPMENT) {
 	process.on('uncaughtException', console.error);
 	process.on('unhandledRejection', console.error);
@@ -63,6 +67,29 @@ if (process.env.DEVELOPMENT) {
 	}
 
 	app.use(logRequest)
+} else 
+{
+	const collectDefaultMetrics = promclient.collectDefaultMetrics;
+	const Registry = promclient.Registry;
+	const register = new Registry();
+	collectDefaultMetrics({ register });
+
+	const metricsMiddleware = prom({includeMethod: true, includePath: true, includeStatusCode: true, normalizePath: (req, opts) => {
+		let path : string = req.path;
+
+		// Just delete all params
+		for (var propName in req.params) {
+			if (req.params.hasOwnProperty(propName)) {
+				path = path.replace(req.params[propName], "#id")
+			}
+		}
+		
+		// Add firebase user id regex
+		const parser = new urlparser({extraMasks:[/^[0-9a-zA-Z]{27,35}$/]});
+		return parser.replacePathValues(path, '#id');
+	}});
+
+	app.use(metricsMiddleware);
 }
 
 // Verify get query

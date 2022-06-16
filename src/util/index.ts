@@ -9,6 +9,8 @@ import { dispatchDelete, notify as socketNotify, OperationType } from "../module
 import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
 import { parseForAllowedReadValues } from "../security/readRules";
 
+import promclient from "prom-client"
+
 export function transformResultForClientRead(value: documentObject, requestorUid: string) {
 
 	parseForAllowedReadValues(value, requestorUid);
@@ -24,8 +26,15 @@ export function transformResultForClientRead(value: documentObject, requestorUid
 const wait = (time: number): Promise<void> =>
 	new Promise<void>((res) => setTimeout(res, time));
 
+const counter  = new promclient.Counter({
+	name: 'apparyllis_api_notifs',
+	help: 'Counter for notifs sent'
+});
+
 const sendNotification = async (payload: {notification: {title: string, body: string}, data: {title: string, body: string}, token: string, }, uid: string) =>
 {
+	counter.inc()
+
 	const privateCollection = Mongo.getCollection("private");
 	
 	const sendPayload = {...payload, apns:  {headers: {	"apns-expiration": "216000"}}}
