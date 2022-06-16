@@ -26,13 +26,13 @@ export function transformResultForClientRead(value: documentObject, requestorUid
 const wait = (time: number): Promise<void> =>
 	new Promise<void>((res) => setTimeout(res, time));
 
+const counter  = new promclient.Counter({
+	name: 'apparyllis_api_notifs',
+	help: 'Counter for notifs sent'
+});
+
 const sendNotification = async (payload: {notification: {title: string, body: string}, data: {title: string, body: string}, token: string, }, uid: string) =>
 {
-	const counter  = new promclient.Counter({
-		name: 'apparyllis_api_notifs',
-		help: 'Counter for notifs sent'
-	});
-
 	counter.inc()
 
 	const privateCollection = Mongo.getCollection("private");
