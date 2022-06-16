@@ -10,6 +10,8 @@ import Connection from './connection';
 import crypto from "crypto";
 import { ChangeStream } from "mongodb";
 
+import promclient from "prom-client"
+
 export enum OperationType {
 	Read,
 	Add,
@@ -188,6 +190,14 @@ export async function dispatchCustomEvent(data: {uid: string, type: string, data
         conn.send(payload);
     }
 }
+
+const gauge = new promclient.Gauge({
+  name: 'apparyllis_api_sockets',
+  help: 'Amount of sockets currently connected to the server',
+  collect() {
+    this.set(_wss?.clients.size ?? 0);
+  }
+});
 
 const logCurrentConnection = () => {
 	console.log("Current socket connections:" + _wss?.clients.size.toString());
