@@ -25,6 +25,7 @@ import { startMailTransport } from "./modules/mail";
 import cors from "cors";
 
 import prom from "express-prom-bundle"
+import promclient from "prom-client"
 
 if (process.env.DEVELOPMENT) {
 	process.on('uncaughtException', console.error);
@@ -67,6 +68,11 @@ if (process.env.DEVELOPMENT) {
 	app.use(logRequest)
 } else 
 {
+	const collectDefaultMetrics = promclient.collectDefaultMetrics;
+	const Registry = promclient.Registry;
+	const register = new Registry();
+	collectDefaultMetrics({ register });
+
 	const metricsMiddleware = prom({includeMethod: true});
 	app.use(metricsMiddleware);
 }
