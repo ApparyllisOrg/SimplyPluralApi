@@ -3,6 +3,8 @@ import { logger } from "../../logger";
 import * as Sentry from "@sentry/node";
 import { nanoid } from "nanoid";
 
+import promclient from "prom-client"
+
 export enum PkRequestType {
 	Get,
 	Post,
@@ -93,6 +95,11 @@ export const dispatchTickRequests = async (request: PkRequest) => {
 	if (process.env.DEVELOPMENT) {
 		debug = true
 	}
+
+	const counter  = new promclient.Counter({
+		name: 'apparyllis_api_pk_syncs',
+		help: 'Counter for pk syncs performed'
+	});
 	
 	const type = request.type;
 	switch (type) {
@@ -101,6 +108,7 @@ export const dispatchTickRequests = async (request: PkRequest) => {
 			{
 				console.log("GET=>"+ request.path)
 			}
+			counter.inc({"method": "GET"}, 1)
 			const result = await axios.get(request.path, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError)
 			if (debug)
 			{
@@ -115,6 +123,7 @@ export const dispatchTickRequests = async (request: PkRequest) => {
 			{
 				console.log("POST=>"+ request.path)
 			}
+			counter.inc({"method": "POST"}, 1)
 			const result = await axios.post(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError)
 			if (debug)
 			{
@@ -129,6 +138,7 @@ export const dispatchTickRequests = async (request: PkRequest) => {
 			{
 				console.log("PATCH=>"+ request.path)
 			}
+			counter.inc({"method": "PATCH"}, 1)
 			const result = await axios.patch(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError)
 			if (debug)
 			{
