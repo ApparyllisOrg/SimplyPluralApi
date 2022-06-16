@@ -86,7 +86,8 @@ if (process.env.DEVELOPMENT) {
 			path = path.substring(0, path.length - urlEnding.length)
 		}
 
-		const parser = new urlparser();
+		// Add firebase user id regex
+		const parser = new urlparser({extraMasks:[/^[0-9a-zA-Z]{27,35}$/]});
 		return parser.replacePathValues(path, '#id');
 	}});
 
