@@ -89,6 +89,12 @@ export const tick = async () => {
 	setTimeout(tick, 100)
 }
 
+const counter  = new promclient.Counter({
+	name: 'apparyllis_api_pk_syncs',
+	help: 'Counter for pk syncs performed'
+});
+
+
 export const dispatchTickRequests = async (request: PkRequest) => {
 
 	let debug = false;
@@ -96,11 +102,6 @@ export const dispatchTickRequests = async (request: PkRequest) => {
 		debug = true
 	}
 
-	const counter  = new promclient.Counter({
-		name: 'apparyllis_api_pk_syncs',
-		help: 'Counter for pk syncs performed'
-	});
-	
 	const type = request.type;
 	switch (type) {
 		case PkRequestType.Get: {
