@@ -77,36 +77,13 @@ if (process.env.DEVELOPMENT) {
 	const metricsMiddleware = prom({includeMethod: true, includePath: true, includeStatusCode: true, normalizePath: (req, opts) => {
 		let path : string = req.path;
 
-		{
-			const queryId = req.params.id ?? "";
-			const urlEnding = `/${queryId}`;
-
-			if (path.endsWith(urlEnding))
-			{
-				path = path.substring(0, path.length - urlEnding.length)
+		// Just delete all params
+		for (var propName in req.params) {
+			if (req.params.hasOwnProperty(propName)) {
+				path = path.replace(req.params[propName], "#id")
 			}
 		}
-
-		{
-			const queryId = req.params.member ?? "";
-			const urlEnding = `/${queryId}`;
-
-			if (path.endsWith(urlEnding))
-			{
-				path = path.substring(0, path.length - urlEnding.length)
-			}
-		}
-
-		{
-			const queryId = req.params.system ?? "";
-			const urlEnding = `/${queryId}`;
-
-			if (path.endsWith(urlEnding))
-			{
-				path = path.substring(0, path.length - urlEnding.length)
-			}
-		}
-
+		
 		// Add firebase user id regex
 		const parser = new urlparser({extraMasks:[/^[0-9a-zA-Z]{27,35}$/]});
 		return parser.replacePathValues(path, '#id');
