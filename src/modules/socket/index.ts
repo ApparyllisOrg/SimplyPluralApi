@@ -53,17 +53,13 @@ export const init = (server: http.Server) => {
 		}
 	});
 
-	if (process.env.DATABASE === "SimplyPlural")
-	{
-		const gauge = new promclient.Gauge({
+	const gauge = new promclient.Gauge({
 		name: 'apparyllis_api_sockets',
 		help: 'Amount of sockets currently connected to the server',
 		collect() {
 			this.set(_wss?.clients.size ?? 0);
 		}
-		});
-	}
-
+	});
 
 	_wss.on("connection", (ws) => {
 		const uniqueId = crypto.randomBytes(64).toString("base64")
