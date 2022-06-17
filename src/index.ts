@@ -75,7 +75,7 @@ const register = new Registry();
 collectDefaultMetrics({ register });
 
 const metricsMiddleware = prom({includeMethod: true, includePath: true, includeStatusCode: true, normalizePath: (req, opts) => {
-	return req.route.path;
+	return req.route?.path ?? "NULL";
 }});
 
 app.use(metricsMiddleware);
