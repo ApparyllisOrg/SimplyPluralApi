@@ -75,18 +75,7 @@ const register = new Registry();
 collectDefaultMetrics({ register });
 
 const metricsMiddleware = prom({includeMethod: true, includePath: true, includeStatusCode: true, normalizePath: (req, opts) => {
-	let path : string = req.path;
-
-	// Just delete all params
-	for (var propName in req.params) {
-		if (req.params.hasOwnProperty(propName)) {
-			path = path.replace(req.params[propName], "#id")
-		}
-	}
-	
-	// Add firebase user id regex
-	const parser = new urlparser({extraMasks:[/^[0-9a-zA-Z]{27,35}$/]});
-	return parser.replacePathValues(path, '#id');
+	return req.route.path;
 }});
 
 app.use(metricsMiddleware);
