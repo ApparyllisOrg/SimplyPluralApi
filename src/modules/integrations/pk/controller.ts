@@ -89,18 +89,19 @@ export const tick = async () => {
 	setTimeout(tick, 100)
 }
 
-/*const counter  = new promclient.Counter({
+const counter  = new promclient.Counter({
 	name: 'apparyllis_api_pk_syncs',
-	help: 'Counter for pk syncs performed'
-});*/
-
-
+	help: 'Counter for pk syncs performed',
+ 	labelNames: ['method', 'statusCode'],
+});
+	
 export const dispatchTickRequests = async (request: PkRequest) => {
 
 	let debug = false;
 	if (process.env.DEVELOPMENT) {
 		debug = true
 	}
+
 
 	const type = request.type;
 	switch (type) {
@@ -109,8 +110,8 @@ export const dispatchTickRequests = async (request: PkRequest) => {
 			{
 				console.log("GET=>"+ request.path)
 			}
-			//counter.inc({"method": "GET"}, 1)
 			const result = await axios.get(request.path, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError)
+			counter.labels("GET", result?.status.toString() ?? "503").inc(1)
 			if (debug)
 			{
 				console.log("Response for GET=>"+ request.path)
@@ -124,8 +125,8 @@ export const dispatchTickRequests = async (request: PkRequest) => {
 			{
 				console.log("POST=>"+ request.path)
 			}
-			//counter.inc({"method": "POST"}, 1)
 			const result = await axios.post(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError)
+			counter.labels("POST", result?.status.toString() ?? "503").inc(1)
 			if (debug)
 			{
 				console.log("Response for POST=>"+ request.path)
@@ -139,8 +140,8 @@ export const dispatchTickRequests = async (request: PkRequest) => {
 			{
 				console.log("PATCH=>"+ request.path)
 			}
-			//counter.inc({"method": "PATCH"}, 1)
 			const result = await axios.patch(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError)
+			counter.labels("PATCH", result?.status.toString() ?? "503").inc(1)
 			if (debug)
 			{
 				console.log("Response for PATCH=>"+ request.path)

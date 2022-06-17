@@ -67,30 +67,18 @@ if (process.env.DEVELOPMENT) {
 	}
 
 	app.use(logRequest)
-} else 
-{
-	const collectDefaultMetrics = promclient.collectDefaultMetrics;
-	const Registry = promclient.Registry;
-	const register = new Registry();
-	collectDefaultMetrics({ register });
+} 
 
-	const metricsMiddleware = prom({includeMethod: true, includePath: true, includeStatusCode: true, normalizePath: (req, opts) => {
-		let path : string = req.path;
+const collectDefaultMetrics = promclient.collectDefaultMetrics;
+const Registry = promclient.Registry;
+const register = new Registry();
+collectDefaultMetrics({ register });
 
-		// Just delete all params
-		for (var propName in req.params) {
-			if (req.params.hasOwnProperty(propName)) {
-				path = path.replace(req.params[propName], "#id")
-			}
-		}
-		
-		// Add firebase user id regex
-		const parser = new urlparser({extraMasks:[/^[0-9a-zA-Z]{27,35}$/]});
-		return parser.replacePathValues(path, '#id');
-	}});
+const metricsMiddleware = prom({includeMethod: true, includePath: true, includeStatusCode: true, normalizePath: (req, opts) => {
+	return req.route?.path ?? "NULL";
+}});
 
-	app.use(metricsMiddleware);
-}
+app.use(metricsMiddleware);
 
 // Verify get query
 app.use(validateGetParams);
