@@ -4,6 +4,12 @@ import dotenv from "dotenv";
 dotenv.config();
 const logPrefix = process.env.LOGPREFIX ?? (process.env.DBNAME ?? "")
 
+const useCustomLogFilenames = !process.argv.includes("--nologs")
+if (!useCustomLogFilenames)
+{
+	console.log("Running without custom log file names")
+}
+
 export const logger = winston.createLogger({
 	level: "info",
 	defaultMeta: { service: "user-service" },
@@ -12,16 +18,15 @@ export const logger = winston.createLogger({
 		format.printf(info => `${info.timestamp} ${info.level}: ${info.message}` + (info.splat !== undefined ? `${info.splat}` : " "))
 	),
 	transports: [
-		new winston.transports.File({ filename: `/var/log/simply-plural/${logPrefix}-error.log`, level: "error", maxsize: 1000000 }),
-		new winston.transports.File({ filename: `/var/log/simply-plural/${logPrefix}-warn.log`, level: "warn", maxsize: 1000000 }),
-		new winston.transports.File({ filename: `/var/log/simply-plural/${logPrefix}-info.log`, level: "info", maxsize: 1000000 }),
-		new winston.transports.File({ filename: `/var/log/simply-plural/${logPrefix}-combined.log`, maxsize: 1000000, }),
+		new winston.transports.File({ filename: useCustomLogFilenames ? `/var/log/simply-plural/${logPrefix}-error.log` : "error.log", level: "error", maxsize: 1000000 }),
+		new winston.transports.File({ filename: useCustomLogFilenames ? `/var/log/simply-plural/${logPrefix}-warn.log`:  "warn.log", level: "warn", maxsize: 1000000 }),
+		new winston.transports.File({ filename: useCustomLogFilenames ? `/var/log/simply-plural/${logPrefix}-info.log`:  "info.log", level: "info", maxsize: 1000000 }),
+		new winston.transports.File({ filename: useCustomLogFilenames ? `/var/log/simply-plural/${logPrefix}-combined.log`:  "combined.log", maxsize: 1000000, }),
 	],
 	exceptionHandlers: [
 		new transports.File({ filename: "exceptions.log" })
 	]
 });
-
 
 export const userLog = (uid: string, message: string) => {
 	const msg = "USER: [" + uid + "] " + message

@@ -8,7 +8,7 @@
 		"start:watch": "ts-node-dev --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config --inspect",
 		"build": "tsc",
 		"lint": "eslint src/**/**/*",
-		"test": "mocha --require ts-node/register 'src/tests/**/*.ts' --delay -r dotenv/config --exit"
+		"test": "mocha --require ts-node/register 'src/tests/**/*.ts' --delay -r dotenv/config --exit --nologs"
 	},
 	"dependencies": {
 		"@google-cloud/common": "^3.9.0",

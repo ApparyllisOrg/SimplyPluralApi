@@ -32,7 +32,7 @@ export const initializeServer = async () => {
 
 	app.use(express.json({ limit: "3mb" }));
 
-	if (process.env.DEVELOPMENT) {
+	if (process.env.DEVELOPMENT && process.env.UNITTEST !== "true") {
 		const logRequest = async (req: Request, _res: Response, next: NextFunction) => {
 			console.log(`${req.method} => ${req.url}`)
 			next()
