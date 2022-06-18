@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as mocha from "mocha"
-import { validateCustomFrontSchema } from "../api/v1/customFront";
+import { validateCustomFrontSchema } from "../../api/v1/customFront";
 
 describe("validate custom front schemas", () => {
 	mocha.test("Test valid custom front schema", () => {

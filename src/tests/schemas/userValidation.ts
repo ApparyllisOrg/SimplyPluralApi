@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as mocha from "mocha"
-import { validateUserSchema } from "../api/v1/user";
+import { validateUserSchema } from "../../api/v1/user";
 
 describe("validate user schemas", () => {
 	mocha.test("Test valid user schema", () => {
@@ -61,3 +61,4 @@ describe("validate user schemas", () => {
 		assert.strictEqual(result.success, false, result.msg);
 	});
 });
+

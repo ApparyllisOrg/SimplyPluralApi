@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as mocha from "mocha"
-import { validateMemberSchema } from "../api/v1/member";
+import { validateMemberSchema } from "../../api/v1/member";
 
 describe("validate member schemas", () => {
 	mocha.test("Test valid member schema", () => {
@@ -61,3 +61,4 @@ describe("validate member schemas", () => {
 		assert.strictEqual(result.success, false, result.msg);
 	});
 });
+

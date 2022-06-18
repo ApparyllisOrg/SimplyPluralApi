@@ -10,7 +10,7 @@ export enum ApiKeyAccessType {
 export const FullApiAccess = ApiKeyAccessType.Read | ApiKeyAccessType.Write | ApiKeyAccessType.Delete;
 
 export const generateNewApiKey = async (): Promise<string> => {
-	const token = await randomBytes(48);
+	const token = await randomBytes(48).toString("base64");
 
 	//Check for collisions... Shouldn't happen but let's check it anyway
 	const existingToken = await getCollection("tokens").findOne({
@@ -21,7 +21,7 @@ export const generateNewApiKey = async (): Promise<string> => {
 		return await generateNewApiKey();
 	}
 
-	return token.toString("base64");
+	return token;
 }
 
 export const assignApiKey = async (read: boolean, write: boolean, del: boolean, token: string, uid: string): Promise<boolean> => {

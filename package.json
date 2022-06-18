@@ -8,7 +8,7 @@
 		"start:watch": "ts-node-dev --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config --inspect",
 		"build": "tsc",
 		"lint": "eslint src/**/**/*",
-		"test": "mocha --require ts-node/register src/tests/**/*.ts -r dotenv/config"
+		"test": "mocha --require ts-node/register 'src/tests/**/*.ts' --delay -r dotenv/config --exit"
 	},
 	"dependencies": {
 		"@google-cloud/common": "^3.9.0",
@@ -52,6 +52,7 @@
 		"lru-cache": "^7.10.1",
 		"markdown-it": "^13.0.1",
 		"minio": "^7.0.28",
+		"mongo-unit": "^3.2.0",
 		"mongodb": "^4.7.0",
 		"nanoid": "^3.3.1",
 		"nodemailer": "^6.7.2",

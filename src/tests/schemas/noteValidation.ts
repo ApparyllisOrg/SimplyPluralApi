@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as mocha from "mocha"
-import { validateNoteSchema } from "../api/v1/note";
+import { validateNoteSchema } from "../../api/v1/note";
 
 describe("validate note schemas", () => {
 	mocha.test("Test valid note schema", () => {
@@ -8,7 +8,7 @@ describe("validate note schemas", () => {
 			title: "foo",
 			note: "foo",
 			color: "foo",
-			date: "foo",
+			date: 0,
 			member: "foo",
 		});
 

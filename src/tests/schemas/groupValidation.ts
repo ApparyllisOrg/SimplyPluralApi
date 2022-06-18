@@ -1,6 +1,6 @@
 import * as assert from "assert";
 import * as mocha from "mocha"
-import { validateGroupSchema } from "../api/v1/group";
+import { validateGroupSchema } from "../../api/v1/group";
 
 describe("validate group schemas", () => {
 	mocha.test("Test valid group schema", () => {

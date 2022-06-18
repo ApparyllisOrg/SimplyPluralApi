@@ -46,6 +46,7 @@ export const isUserAuthenticated = function (accessRequested: number): authMiddl
 		}
 
 		const result = await validateToken(req.headers.authorization as string);
+
 		if (!result.uid)
 			return rejectEntry(req, res, "Authorization token is missing or invalid.", getIp(req));
 
