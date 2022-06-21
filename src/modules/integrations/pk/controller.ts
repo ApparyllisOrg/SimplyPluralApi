@@ -102,7 +102,6 @@ export const dispatchTickRequests = async (request: PkRequest) => {
 		debug = true
 	}
 
-
 	const type = request.type;
 	switch (type) {
 		case PkRequestType.Get: {

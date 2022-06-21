@@ -39,6 +39,11 @@ export const validateBody = (func: schemavalidation) => {
 	return async (req: Request, res: Response, next: any) => {
 		const result = func(req.body);
 		if (!result.success) {
+			if (process.env.UNITTEST === "true")
+			{
+				console.error(result.msg)
+			}
+
 			res.status(400).send(result.msg);
 		}
 		else {
@@ -57,7 +62,6 @@ export const validateSchema = (schema: any, body: any): { success: boolean, msg:
 	else {
 		let fullError = "";
 		validate.errors?.forEach((err) => {
-			console.log(err)
 			if (err.keyword == "additionalProperties")
 			{
 				fullError += `Error at ${err.params.additionalProperty}, this is not a valid property name.`
@@ -71,6 +75,7 @@ export const validateSchema = (schema: any, body: any): { success: boolean, msg:
 			}
 			fullError += "\n"
 		});
+
 		return { success: false, msg: fullError }
 	}
 }
