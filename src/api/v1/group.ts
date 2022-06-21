@@ -50,7 +50,7 @@ const delGroupRecursive = async (groupId: string, uid: string) => {
 const privateGroupRecursive = async (groupId: string, uid: string, priv: boolean, preventTrusted: boolean) => {
 	const groups = await getCollection("groups").find({ uid, parent: groupId }).toArray()
 	for (let i = 0; i < groups.length; i++) {
-		await privateGroupRecursive(groupId, uid, priv, preventTrusted)
+		await privateGroupRecursive(groups[i]._id, uid, priv, preventTrusted)
 	}
 
 	await getCollection("groups").updateOne({ uid, _id: groupId }, { $set: { "private": priv, preventTrusted } })
