@@ -53,7 +53,7 @@ const privateGroupRecursive = async (groupId: string, uid: string, priv: boolean
 		await privateGroupRecursive(groups[i]._id.toString(), uid, priv, preventTrusted)
 	}
 
-	await getCollection("groups").updateOne({ uid, _id: groupId }, { $set: { "private": priv, preventTrusted } })
+	await getCollection("groups").updateOne({ uid, _id: parseId(groupId) }, { $set: { "private": priv, preventTrusted } })
 }
 
 export const validateGroupSchema = (body: any): { success: boolean, msg: string } => {
