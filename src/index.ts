@@ -25,5 +25,10 @@ admin.initializeApp({
 
 startCollectingUsage();
 
-const app = initializeServer();
-const server = startServer(app, process.env.DATABASE_URI ?? "")
+const start = async () => 
+{
+	const app = await initializeServer();
+	const server = await startServer(app, process.env.DATABASE_URI ?? "")
+}
+
+start();

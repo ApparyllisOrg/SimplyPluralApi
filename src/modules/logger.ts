@@ -1,5 +1,6 @@
-import winston, { format, transports } from "winston";
+import winston, { format } from "winston";
 import dotenv from "dotenv";
+import "winston-daily-rotate-file"
 
 dotenv.config();
 const logPrefix = process.env.LOGPREFIX ?? (process.env.DBNAME ?? "")
@@ -10,6 +11,34 @@ if (!useCustomLogFilenames)
 	console.log("Running without custom log file names")
 }
 
+const errorTransport = new winston.transports.DailyRotateFile({
+	filename:  useCustomLogFilenames ? `/var/log/simply-plural/${logPrefix}-error-%DATE%.log` : `error-%DATE%.log`,
+	datePattern: 'YYYY-MM-DD',
+	zippedArchive: true,
+	level: "error"
+});
+
+const warnTransport = new winston.transports.DailyRotateFile({
+	filename:  useCustomLogFilenames ? `/var/log/simply-plural/${logPrefix}-warn-%DATE%.log` : `warn-%DATE%.log`,
+	datePattern: 'YYYY-MM-DD',
+	zippedArchive: true,
+	level: "warn"
+});
+
+const infoTransport = new winston.transports.DailyRotateFile({
+	filename:  useCustomLogFilenames ? `/var/log/simply-plural/${logPrefix}-info-%DATE%.log` : `info-%DATE%.log`,
+	datePattern: 'YYYY-MM-DD',
+	zippedArchive: true,
+	level: "info"
+});
+
+const exceptionstransform = new winston.transports.DailyRotateFile({
+	filename:  useCustomLogFilenames ? `/var/log/simply-plural/${logPrefix}-exceptions-%DATE%.log` : `exceptions-%DATE%.log`,
+	datePattern: 'YYYY-MM-DD',
+	zippedArchive: true,
+	maxSize: '20m'
+});
+
 export const logger = winston.createLogger({
 	level: "info",
 	defaultMeta: { service: "user-service" },
@@ -18,13 +47,12 @@ export const logger = winston.createLogger({
 		format.printf(info => `${info.timestamp} ${info.level}: ${info.message}` + (info.splat !== undefined ? `${info.splat}` : " "))
 	),
 	transports: [
-		new winston.transports.File({ filename: useCustomLogFilenames ? `/var/log/simply-plural/${logPrefix}-error.log` : "error.log", level: "error", maxsize: 1000000 }),
-		new winston.transports.File({ filename: useCustomLogFilenames ? `/var/log/simply-plural/${logPrefix}-warn.log`:  "warn.log", level: "warn", maxsize: 1000000 }),
-		new winston.transports.File({ filename: useCustomLogFilenames ? `/var/log/simply-plural/${logPrefix}-info.log`:  "info.log", level: "info", maxsize: 1000000 }),
-		new winston.transports.File({ filename: useCustomLogFilenames ? `/var/log/simply-plural/${logPrefix}-combined.log`:  "combined.log", maxsize: 1000000, }),
+		errorTransport,
+		warnTransport,
+		infoTransport
 	],
 	exceptionHandlers: [
-		new transports.File({ filename: "exceptions.log" })
+		exceptionstransform
 	]
 });
 
