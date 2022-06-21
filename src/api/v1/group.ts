@@ -36,7 +36,7 @@ export const del = async (req: Request, res: Response) => {
 const delGroupRecursive = async (groupId: string, uid: string) => {
 	const groups = await getCollection("groups").find({ uid, parent: groupId }).toArray()
 	for (let i = 0; i < groups.length; i++) {
-		await delGroupRecursive(groups[i]._id, uid)
+		await delGroupRecursive(groups[i]._id.toString(), uid)
 	}
 	await getCollection("groups").deleteOne({ uid, _id: parseId(groupId) })
 	dispatchDelete({
@@ -50,10 +50,10 @@ const delGroupRecursive = async (groupId: string, uid: string) => {
 const privateGroupRecursive = async (groupId: string, uid: string, priv: boolean, preventTrusted: boolean) => {
 	const groups = await getCollection("groups").find({ uid, parent: groupId }).toArray()
 	for (let i = 0; i < groups.length; i++) {
-		await privateGroupRecursive(groupId, uid, priv, preventTrusted)
+		await privateGroupRecursive(groups[i]._id.toString(), uid, priv, preventTrusted)
 	}
 
-	await getCollection("groups").updateOne({ uid, _id: groupId }, { $set: { "private": priv, preventTrusted } })
+	await getCollection("groups").updateOne({ uid, _id: parseId(groupId) }, { $set: { "private": priv, preventTrusted } })
 }
 
 export const validateGroupSchema = (body: any): { success: boolean, msg: string } => {
