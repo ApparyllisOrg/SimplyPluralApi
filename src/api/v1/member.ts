@@ -10,7 +10,7 @@ export const getMembers = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
 		const canSee = await canSeeMembers(req.params.system, res.locals.uid)
 		if (!canSee) {
-			res.status(403).send("You are not authorized to see custom fronts of this user");
+			res.status(403).send("You are not authorized to see members of this user");
 			return;
 		}
 	}

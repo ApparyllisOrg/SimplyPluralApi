@@ -5,16 +5,7 @@ import dotenv from "dotenv";
 import * as events from "../events/eventController"
 dotenv.config();
 
-const url: string | undefined = process.env.DATABASE_URI;
 const dbName = process.env.DBNAME;
-
-// init
-console.log("Connecting Mongodb to: " + url)
-
-const _client = new MongoDb.MongoClient(url ?? "", { maxPoolSize: 1000, minPoolSize: 100 });
-_client.on("close", (...args: any) => {
-	console.log(args);
-});
 
 // utils
 let _db: MongoDb.Db | undefined = undefined;
@@ -36,9 +27,18 @@ export const parseId = (id: string): string | MongoDb.ObjectId => {
 const wait = (time: number): Promise<void> =>
 	new Promise<void>((res) => setTimeout(res, time));
 
-export const init = async (retry: boolean): Promise<void> => {
+export const init = async (retry: boolean, url: string): Promise<void> => {
+	// init
+	console.log("Connecting Mongodb to: " + url)
+
+	const _client = new MongoDb.MongoClient(url ?? "", { maxPoolSize: 1000, minPoolSize: 100 });
+	_client.on("close", (...args: any) => {
+		console.log(args);
+	});
+
 	logger.info(`attempt to connect to db: ${url}`);
 	console.log(`attempt to connect to db: ${url}`)
+	
 	try {
 		await _client.connect().then((newDb: void | MongoDb.MongoClient) => { _db = newDb?.db(dbName) ?? undefined });
 		logger.info("setup db connection");
@@ -53,7 +53,7 @@ export const init = async (retry: boolean): Promise<void> => {
 		logger.warn("`failed to setup db connection! trying again...");
 		console.log("failed to setup db connection! trying again...")
 		await wait(1000);
-		await init(retry);
+		await init(retry, url);
 		}
 	}
 };
