@@ -278,10 +278,15 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 
 		const addEntry = (value: any) => {
 			const documentId = value.member;
-			const foundMember: number = members.findIndex((value) => value._id == documentId);
+			const foundMember: number = query.frontHistory.includeMembers ? members.findIndex((value) => value._id == documentId) : -1;
 			let name = "";
 			let avatar = "";
 			if (foundMember == -1) {
+				if (query.frontHistory.includeCustomFronts !== true)
+				{
+					return;
+				}
+
 				const foundFront: number = customFronts.findIndex((value) => value._id == documentId);
 				if (foundFront == -1) {
 					return;
