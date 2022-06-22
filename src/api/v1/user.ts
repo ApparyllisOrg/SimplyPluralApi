@@ -411,6 +411,7 @@ export const validateUserSchema = (body: any): { success: boolean, msg: string }
 			avatarUuid: { type: "string" },
 			avatarUrl: { type: "string" },
 			color: { type: "string" },
+			supportDescMarkdown: { type: "boolean" },
 			fields: {
 				type: "object",
 				patternProperties: {
@@ -422,6 +423,7 @@ export const validateUserSchema = (body: any): { success: boolean, msg: string }
 							private: { type: "boolean" },
 							preventTrusted: { type: "boolean" },
 							type: { type: "number" },
+							supportMarkdown: { type: "boolean" },
 						},
 						required: ["name", "order", "private", "preventTrusted", "type"]
 					}

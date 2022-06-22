@@ -46,6 +46,7 @@ export const validateCommentSchema = (body: any): { success: boolean, msg: strin
 		properties: {
 			time: { type: "number" },
 			text: { type: "string" },
+			supportMarkdown: { type: "boolean" },
 			documentId: { type: "string" },
 			collection: { type: "string" }
 		},
@@ -62,6 +63,7 @@ export const validateCommentPatchSchema = (body: any): { success: boolean, msg: 
 		type: "object",
 		properties: {
 			text: { type: "string" },
+			supportMarkdown: { type: "boolean" },
 		},
 		nullable: false,
 		additionalProperties: false,
