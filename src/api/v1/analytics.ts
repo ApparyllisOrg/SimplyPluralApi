@@ -37,6 +37,10 @@ export const get = async (req: Request, res: Response) => {
 		const frontEntry = allResults[i]
 		let value : frontDurationType | undefined = frontDurationsData[frontEntry.member]
 		let endTime = (frontEntry.endTime ?? moment.now())
+		if (isNaN(endTime))
+		{
+			endTime = moment.now()
+		}
 		let duration = endTime - frontEntry.startTime
 		duration = Math.min(duration, endQuery - startQuery)
 
