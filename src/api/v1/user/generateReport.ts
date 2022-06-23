@@ -68,7 +68,7 @@ const getMoment = (timestamp: string | undefined, func: (timestamp: string) => s
 
 		if (!re.test(timestamp))
 		{
-		return "Invalid data"
+		return ""
 		}
 
 		return xss(func(timestamp));
@@ -183,9 +183,13 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 							const fieldResult = typeConverters[fieldInfo.type](value as string, user.fields.supportMarkdown ?? true);
 							if (fieldResult) {
 								let field = `${fieldTemplate}`;
-								field = field.replace("{{key}}", xss(fieldKeyToName(key, user)));
-								field = field.replace("{{value}}", fieldResult);
-								generatedFields = generatedFields + field;
+								const valueText =  xss(fieldKeyToName(key, user))
+								if (valueText.length > 0)
+								{
+									field = field.replace("{{key}}",valueText);
+									field = field.replace("{{value}}", fieldResult);
+									generatedFields = generatedFields + field;
+								}
 							}
 						}
 					}
