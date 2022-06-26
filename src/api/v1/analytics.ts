@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import moment from "moment";
 import { getCollection, parseId } from "../../modules/mongo";
+import { isMemberOrCustomFront } from "../../util";
 import { getFrontTimeRangeQuery } from "./frontHistory";
 
 interface frontDurationType
@@ -36,8 +37,19 @@ export const get = async (req: Request, res: Response) => {
 		const frontEntry = allResults[i]
 		let value : frontDurationType | undefined = frontDurationsData[frontEntry.member]
 		let endTime = (frontEntry.endTime ?? moment.now())
+		if (isNaN(endTime))
+		{
+			endTime = moment.now()
+		}
 		let duration = endTime - frontEntry.startTime
 		duration = Math.min(duration, endQuery - startQuery)
+
+		const isExistingDocument = await isMemberOrCustomFront(res.locals.uid, frontEntry.member);
+
+		if (!isExistingDocument)
+		{
+			continue;
+		}
 
 		// TODO: Why do we have a NaN endtime?
 		if (isNaN(endTime))

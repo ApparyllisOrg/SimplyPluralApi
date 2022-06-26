@@ -314,7 +314,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 
 	const collections = await db()!.listCollections().toArray();
 
-	let allData: Map<string, any> = new Map<string, any>();
+	let allData: { [key: string]: any } = {};
 
 	for (let i = 0; i < collections.length; ++i)
 	{	
@@ -324,7 +324,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 		const actualName = split[split.length - 1];
 
 		const collectionData = await getCollection(actualName).find({ uid: res.locals.uid }).toArray();
-		allData.set(actualName, collectionData);
+		allData[actualName] = collectionData;
 	}
 
 	const user = await auth().getUser(res.locals.uid)
@@ -411,6 +411,7 @@ export const validateUserSchema = (body: any): { success: boolean, msg: string }
 			avatarUuid: { type: "string" },
 			avatarUrl: { type: "string" },
 			color: { type: "string" },
+			supportDescMarkdown: { type: "boolean" },
 			fields: {
 				type: "object",
 				patternProperties: {
@@ -422,6 +423,7 @@ export const validateUserSchema = (body: any): { success: boolean, msg: string }
 							private: { type: "boolean" },
 							preventTrusted: { type: "boolean" },
 							type: { type: "number" },
+							supportMarkdown: { type: "boolean" },
 						},
 						required: ["name", "order", "private", "preventTrusted", "type"]
 					}
