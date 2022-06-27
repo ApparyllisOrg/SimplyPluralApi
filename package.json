@@ -12,7 +12,7 @@
 	},
 	"dependencies": {
 		"@google-cloud/common": "^3.9.0",
-		"@sentry/node": "^6.17.9",
+		"@sentry/node": "^7.3.0",
 		"@types/ajv": "^1.0.0",
 		"@types/aws-sdk": "^2.7.0",
 		"@types/chai": "^4.3.0",
