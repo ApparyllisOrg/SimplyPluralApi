@@ -83,9 +83,10 @@ export const validatePollSchema = (body: any): { success: boolean, msg: string }
 				type: "array",
 				items: voteType
 			},
-			nullable: false,
-			additionalProperties: false,
-		}
+			supportDescMarkdown: { type: "boolean" },
+		},
+		nullable: false,
+		additionalProperties: false,
 	}
 
 	const schema = {

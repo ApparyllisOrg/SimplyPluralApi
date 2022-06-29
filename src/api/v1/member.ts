@@ -120,7 +120,8 @@ export const validateMemberSchema = (body: any): { success: boolean, msg: string
 				properties: {
 					"*": { type: "string" }
 				}
-			}
+			},
+			supportDescMarkdown: { type: "boolean" },
 		},
 		nullable: false,
 		additionalProperties: false,

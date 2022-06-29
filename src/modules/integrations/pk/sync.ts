@@ -63,6 +63,8 @@ const handlePkResponse = (requestResponse: AxiosResponse<any, any>) =>
 { 	
 	if (requestResponse.status === 401) {
 		return { success: false, msg: `Failed to sync. PluralKit token is invalid.` }
+	} else if (requestResponse.status === 403) {
+		return { success: false, msg: `Failed to sync. You do not have access to this member.` }
 	} else {
 		return { success: false, msg: `${requestResponse.status?.toString() ?? ""} - ${requestResponse.statusText}` }
 	}

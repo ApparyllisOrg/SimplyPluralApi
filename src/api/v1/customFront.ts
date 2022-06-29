@@ -59,6 +59,7 @@ export const validateCustomFrontSchema = (body: any): { success: boolean, msg: s
 			color: { type: "string" },
 			preventTrusted: { type: "boolean" },
 			private: { type: "boolean" },
+			supportDescMarkdown: { type: "boolean" },
 		},
 		nullable: false,
 		additionalProperties: false,

@@ -68,6 +68,7 @@ export const validateGroupSchema = (body: any): { success: boolean, msg: string 
 			desc: { type: "string" },
 			emoji: { type: "string" },
 			members: { type: "array", items: { type: "string" } },
+			supportDescMarkdown: { type: "boolean" },
 		},
 		nullable: false,
 		additionalProperties: false,

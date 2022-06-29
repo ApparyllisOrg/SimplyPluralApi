@@ -2,6 +2,7 @@
 const md = require('markdown-it')({
   html: true,
   linkify: true,
+  breaks: true,
   typographer: true
 });
 import { readFile } from "fs";
@@ -67,7 +68,7 @@ const getMoment = (timestamp: string | undefined, func: (timestamp: string) => s
 
 		if (!re.test(timestamp))
 		{
-		return "Invalid data"
+		return ""
 		}
 
 		return xss(func(timestamp));
@@ -85,21 +86,21 @@ const getColor = (colorStr: string | undefined) => {
 	return undefined;
 }
 
-const stringFromField = (string: string): string | undefined => md.render(xss(string))
-const colorFromField = (string: string): string | undefined => getColor(string)
-const dateFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("dddd, MMMM Do YYYY"))
-const monthFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("MMMM"))
-const yearFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("YYYY"))
-const monthYearFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("MMMM YYYY"))
-const timestampFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("dddd, MMMM Do YYYY, h:mm:ss a"))
-const monthDayFromField = (string: string): string | undefined => getMoment(string, (str) => moment(str).format("dddd, MMMM Do"))
+const stringFromField = (string: string, useMd: boolean): string | undefined => useMd? md.render(xss(string)) : xss(string)
+const colorFromField = (string: string, useMd: boolean): string | undefined => getColor(string)
+const dateFromField = (string: string, useMd: boolean): string | undefined => getMoment(string, (str) => moment(str).format("dddd, MMMM Do YYYY"))
+const monthFromField = (string: string, useMd: boolean): string | undefined => getMoment(string, (str) => moment(str).format("MMMM"))
+const yearFromField = (string: string, useMd: boolean): string | undefined => getMoment(string, (str) => moment(str).format("YYYY"))
+const monthYearFromField = (string: string, useMd: boolean): string | undefined => getMoment(string, (str) => moment(str).format("MMMM YYYY"))
+const timestampFromField = (string: string, useMd: boolean): string | undefined => getMoment(string, (str) => moment(str).format("dddd, MMMM Do YYYY, h:mm:ss a"))
+const monthDayFromField = (string: string, useMd: boolean): string | undefined => getMoment(string, (str) => moment(str).format("dddd, MMMM Do"))
 
 const typeConverters = [stringFromField, colorFromField, dateFromField, monthFromField, yearFromField, monthYearFromField, timestampFromField, monthDayFromField]
 
-const getDescription = (data: any, template: string): string => {
+const getDescription = (data: any, template: string, useMd: boolean): string => {
 	let result = `${template}`;
 	if (data.desc) {
-		result = result.replace("{{desc}}", md.render(xss(data.desc)));
+		result = result.replace("{{desc}}", useMd ? md.render(xss(data.desc)) : xss(data.desc));
 		return result;
 	}
 
@@ -118,7 +119,7 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	result = result.replace("{{username}}", xss(user.username));
 	result = result.replace("{{color}}", xss(user.color));
 	result = result.replace("{{avatar}}", xss(getAvatarString(user, uid)));
-	result = result.replace("{{desc}}", getDescription(user, descTemplate));
+	result = result.replace("{{desc}}", getDescription(user, descTemplate, user.supportDescMarkdown ?? true));
 
 	const members = await getCollection("members").find({ uid: uid }).toArray();
 	members.sort((a, b) => {
@@ -154,7 +155,7 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 			member = member.replace("{{color}}", xss(memberData.color));
 			member = member.replace("{{avatar}}", xss(getAvatarString(memberData, uid)));
 			member = member.replace("{{privacy}}", xss(getWrittenPrivacyLevel(memberData)));
-			member = member.replace("{{desc}}", getDescription(memberData, descTemplate));
+			member = member.replace("{{desc}}", getDescription(memberData, descTemplate, memberData.supportDescMarkdown ?? true));
 
 			if (query.members.includeCustomFields === false) {
 				member = member.replace("{{fields}}", "");
@@ -179,12 +180,16 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 								continue;
 							}
 
-							const fieldResult = typeConverters[fieldInfo.type](value as string);
+							const fieldResult = typeConverters[fieldInfo.type](value as string, user.fields.supportMarkdown ?? true);
 							if (fieldResult) {
 								let field = `${fieldTemplate}`;
-								field = field.replace("{{key}}", xss(fieldKeyToName(key, user)));
-								field = field.replace("{{value}}", fieldResult);
-								generatedFields = generatedFields + field;
+								const valueText =  xss(fieldKeyToName(key, user))
+								if (valueText.length > 0)
+								{
+									field = field.replace("{{key}}",valueText);
+									field = field.replace("{{value}}", fieldResult);
+									generatedFields = generatedFields + field;
+								}
 							}
 						}
 					}
@@ -242,7 +247,7 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 			customFront = customFront.replace("{{color}}", xss(frontData.color));
 			customFront = customFront.replace("{{avatar}}", xss(getAvatarString(frontData, uid)));
 			customFront = customFront.replace("{{privacy}}", xss(getWrittenPrivacyLevel(frontData)));
-			customFront = customFront.replace("{{desc}}", getDescription(frontData, descTemplate));
+			customFront = customFront.replace("{{desc}}", getDescription(frontData, descTemplate, frontData.supportDescMarkdown ?? true));
 
 			generatedFronts = generatedFronts + customFront;
 		})
@@ -278,10 +283,15 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 
 		const addEntry = (value: any) => {
 			const documentId = value.member;
-			const foundMember: number = members.findIndex((value) => value._id == documentId);
+			const foundMember: number = query.frontHistory.includeMembers ? members.findIndex((value) => value._id == documentId) : -1;
 			let name = "";
 			let avatar = "";
 			if (foundMember == -1) {
+				if (query.frontHistory.includeCustomFronts !== true)
+				{
+					return;
+				}
+
 				const foundFront: number = customFronts.findIndex((value) => value._id == documentId);
 				if (foundFront == -1) {
 					return;
