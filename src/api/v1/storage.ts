@@ -33,6 +33,7 @@ export const validateStoreAvatarSchema = (body: any): { success: boolean, msg: s
 			buffer: { type: "array", items: { type: "number", minimum: 0, maximum: 255 } },
 		},
 		nullable: false,
+		required: ["buffer"],
 		additionalProperties: false,
 	};
 

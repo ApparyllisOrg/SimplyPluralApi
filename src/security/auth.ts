@@ -4,6 +4,7 @@ import { Request, Response } from "express";
 import { FullApiAccess, validateApiKey } from "../modules/api/keys";
 import { logSecurity } from "../modules/logger";
 import { logUserUsage } from "../modules/usage";
+import { validateParams } from "../util/validation";
 
 export const validateToken = async (tokenStr: string): Promise<{ uid: string | undefined, accessType: number, jwt: boolean }> => {
 	if (tokenStr == null)
@@ -57,6 +58,11 @@ export const isUserAuthenticated = function (accessRequested: number): authMiddl
 		res.locals.uid = result.uid;
 		res.locals.jwt = result.jwt;
 
+		if (!validateParams(req, res))
+		{
+			return 
+		}
+
 		next();
 
 		logUserUsage(res.locals.uid, `${req.method} - ${req.route.path}`);
@@ -74,6 +80,12 @@ export const isUserAppJwtAuthenticated = async (req: Request, res: Response, nex
 	const result = await validateToken(req.headers.authorization as string);
 
 	if (result.jwt === true && result.accessType === FullApiAccess) {
+
+		if (!validateParams(req, res))
+		{
+			return 
+		}
+
 		res.locals.uid = result.uid;
 		next();
 		return;

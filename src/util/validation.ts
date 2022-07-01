@@ -1,5 +1,6 @@
 import { validationResult } from "express-validator";
-import { NextFunction, Request, Response } from "express";
+import { NextFunction } from "express";
+import { Request, Response } from "express";
 import addFormats from "ajv-formats"
 
 import Ajv from "ajv";
@@ -81,33 +82,31 @@ export const validateSchema = (schema: any, body: any): { success: boolean, msg:
 	}
 }
 
-export const validateGetParams = (req: Request, res: Response, next: NextFunction) => {
-	if (req.method === "GET") {
-		const schema = {
-			type: "object",
-			properties: {
-				id: { type: "string", pattern: "^[A-z0-9]{0,100}$" },
-				system: { type: "string", pattern: "^[A-z0-9]{0,50}$" },
-				member: { type: "string", pattern: "^[A-z0-9]{0,50}$" },
-				type: { type: "string", pattern: "^[A-z0-9]{0,100}$" },
-			},
-			nullable: false,
-			additionalProperties: false,
-		};
+export const validateParams = (req: Request, res: Response) => {
+	const schema = {
+		type: "object",
+		properties: {
+			id: { type: "string", pattern: "^[A-z0-9]{0,100}$" },
+			system: { type: "string", pattern: "^[A-z0-9]{0,50}$" },
+			member: { type: "string", pattern: "^[A-z0-9]{0,50}$" },
+			type: { type: "string", pattern: "^[A-z0-9]{0,100}$" },
+		},
+		nullable: false,
+		additionalProperties: false,
+	};
 
-		const validate = ajv.compile(schema)
+	const validate = ajv.compile(schema)
+	console.log(req.params)
+	const valid = validate(req.params);
 
-		const valid = validate(req.params);
-		if (valid) {
-			next();
-		}
-		else {
-			res.status(400).send(ajv.errorsText(validate.errors));
-		}
-
-		return;
+	if (valid) {
+		return true;
 	}
-	next();
+	else {
+		res.status(400).send("URL Params contain illegal characters");
+	}
+
+	return false;
 }
 
 export const validateGetQuery = (req: Request, res: Response, next: NextFunction) => {

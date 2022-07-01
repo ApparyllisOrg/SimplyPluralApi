@@ -11,7 +11,7 @@ import http from "http";
 import prom from "express-prom-bundle"
 import promclient from "prom-client"
 import express from "express";
-import { validateGetParams, validateOperationTime } from "../util/validation";
+import { validateParams, validateOperationTime } from "../util/validation";
 import { NextFunction, Request, Response } from "express-serve-static-core";
 import cors from "cors";
 
@@ -52,8 +52,6 @@ export const initializeServer = async () => {
 
 	app.use(metricsMiddleware);
 
-	// Verify get query
-	app.use(validateGetParams);
 	// Verify the operation time of this request
 	app.use(validateOperationTime);
 
