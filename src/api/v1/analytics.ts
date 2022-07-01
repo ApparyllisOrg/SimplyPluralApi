@@ -24,8 +24,8 @@ export const validatGetAnalyticsSchema = (body: any): { success: boolean, msg: s
 	const schema = {
 		type: "object",
 		properties: {
-			startTime: { type: "number" },
-			endTime: { type: "number" }
+			startTime: { type: "string", pattern: "^[0-9]"  },
+			endTime: { type: "string", pattern: "^[0-9]"  }
 		},
 		nullable: false,
 		additionalProperties: false,
