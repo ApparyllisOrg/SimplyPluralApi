@@ -154,7 +154,7 @@ export const validatePostMemberSchema = (body: any): { success: boolean, msg: st
 			},
 			supportDescMarkdown: { type: "boolean" },
 		},
-		require: ["name", "private", "preventTrusted"],
+		required: ["name", "private", "preventTrusted"],
 		nullable: false,
 		additionalProperties: false,
 		dependencies: getPrivacyDependency()
