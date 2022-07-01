@@ -12,7 +12,18 @@ export const get = async (req: Request, res: Response) => {
 	fetchSimpleDocument(req, res, "comments");
 }
 
+export const validateCollection = (collection: string) => {
+	return collection === "fronthistory";
+}
+
 export const add = async (req: Request, res: Response) => {
+
+	if (!validateCollection(req.body.collection))
+	{
+		res.status(400).send("Collection is not comment-supported")
+		return;
+	}
+
 	const attachedDocument = await getCollection(req.body.collection).findOne({ _id: parseId(req.body.documentId) });
 	if (!attachedDocument) {
 		res.status(404).send("Document not found for which you wish to add a comment")
@@ -29,6 +40,12 @@ export const update = async (req: Request, res: Response) => {
 }
 
 export const del = async (req: Request, res: Response) => {
+	if (!validateCollection(req.body.collection))
+	{
+		res.status(400).send("Collection is not comment-supported")
+		return;
+	}
+
 	const originalComment = await getCollection("comments").findOne({ _id: parseId(req.params.id), uid: res.locals.uid });
 	if (!originalComment) {
 		res.status(404).send("Cannot find the comment you wish to delete")
