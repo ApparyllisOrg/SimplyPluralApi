@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
 import { dispatchDelete, OperationType } from "../../modules/socket";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { getPrivacyDependency, validateSchema } from "../../util/validation";
 
 export const getGroups = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "groups", {});
@@ -72,10 +72,30 @@ export const validateGroupSchema = (body: any): { success: boolean, msg: string 
 		},
 		nullable: false,
 		additionalProperties: false,
-		dependencies: {
-			private: { required: ["preventTrusted"] },
-			preventTrusted: { required: ["private"] },
-		}
+		dependencies: getPrivacyDependency()
+	};
+
+	return validateSchema(schema, body);
+}
+
+export const validatePostGroupSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			parent: { type: "string" },
+			color: { type: "string" },
+			private: { type: "boolean" },
+			preventTrusted: { type: "boolean" },
+			name: { type: "string" },
+			desc: { type: "string" },
+			emoji: { type: "string" },
+			members: { type: "array", items: { type: "string" } },
+			supportDescMarkdown: { type: "boolean" },
+		},
+		required: ["parent", "color", "private", "preventTrusted", "name", "desc", "emoji", "members", "supportDescMarkdown"],
+		nullable: false,
+		additionalProperties: false,
+		dependencies: getPrivacyDependency()
 	};
 
 	return validateSchema(schema, body);

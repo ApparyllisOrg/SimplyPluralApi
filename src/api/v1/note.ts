@@ -31,10 +31,27 @@ export const validateNoteSchema = (body: any): { success: boolean, msg: string }
 			title: { type: "string" },
 			note: { type: "string" },
 			color: { type: "string" },
+			supportMarkdown: { type: "boolean" },
+		},
+		nullable: false,
+		additionalProperties: false,
+	};
+
+	return validateSchema(schema, body);
+}
+
+export const validatePostNoteSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			title: { type: "string" },
+			note: { type: "string" },
+			color: { type: "string" },
 			member: { type: "string" },
 			date: { type: "number" },
 			supportMarkdown: { type: "boolean" },
 		},
+		required: ["title", "note", "color", "member", "date", "supportMarkdown"],
 		nullable: false,
 		additionalProperties: false,
 	};

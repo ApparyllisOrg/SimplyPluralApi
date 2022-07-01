@@ -4,7 +4,7 @@ import { frontChange } from "../../modules/events/frontChange";
 import { getCollection, parseId } from "../../modules/mongo";
 import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security";
 import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendDocuments, updateSimpleDocument } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { getPrivacyDependency, validateSchema } from "../../util/validation";
 
 export const getMembers = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
@@ -125,6 +125,39 @@ export const validateMemberSchema = (body: any): { success: boolean, msg: string
 		},
 		nullable: false,
 		additionalProperties: false,
+		dependencies: getPrivacyDependency()
+	};
+
+	return validateSchema(schema, body);
+}
+
+export const validatePostMemberSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			name: { type: "string" },
+			desc: { type: "string" },
+			pronouns: { type: "string" },
+			pkId: { type: "string" },
+			color: { type: "string" },
+			avatarUuid: { type: "string" },
+			avatarUrl: { type: "string" },
+			private: { type: "boolean" },
+			preventTrusted: { type: "boolean" },
+			preventsFrontNotifs
+				: { type: "boolean" },
+			info: {
+				type: "object",
+				properties: {
+					"*": { type: "string" }
+				}
+			},
+			supportDescMarkdown: { type: "boolean" },
+		},
+		require: ["name", "private", "preventTrusted"],
+		nullable: false,
+		additionalProperties: false,
+		dependencies: getPrivacyDependency()
 	};
 
 	return validateSchema(schema, body);

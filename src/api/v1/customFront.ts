@@ -4,7 +4,7 @@ import { frontChange } from "../../modules/events/frontChange";
 import { getCollection } from "../../modules/mongo";
 import { canSeeMembers } from "../../security";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { getPrivacyDependency, validateSchema } from "../../util/validation";
 
 export const getCustomFronts = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
@@ -63,6 +63,29 @@ export const validateCustomFrontSchema = (body: any): { success: boolean, msg: s
 		},
 		nullable: false,
 		additionalProperties: false,
+		dependencies: getPrivacyDependency()
+	};
+
+	return validateSchema(schema, body);
+}
+
+export const validatePostCustomFrontSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			name: { type: "string" },
+			desc: { type: "string" },
+			avatarUrl: { type: "string" },
+			avatarUuid: { type: "string" },
+			color: { type: "string" },
+			preventTrusted: { type: "boolean" },
+			private: { type: "boolean" },
+			supportDescMarkdown: { type: "boolean" },
+		},
+		required: ["name", "private", "preventTrusted"],
+		nullable: false,
+		additionalProperties: false,
+		dependencies: getPrivacyDependency()
 	};
 
 	return validateSchema(schema, body);

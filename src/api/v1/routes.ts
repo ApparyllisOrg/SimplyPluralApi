@@ -26,21 +26,21 @@ export const setupV1routes = (app: core.Express) => {
 	// Members
 	app.get("/v1/member/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), member.get)
 	app.get("/v1/members/:system", isUserAuthenticated(ApiKeyAccessType.Read), member.getMembers)
-	app.post("/v1/member/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(member.validateMemberSchema), validateId, member.add)
+	app.post("/v1/member/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(member.validatePostMemberSchema), validateId, member.add)
 	app.patch("/v1/member/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(member.validateMemberSchema), member.update)
 	app.delete("/v1/member/:id", isUserAuthenticated(ApiKeyAccessType.Delete), member.del)
 
 	// Notes
 	app.get("/v1/note/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), note.get)
 	app.get("/v1/notes/:system/:member", isUserAuthenticated(ApiKeyAccessType.Read), note.getNotesForMember)
-	app.post("/v1/note/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(note.validateNoteSchema), validateId, note.add)
+	app.post("/v1/note/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(note.validatePostNoteSchema), validateId, note.add)
 	app.patch("/v1/note/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(note.validateNoteSchema), note.update)
 	app.delete("/v1/note/:id", isUserAuthenticated(ApiKeyAccessType.Delete), note.del)
 
 	// Custom front
 	app.get("/v1/customFront/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), customFront.get)
 	app.get("/v1/customFronts/:system", isUserAuthenticated(ApiKeyAccessType.Read), customFront.getCustomFronts)
-	app.post("/v1/customFront/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFront.validateCustomFrontSchema), validateId, customFront.add)
+	app.post("/v1/customFront/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFront.validatePostCustomFrontSchema), validateId, customFront.add)
 	app.patch("/v1/customFront/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFront.validateCustomFrontSchema), customFront.update)
 	app.delete("/v1/customFront/:id", isUserAuthenticated(ApiKeyAccessType.Delete), customFront.del)
 
@@ -54,7 +54,7 @@ export const setupV1routes = (app: core.Express) => {
 	// Polls
 	app.get("/v1/polls/:system", isUserAuthenticated(ApiKeyAccessType.Read), poll.getPolls)
 	app.get("/v1/poll/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), poll.get)
-	app.post("/v1/poll/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(poll.validatePollSchema), validateId, poll.add)
+	app.post("/v1/poll/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(poll.validatePostPollSchema), validateId, poll.add)
 	app.patch("/v1/poll/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(poll.validatePollSchema), poll.update)
 	app.delete("/v1/poll/:id", isUserAuthenticated(ApiKeyAccessType.Delete), poll.del)
 
@@ -87,7 +87,7 @@ export const setupV1routes = (app: core.Express) => {
 	// Groups
 	app.get("/v1/group/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), group.get)
 	app.get("/v1/groups/:system", isUserAuthenticated(ApiKeyAccessType.Read), group.getGroups)
-	app.post("/v1/group/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateGroupSchema), validateId, group.add)
+	app.post("/v1/group/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validatePostGroupSchema), validateId, group.add)
 	app.patch("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateGroupSchema), group.update)
 	app.delete("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Delete), group.del)
 

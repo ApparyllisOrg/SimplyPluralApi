@@ -176,3 +176,8 @@ export const validateOperationTime = async (req: Request, res: Response, next: a
 
 	res.status(400).send("Operation-Time header is not a valid number");
 }
+
+export const getPrivacyDependency = () => ({
+			private: { required: ["preventTrusted"] },
+			preventTrusted: { required: ["private"] }
+		})

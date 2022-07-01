@@ -66,6 +66,7 @@ export const validateRepeatedTimerSchema = (body: any): { success: boolean, msg:
 				},
 				nullable: false,
 				additionalProperties: false,
+				required: ["hour", "minute"]
 			},
 			startTime: {
 				type: "object",
@@ -76,10 +77,12 @@ export const validateRepeatedTimerSchema = (body: any): { success: boolean, msg:
 				},
 				nullable: false,
 				additionalProperties: false,
+				required: ["year", "month", "day"]
 			},
 		},
 		nullable: false,
 		additionalProperties: false,
+		required: ["name", "message", "dayInterval", "time", "startTime"]
 	};
 
 	return validateSchema(schema, body);
