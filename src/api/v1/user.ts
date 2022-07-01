@@ -5,7 +5,6 @@ import { db, getCollection, parseId } from "../../modules/mongo";
 import { fetchCollection, sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
-import { createUser } from "./user/migrate";
 import { update122 } from "./user/updates/update112";
 import AWS from "aws-sdk";
 import { nanoid } from "nanoid";
@@ -19,6 +18,7 @@ import Mail from "nodemailer/lib/mailer";
 import * as minio from "minio";
 import * as Sentry from "@sentry/node";
 import { ERR_FUNCTIONALITY_EXPECTED_VALID } from "../../modules/errors";
+import { createUser } from "./user/migrate";
 
 const minioClient = new minio.Client({
     endPoint: 'localhost',
