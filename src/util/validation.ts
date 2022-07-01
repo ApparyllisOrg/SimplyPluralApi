@@ -164,7 +164,7 @@ export const validateOperationTime = async (req: Request, res: Response, next: a
 	if (operationTime) {
 		const parsedInt = parseInt(operationTime);
 		if (!isNaN(parsedInt)) {
-			res.locals.operationTime = parsedInt;
+			res.locals.operationTime = Math.min(parsedInt, moment.now());
 			next();
 			return;
 		}
