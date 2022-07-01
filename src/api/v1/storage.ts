@@ -13,7 +13,7 @@ const minioClient = new minio.Client({
 });
 
 export function Store(req: Request, res: Response) {
-	const path = `avatars/${res.locals.uid}/${req.params.id}`;
+	const path = `avatars/${res.locals.uid}/${req.params.dashedid}`;
 
 	const buffer = Buffer.from(req.body["buffer"]);
 
@@ -41,7 +41,7 @@ export const validateStoreAvatarSchema = (body: any): { success: boolean, msg: s
 }
 
 export function Delete(req: Request, res: Response) {
-	const path = `avatars/${res.locals.uid}/${req.params.id}`;
+	const path = `avatars/${res.locals.uid}/${req.params.dashedid}`;
 	minioClient.removeObject("spaces",path).then(() => 
 	{
 		res.status(200).send({ success: true, msg: "" });

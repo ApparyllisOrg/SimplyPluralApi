@@ -50,7 +50,8 @@ export const validatePollSchema = (body: any): { success: boolean, msg: string }
 			votes: {
 				type: "array",
 				items: voteType
-			}
+			},
+			supportDescMarkdown: { type: "boolean" },
 		},
 		nullable: false,
 		additionalProperties: false,

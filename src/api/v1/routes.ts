@@ -127,8 +127,8 @@ export const setupV1routes = (app: core.Express) => {
 	app.patch("/v1/friend/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(friend.validatePatchFriendSchema), friend.updateFriend)
 
 	// Avatar
-	app.post("/v1/avatar/:id", isUserAppJwtAuthenticated, validateBody(storage.validateStoreAvatarSchema), storage.Store)
-	app.delete("/v1/avatar/:id", isUserAppJwtAuthenticated, storage.Delete)
+	app.post("/v1/avatar/:dashedid", isUserAppJwtAuthenticated, validateBody(storage.validateStoreAvatarSchema), storage.Store)
+	app.delete("/v1/avatar/:dashedid", isUserAppJwtAuthenticated, storage.Delete)
 
 	// Sync members
 	app.patch("/v1/integrations/pluralkit/sync/member/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(pk.validateSyncMemberSchema), validateQuery(pk.validateSyncDirectionSchema), pk.performSyncMember)
