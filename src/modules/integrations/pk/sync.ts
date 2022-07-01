@@ -90,7 +90,6 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 		}
 	}
 
-
 	if (options.avatar && avatarUrl) memberDataToSync.avatar_url = avatarUrl;
 	if (options.pronouns && pronouns) memberDataToSync.pronouns = pronouns;
 	if (options.description && desc != null) memberDataToSync.description = desc;

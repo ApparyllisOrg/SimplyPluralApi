@@ -1,10 +1,12 @@
 import WebSocket from "ws";
 import { validateToken } from "../../security/auth";
+import { userLog } from "../logger";
 
 export type destroyCallback = () => void;
 export default class Connection {
 	constructor(private ws: WebSocket | undefined, public uid: string | undefined) {
 		ws?.on('close', this.onClose);
+		ws?.on('error', this.onError);
 		ws?.on('message', this.onMessage);
 		ws?.on('pong', () => { ws.ping() })
 	}
@@ -45,6 +47,18 @@ export default class Connection {
 		this.ws?.removeAllListeners();
 		this.ws = undefined;
 		this.uid = undefined;
+	}
+
+	private onError(err : any) {
+		try {
+			userLog(this.uid ?? "undefined user", err.toString());
+		} 
+		catch (e)
+		{
+			userLog(this.uid ?? "undefined user", "Websocket error occurred");
+		}
+		
+		this.onClose();
 	}
 
 	async send(data: any, close = false) {
