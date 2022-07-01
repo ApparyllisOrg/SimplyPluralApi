@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import moment from "moment";
 import { getCollection, parseId } from "../../modules/mongo";
 import { isMemberOrCustomFront } from "../../util";
+import { validateSchema } from "../../util/validation";
 import { getFrontTimeRangeQuery } from "./frontHistory";
 
 interface frontDurationType
@@ -17,6 +18,21 @@ interface frontAnalyticValueType
 {
 	id: String,
 	value: number,
+}
+
+export const validatGetAnalyticsSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			startTime: { type: "number" },
+			endTime: { type: "number" }
+		},
+		nullable: false,
+		additionalProperties: false,
+		required: ["startTime", "endTime"]
+	};
+
+	return validateSchema(schema, body);
 }
 
 export const get = async (req: Request, res: Response) => {

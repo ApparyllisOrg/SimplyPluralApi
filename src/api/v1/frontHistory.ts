@@ -60,6 +60,12 @@ export const add = async (req: Request, res: Response) => {
 	req.body.startTime = Math.min(moment.now(), Number(req.body.startTime))
 	req.body.endTime = Math.min(moment.now(), Number(req.body.endTime))
 
+	// Start time cannot be larger than endTime
+	if (req.body.startTime >= req.body.endTime)
+	{
+		req.body.startTime = req.body.endTime - 1;
+	}
+
 	await addSimpleDocument(req, res, "frontHistory");
 	frontChange(res.locals.uid, false, req.body.member, true)
 }

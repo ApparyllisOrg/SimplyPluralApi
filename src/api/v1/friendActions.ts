@@ -13,7 +13,7 @@ export const AddFriend = async (req: Request, res: Response) => {
 	});
 
 	if (userDoc === null) {
-		res.status(200).send({ success: false, msg: "User not found" });
+		res.status(404).send({ success: false, msg: "User not found" });
 		return;
 	}
 
@@ -65,6 +65,31 @@ export const AddFriend = async (req: Request, res: Response) => {
 	res.status(200).send({ success: true, msg: "Friend request sent" });
 };
 
+export const validateRequestFrienqRequestSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			settings: {
+				type: "object",
+				properties: {
+					seeMembers: { type: "boolean" },
+					seeFront: { type: "boolean" },
+					getFrontNotif: { type: "boolean" },
+					trusted: { type: "boolean" },
+				},
+				nullable: false,
+				additionalProperties: false,
+				required: ['seeMembers', 'seeFront', 'getFrontNotif', 'trusted']
+			},
+		},
+		nullable: false,
+		additionalProperties: false,
+		required: ['settings']
+	};
+
+	return validateSchema(schema, body);
+}
+
 export const validateRespondToFrienqRequestSchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
 		type: "object",
@@ -80,10 +105,12 @@ export const validateRespondToFrienqRequestSchema = (body: any): { success: bool
 				},
 				nullable: false,
 				additionalProperties: false,
+				required: ['seeMembers', 'seeFront', 'getFrontNotif', 'trusted']
 			},
 		},
 		nullable: false,
 		additionalProperties: false,
+		required: ['settings', 'accept']
 	};
 
 	return validateSchema(schema, body);
@@ -98,7 +125,7 @@ export const RespondToFriendRequest = async (req: Request, res: Response) => {
 	});
 
 	if (userDoc === null) {
-		res.status(200).send({ success: false, msg: "User not found" });
+		res.status(404).send({ success: false, msg: "User not found" });
 		return;
 	}
 
@@ -169,7 +196,7 @@ export const CancelFriendRequest = async (req: Request, res: Response) => {
 		});
 
 	if (userDoc === null) {
-		res.status(200).send({ success: false, msg: "User not found" });
+		res.status(404).send({ success: false, msg: "User not found" });
 		return;
 	}
 
@@ -201,7 +228,7 @@ export const RemoveFriend = async (req: Request, res: Response) => {
 		});
 
 	if (userDoc === null) {
-		res.status(200).send({ success: false, msg: "User not found" });
+		res.status(404).send({ success: false, msg: "User not found" });
 		return;
 	}
 

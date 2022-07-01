@@ -115,11 +115,11 @@ export const getDocumentAccess = async (_req: Request, res: Response, document: 
 		return { access: true, statusCode: 200, message: "" }
 	}
 	else if (document.private && document.preventTrusted) {
-		return { access: false, statusCode: 401, message: "Access to document has been rejected." }
+		return { access: false, statusCode: 403, message: "Access to document has been rejected." }
 	}
 	else {
 		if (friendReadCollections.indexOf(collection) < 0) {
-			return { access: false, statusCode: 401, message: "Access to document has been rejected." }
+			return { access: false, statusCode: 403, message: "Access to document has been rejected." }
 		}
 
 		const friendLevel: FriendLevel = await getFriendLevel(document.uid, res.locals.uid);
@@ -132,7 +132,7 @@ export const getDocumentAccess = async (_req: Request, res: Response, document: 
 
 				return { access: true, statusCode: 200, message: "" }
 			}
-			return { access: false, statusCode: 401, message: "Access to document has been rejected." }
+			return { access: false, statusCode: 403, message: "Access to document has been rejected." }
 		}
 		else {
 			if (document.private) {
@@ -141,7 +141,7 @@ export const getDocumentAccess = async (_req: Request, res: Response, document: 
 					return { access: !document.preventTrusted, statusCode: 200, message: "" }
 				}
 				else {
-					return { access: false, statusCode: 401, message: "Access to document has been rejected." }
+					return { access: false, statusCode: 403, message: "Access to document has been rejected." }
 				}
 			}
 			return { access: true, statusCode: 200, message: "" }
@@ -165,7 +165,7 @@ export const sendDocuments = async (req: Request, res: Response, collection: str
 
 export const sendDocument = async (req: Request, res: Response, collection: string, document: documentObject) => {
 	if (!document) {
-		res.status(400).send();
+		res.status(404).send();
 		return;
 	}
 

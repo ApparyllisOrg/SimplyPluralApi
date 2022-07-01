@@ -5,6 +5,7 @@ import addFormats from "ajv-formats"
 import Ajv from "ajv";
 import { ObjectId } from "mongodb";
 import moment from "moment";
+import { parseId } from "../modules/mongo";
 const ajv = new Ajv({ allErrors: true, $data: true, verbose: true })
 addFormats(ajv)
 

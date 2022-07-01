@@ -92,7 +92,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.delete("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Delete), group.del)
 
 	// Analytics
-	app.get("/v1/user/analytics", isUserAuthenticated(ApiKeyAccessType.Read), analytics.get)
+	app.get("/v1/user/analytics", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(analytics.validatGetAnalyticsSchema), analytics.get)
 
 	// User
 	app.get("/v1/user/:id", isUserAuthenticated(ApiKeyAccessType.Read), user.get)
@@ -116,7 +116,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/friends/requests/outgoing", isUserAuthenticated(ApiKeyAccessType.Read), friend.getOutgoingFriendRequests)
 	app.get("/v1/friends/getFrontValues", isUserAuthenticated(ApiKeyAccessType.Read), friend.getAllFriendFrontValues);
 	app.get("/v1/friend/:system/getFrontValue", isUserAuthenticated(ApiKeyAccessType.Read), friend.getFriendFrontValues);
-	app.post("/v1/friends/request/add/:id", isUserAuthenticated(ApiKeyAccessType.Write), friendActions.AddFriend)
+	app.post("/v1/friends/request/add/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(friendActions.validateRespondToFrienqRequestSchema), friendActions.AddFriend)
 	app.post("/v1/friends/request/respond/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(friendActions.validateRespondToFrienqRequestSchema), friendActions.RespondToFriendRequest)
 	app.delete("/v1/friends/request/:id", isUserAuthenticated(ApiKeyAccessType.Delete), friendActions.CancelFriendRequest)
 	app.delete("/v1/friends/remove/:id", isUserAuthenticated(ApiKeyAccessType.Delete), friendActions.RemoveFriend)
@@ -137,6 +137,6 @@ export const setupV1routes = (app: core.Express) => {
 	// Tokens
 	app.get("/v1/tokens", isUserAppJwtAuthenticated, token.getAll)
 	app.get("/v1/token/:id", isUserAppJwtAuthenticated, token.get)
-	app.post("/v1/token/:id", isUserAppJwtAuthenticated, validateBody(token.validateApiKeySchema), token.add)
+	app.post("/v1/token/:id", isUserAppJwtAuthenticated, validateBody(token.validateApiKeySchema), validateId, token.add)
 	app.delete("/v1/token/:id", isUserAppJwtAuthenticated, token.del)
 }

@@ -5,8 +5,8 @@ export let mailerTransport: null | Transporter<SMTPTransport.SentMessageInfo> = 
 
 export const startMailTransport = async () => {
 	mailerTransport = nodemailer.createTransport({
-		host: "smtp.apparyllis.com",
-		port: 465,
+		host: process.env.MAILHOST,
+		port: Number(process.env.MAILPORT),
 		secure: true,
 		auth: {
 			user: process.env.MAILUSER,
