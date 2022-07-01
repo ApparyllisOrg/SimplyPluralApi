@@ -13,7 +13,7 @@ export const get = async (req: Request, res: Response) => {
 }
 
 export const validateCollection = (collection: string) => {
-	return collection === "fronthistory";
+	return collection === "frontHistory";
 }
 
 export const add = async (req: Request, res: Response) => {
