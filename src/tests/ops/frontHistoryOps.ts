@@ -10,7 +10,7 @@ describe("validate front history operations", () => {
 	});
 
 	mocha.test("Test adding a front history entry to live", async () => {
-		const member = await (await axios.post(getTestAxiosUrl("v1/member"), {name : "foo"}, { headers: { authorization: getTestToken()} })).data
+		const member = await (await axios.post(getTestAxiosUrl("v1/member"), {name : "foo", private: false, preventTrusted: false}, { headers: { authorization: getTestToken()} })).data
 		await axios.post(getTestAxiosUrl("v1/frontHistory"), {custom: false, live: true, startTime: 0, member: member}, { headers: { authorization: getTestToken()} })
 	});
 
@@ -23,8 +23,8 @@ describe("validate front history operations", () => {
 	});
 
 	mocha.test("Test adding a front entry and changing the active member and removing from front", async () => {
-		const firstMember = await (await axios.post(getTestAxiosUrl("v1/member"), {name : "foo"}, { headers: { authorization: getTestToken()} })).data
-		const secondMember = await (await axios.post(getTestAxiosUrl("v1/member"), {name : "bar"}, { headers: { authorization: getTestToken()} })).data
+		const firstMember = await (await axios.post(getTestAxiosUrl("v1/member"), {name : "foo", private: false, preventTrusted: false}, { headers: { authorization: getTestToken()} })).data
+		const secondMember = await (await axios.post(getTestAxiosUrl("v1/member"), {name : "bar", private: false, preventTrusted: false}, { headers: { authorization: getTestToken()} })).data
 
 		await axios.post(getTestAxiosUrl("v1/frontHistory"), {custom: false, live: true, startTime: 0, member: firstMember}, { headers: { authorization: getTestToken()} })
 

@@ -96,7 +96,6 @@ export const validateParams = (req: Request, res: Response) => {
 	};
 
 	const validate = ajv.compile(schema)
-	console.log(req.params)
 	const valid = validate(req.params);
 
 	if (valid) {
