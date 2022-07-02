@@ -287,7 +287,7 @@ export const deleteAccount = async (req: Request, res: Response) => {
 
 	userLog(res.locals.uid, `Pre Delete User ${email} and username ${username}`);
 
-	//auth().deleteUser(res.locals.uid);
+	auth().deleteUser(res.locals.uid);
 
 	userLog(res.locals.uid, `Post Delete User ${email} and username ${username}`);
 
