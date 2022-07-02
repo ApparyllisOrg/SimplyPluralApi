@@ -52,7 +52,7 @@ export default class Connection {
 	private onError(err : any) {
 		try {
 			userLog(this.uid ?? "undefined user", err.toString());
-		} 
+		}
 		catch (e)
 		{
 			userLog(this.uid ?? "undefined user", "Websocket error occurred");
