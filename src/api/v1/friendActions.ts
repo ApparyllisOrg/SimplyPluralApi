@@ -90,6 +90,31 @@ export const validateRequestFrienqRequestSchema = (body: any): { success: boolea
 	return validateSchema(schema, body);
 }
 
+export const validatAddFrienqRequestSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			settings: {
+				type: "object",
+				properties: {
+					seeMembers: { type: "boolean" },
+					seeFront: { type: "boolean" },
+					getFrontNotif: { type: "boolean" },
+					trusted: { type: "boolean" },
+					message: { type: "string" }
+				},
+				nullable: false,
+				additionalProperties: false,
+				required: ['seeMembers', 'seeFront', 'getFrontNotif', 'trusted']
+			},
+		},
+		nullable: false,
+		additionalProperties: false,
+		required: ['settings']
+	};
+
+	return validateSchema(schema, body);
+}
 export const validateRespondToFrienqRequestSchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
 		type: "object",

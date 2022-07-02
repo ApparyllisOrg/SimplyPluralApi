@@ -34,7 +34,7 @@ export const validateAutomatedTimerSchema = (body: any): { success: boolean, msg
 		},
 		nullable: false,
 		additionalProperties: false,
-		required: ["name", "message", "actions", "delayInHours", "type"]
+		required: ["name", "message", "delayInHours", "type"]
 	};
 
 	return validateSchema(schema, body);
