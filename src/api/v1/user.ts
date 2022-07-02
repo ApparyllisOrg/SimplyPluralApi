@@ -218,7 +218,7 @@ export const SetUsername = async (req: Request, res: Response) => {
 const deleteUploadedUserFolder = async (uid: string, prefix: string) =>
 {
 	const deleteFolderPromise = new Promise<any>( async (resolve, reject) => {
-		const listedObjects = await minioClient.listObjectsV2("spaces", `${prefix}/${uid}/`)
+		const listedObjects = await minioClient.listObjectsV2("spaces", `/${prefix}/${uid}/`)
 		if (listedObjects)
 		{
 			var list : minio.BucketItem[] = []
@@ -228,23 +228,22 @@ const deleteUploadedUserFolder = async (uid: string, prefix: string) =>
 				list.push(item)
 			})
 
-			listedObjects.on('error', function(e) {	})
+			listedObjects.on('error', function(e) {	
+				resolve(false)
+			})
 
 			listedObjects.on('end', async function() {
-				const deleteParams : {Bucket: string, Delete: { Objects: { Key: string; }[]}} = {
-				Bucket: "simply-plural",
-				Delete: { Objects: [] }
-				};
-
 				list.forEach(({ prefix, name }) => {
 					toDeleteList.push(prefix + name)
 				});
 
-				userLog(uid, `Deleting ${deleteParams.Delete.Objects.length.toString()} of type ${prefix} in storage`);
+				userLog(uid, `Deleting ${toDeleteList.length.toString()} of type ${prefix} in storage`);
 				
 				await minioClient.removeObjects("spaces", toDeleteList);
 
-				userLog(uid, `Deleted ${deleteParams.Delete.Objects.length.toString()} of type ${prefix} in storage`);
+				userLog(uid, `Deleted ${toDeleteList.length.toString()} of type ${prefix} in storage`);
+
+				resolve(true)
 			})
 		}
 	})
@@ -289,7 +288,7 @@ export const deleteAccount = async (req: Request, res: Response) => {
 
 	userLog(res.locals.uid, `Pre Delete User ${email} and username ${username}`);
 
-	auth().deleteUser(res.locals.uid);
+	//auth().deleteUser(res.locals.uid);
 
 	userLog(res.locals.uid, `Post Delete User ${email} and username ${username}`);
 
