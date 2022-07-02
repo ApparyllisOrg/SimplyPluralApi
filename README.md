@@ -31,13 +31,22 @@ The Simply Plural API has a host of functionalities.
 **Required:**
 
 - `DATABASE_URI`: a MongoDB connection URI (for example, `mongodb://localhost:27017`)
-- `TLS_CERT`, `TLS_KEY`: (if SSL is enabled) Path to SSL certificate and key.
+- `MAILPORT`: Port for the SMTP server
+- `MAILHOST`: Hostname for the SMTP server
+- `MAILUSER`: Username for the SMTP server
+- `MAILPASSWORD`: Password for the SMTP server
+- `DBNAME`: Name of the database
+- `SENTRY_DSN`: DSN for the Sentry integration
+- `MINIO_KEY`: Key for MinIO
+- `MINIO_Secret`: Secret for MinIO
 
 **Optional:**
 
-- `PORT`: port to listen on (same for http or https - *defaults to 8443*)
-- `DISABLE_TLS`: will disable HTTPS (for example, when behind a proxy or load balancer)
-- `SPACES_KEY`, `SPACES_SECRET`: Key ID and secret for DigitalOcean Spaces
+- `PORT`: port to listen on, default 3000
+- `LOGPREFIX`: Prefix to add to logfiles
+- `PLURALKITAPP`: PluralKit-granted header to have an increased rate limit
+- `LOCALEVENTS`: Whether to run the event controller
+- `SOCKETEMIT`: Whether to enable the socket emits for Mongodb changes
 
 ## Pull Requests
-When doing cosmetic pull requests, such as typo fixes, formatting fixes, please PR into main. For any other pull requests, such as feature changes, new features, fixes, etc. please PR into the pretesting branch,
+When doing any pull requests, please PR into pretesting.
