@@ -1,0 +1,2 @@
+export const SimplyPluralDb =  process.env.Prestesting === "true" ? "SimplyPluralTesting" : "SimplyPlural"
+export const SimplyBeingDb = process.env.Prestesting === "true" ? "SimplyBeingTestig" : "SimplyBeing"

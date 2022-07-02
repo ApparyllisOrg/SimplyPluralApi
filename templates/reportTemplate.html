@@ -1,0 +1,74 @@
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Simply Plural Account Report</title>
+		<link href="https://unpkg.com/tailwindcss@^2/dist/tailwind.min.css" rel="stylesheet" />
+		<style>
+			@media print {
+			   table {page-break-inside: avoid;}
+			}
+
+			</style>
+	</head>
+	<body>
+		<div class="min-h-full">
+			<header class="bg-white shadow">
+				<div class="flex max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 align-bottom items-center">
+					<div class="">
+						<a href="https://apparyllis.com" target="_blank"
+							><img
+								class="inline-block rounded-full ring-2 ring-white h-10"
+								src="https://apparyllis.com/wp-content/uploads/2021/03/cropped-Apparyllis_Square.png"
+								alt=""
+						/></a>
+					</div>
+					<h1 class="text-3xl font-bold text-gray-900 ml-5">Simply Plural Account Report</h1>
+				</div>
+			</header>
+			<main>
+				<div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+					<div class="flex">
+						<div class="flex-1">
+							<div class="flex -space-x-1 overflow-hidden justify-center place-content-center pt-10 avatar">
+								<img
+									class="inline-block rounded-full ring-2 ring-white h-80 "
+									src="{{avatar}}"
+									alt=""
+									onerror="if (this.src != 'https://sfo3.digitaloceanspaces.com/simply-plural/content/resources/Logo_Apparyllis_Square_1024.png') this.src = 'https://sfo3.digitaloceanspaces.com/simply-plural/content/resources/Logo_Apparyllis_Square_1024.png';"
+								/>
+							</div>
+						</div>
+						<div class="flex-1">
+							<div class="px-4 py-6 sm:px-0">
+								<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+									<div class="px-4 py-5 sm:px-6">
+										<h3 class="text-lg leading-6 font-medium text-gray-900">Account information</h3>
+										<p class="mt-1 max-w-2xl text-sm text-gray-500">Basic information and statistics.</p>
+									</div>
+									<div class="border-t border-gray-200">
+										<dl>
+											<div class="bg-gray-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+												<dt class="text-sm font-medium text-gray-500">Username</dt>
+												<dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{{username}}</dd>
+											</div>
+											<div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+												<dt class="text-sm font-medium text-gray-500">User Color</dt>
+												<dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2" style="background-color: {{color}}"></dd>
+											</div>
+											{{numMembers}} {{numCustomFronts}}
+										</dl>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+					{{desc}}
+					{{members}}
+					{{customFronts}}
+					{{frontHistory}}
+					</div>
+				</div>
+			</main>
+		</div>
+	</body>
+</html>
