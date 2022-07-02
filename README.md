@@ -8,7 +8,7 @@
 
 Simply Plural API is the backend for the app "Simply Plural". Simply Plural is created and managed by [Apparyllis](https://apparyllis.com/).
 
-The SDK counterpart for Dart/Flutter can be found here.
+The SDK counterpart for Dart/Flutter can be found [here](https://github.com/ApparyllisOrg/simply_sdk).
 ## Support us
 You can support the development of Simply Plural by becoming a patron over at https://www.patreon.com/apparyllis. ❤️
 
