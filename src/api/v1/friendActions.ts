@@ -115,11 +115,27 @@ export const validatAddFrienqRequestSchema = (body: any): { success: boolean, ms
 
 	return validateSchema(schema, body);
 }
+
+export const validateRespondToFrienqRequestQuerySchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			accepted: {
+				type: "string",
+			}
+		},
+		nullable: false,
+		additionalProperties: false,
+		required: ['accepted']
+	};
+
+	return validateSchema(schema, body);
+}
+
 export const validateRespondToFrienqRequestSchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
-			accepted: { type: "boolean" },
 			settings: {
 				type: "object",
 				properties: {
@@ -135,7 +151,7 @@ export const validateRespondToFrienqRequestSchema = (body: any): { success: bool
 		},
 		nullable: false,
 		additionalProperties: false,
-		required: ['settings', 'accepted']
+		required: ['settings']
 	};
 
 	return validateSchema(schema, body);
