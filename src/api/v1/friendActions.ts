@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { getCollection } from "../../modules/mongo";
 import { FriendLevel, getFriendLevel } from "../../security";
 import { notifyUser } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { validateBody, validateSchema } from "../../util/validation";
 
 // Todo: Add schema
 export const AddFriend = async (req: Request, res: Response) => {
@@ -159,6 +159,17 @@ export const validateRespondToFrienqRequestSchema = (body: any): { success: bool
 
 export const RespondToFriendRequest = async (req: Request, res: Response) => {
 	const accept = req.query.accepted === "true";
+
+	if (accept)
+	{
+		 const validation = validateRespondToFrienqRequestSchema(req.body);
+		 if (!validation.success)
+		 {
+			res.status(400).send(validation.msg)
+			return;
+		 }
+	}
+
 	const target = req.params.id;
 
 	const userDoc = await getCollection("users").findOne({
