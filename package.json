@@ -30,7 +30,7 @@
 		"@types/mongodb": "^3.6.20",
 		"@types/node": "^17.0.19",
 		"@types/nodemailer": "^6.4.4",
-		"@types/puppeteer": "^5.4.4",
+		"@types/puppeteer": "^5.4.6",
 		"@types/redis": "^2.8.32",
 		"@types/smtp-server": "^3.5.7",
 		"@types/ws": "^7.4.7",
