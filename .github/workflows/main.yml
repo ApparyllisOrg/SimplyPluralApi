@@ -1,7 +1,7 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
-name: Deploy Main API
+name: Deploy Release API
 
 on:
   workflow_dispatch:
@@ -11,9 +11,9 @@ on:
         required: true
         default: 'warning'
   push:
-    branches: [ main ]
+    branches: [ release ]
   pull_request:
-    branches: [ main ]
+    branches: [ release ]
 
 jobs:
   build:
@@ -21,7 +21,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        ref: main
+        ref: release
     - run: npm install
     - run: npm run build
     - run: cp /home/actions_runner/.env ./dist/.env
