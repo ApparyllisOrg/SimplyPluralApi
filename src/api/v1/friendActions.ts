@@ -122,7 +122,7 @@ export const validateRespondToFrienqRequestQuerySchema = (body: any): { success:
 		properties: {
 			accepted: {
 				type: "string",
-				pattern: "^(?i)(true|false)$"
+				pattern: "^(true|false)$"
 			}
 		},
 		nullable: false,
