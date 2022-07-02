@@ -54,7 +54,7 @@
 		"minio": "^7.0.28",
 		"mongo-unit": "^3.2.0",
 		"mongodb": "^4.7.0",
-		"nanoid": "^3.3.1",
+		"nanoid": "^4.0.0",
 		"nodemailer": "^6.7.2",
 		"prom-client": "^14.0.1",
 		"redis": "^4.0.4",
