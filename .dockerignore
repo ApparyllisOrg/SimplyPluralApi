@@ -1,0 +1,4 @@
+*.map
+dist/
+node_modules/
+Dockerfile

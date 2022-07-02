@@ -1,0 +1,15 @@
+/node_modules
+yarn.lock
+google.json
+fullchain.pem
+privkey.pem
+.env
+/dist
+frontime-7aace-firebase-adminsdk-jntle-b5aa63f5b0.json
+spGoogle.json
+.vscode
+yarn-error.log
+.log
+*.log
+developer/
+tmp/
