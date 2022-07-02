@@ -130,7 +130,6 @@ export const deleteReport = async (req: Request, res: Response) => {
 }
 
 export const get = async (req: Request, res: Response) => {
-	// todo: remove private fields for friends
 	let document = await getCollection("users").findOne({ uid: req.params.id })
 
 	const ownDocument = req.params.id === res.locals.uid;
@@ -233,8 +232,8 @@ const deleteUploadedUserFolder = async (uid: string, prefix: string) =>
 			})
 
 			listedObjects.on('end', async function() {
-				list.forEach(({ prefix, name }) => {
-					toDeleteList.push(prefix + name)
+				list.forEach(({name}) => {
+					toDeleteList.push(name)
 				});
 
 				userLog(uid, `Deleting ${toDeleteList.length.toString()} of type ${prefix} in storage`);
