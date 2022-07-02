@@ -119,7 +119,7 @@ export const validateRespondToFrienqRequestSchema = (body: any): { success: bool
 	const schema = {
 		type: "object",
 		properties: {
-			accept: { type: "boolean" },
+			accepted: { type: "boolean" },
 			settings: {
 				type: "object",
 				properties: {
@@ -135,7 +135,7 @@ export const validateRespondToFrienqRequestSchema = (body: any): { success: bool
 		},
 		nullable: false,
 		additionalProperties: false,
-		required: ['settings', 'accept']
+		required: ['settings', 'accepted']
 	};
 
 	return validateSchema(schema, body);
