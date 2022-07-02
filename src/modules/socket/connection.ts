@@ -57,8 +57,6 @@ export default class Connection {
 		{
 			userLog(this.uid ?? "undefined user", "Websocket error occurred");
 		}
-		
-		this.onClose();
 	}
 
 	async send(data: any, close = false) {
