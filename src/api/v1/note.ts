@@ -51,7 +51,7 @@ export const validatePostNoteSchema = (body: any): { success: boolean, msg: stri
 			date: { type: "number" },
 			supportMarkdown: { type: "boolean" },
 		},
-		required: ["title", "note", "color", "member", "date", "supportMarkdown"],
+		required: ["title", "note", "color", "member", "date"],
 		nullable: false,
 		additionalProperties: false,
 	};

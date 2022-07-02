@@ -92,7 +92,7 @@ export const validatePostGroupSchema = (body: any): { success: boolean, msg: str
 			members: { type: "array", items: { type: "string" } },
 			supportDescMarkdown: { type: "boolean" },
 		},
-		required: ["parent", "color", "private", "preventTrusted", "name", "desc", "emoji", "members", "supportDescMarkdown"],
+		required: ["parent", "color", "private", "preventTrusted", "name", "desc", "emoji", "members"],
 		nullable: false,
 		additionalProperties: false,
 		dependencies: getPrivacyDependency()
