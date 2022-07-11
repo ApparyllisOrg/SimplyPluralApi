@@ -88,6 +88,7 @@ export const validateParams = (req: Request, res: Response) => {
 		properties: {
 			id: { type: "string", pattern: "^[A-z0-9]{0,100}$" },
 			dashedid: { type: "string", pattern: "^[A-z0-9\-]{0,100}$" },
+			reportid: { type: "string", pattern: "^[A-z0-9\-]{0,100}$" },
 			system: { type: "string", pattern: "^[A-z0-9]{0,50}$" },
 			member: { type: "string", pattern: "^[A-z0-9]{0,50}$" },
 			type: { type: "string", pattern: "^[A-z0-9]{0,100}$" },
