@@ -5,6 +5,7 @@ import { getCollection, parseId } from "../../mongo"
 import { dispatchCustomEvent } from "../../socket";
 import { addPendingRequest, PkRequest, PkRequestType } from "./controller"
 import * as Sentry from "@sentry/node";
+import moment from "moment";
 
 export interface syncOptions {
 	name: boolean,
@@ -253,11 +254,19 @@ export const syncAllSpMembersToPk = async (options: syncOptions, _allSyncOptions
 		return { success: true, msg: `Something went wrong, please try again later. ErrorCode(${ERR_FUNCTIONALITY_EXPECTED_ARRAY})` }
 	}
 
+	let lastUpdate = 0
+
 	for (let i = 0; i < spMembersResult.length; ++i) {
 		const member = spMembersResult[i];
 
 		const currentCount = i + 1;
-		dispatchCustomEvent({uid: userId, type: "syncToUpdate", data: `Syncing ${member.name}, ${currentCount.toString()} out of ${spMembersResult.length.toString()}`})
+
+		if (moment.now() > lastUpdate + 1000)
+		{
+			dispatchCustomEvent({uid: userId, type: "syncToUpdate", data: `Syncing ${member.name}, ${currentCount.toString()} out of ${spMembersResult.length.toString()}`})
+			lastUpdate = moment.now()
+		}      
+		
 
 		const foundMember : any | undefined = foundMembers.find((value) => value.id === member.pkId)
 
@@ -271,6 +280,9 @@ export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions:
 
 	const getRequest: PkRequest = { path: `https://api.pluralkit.me/v2/systems/@me/members`, token, response: null, data: undefined, type: PkRequestType.Get, id: "" }
 	const pkMembersResult = await addPendingRequest(getRequest)
+
+	let lastUpdate = 0
+
 	if (pkMembersResult) {
 		if (pkMembersResult.status === 200) {
 
@@ -282,7 +294,12 @@ export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions:
 			for (let i = 0; i < foundMembers.length; ++i) {
 				const member = foundMembers[i];
 				const currentCount = i + 1;
-                dispatchCustomEvent({uid: userId, type: "syncFromUpdate", data: `Syncing ${member.name}, ${currentCount.toString()} out of ${foundMembers.length.toString()}`})
+
+				if (moment.now() > lastUpdate + 1000)
+				{
+					dispatchCustomEvent({uid: userId, type: "syncFromUpdate", data: `Syncing ${member.name}, ${currentCount.toString()} out of ${foundMembers.length.toString()}`})
+					lastUpdate = moment.now()
+				}               
 
 				const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: parseId(member.id) })
 				if (spMemberResult && allSyncOptions.overwrite) {
