@@ -52,6 +52,11 @@ export const createServerDataForMessages = async (uid: string, time: number) =>
 		}
 	})
 
+	if (activeMessages.length === 0 || oldestMessage === Number.MAX_VALUE)
+	{
+		oldestMessage = moment.now();	
+	}
+
 	await getCollection("serverData").updateOne({uid: uid, _id: uid}, {$set: {lastReadMessage: oldestMessage}}, {upsert: true})	
 }
 
