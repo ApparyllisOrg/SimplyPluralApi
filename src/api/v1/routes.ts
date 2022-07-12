@@ -20,6 +20,7 @@ import * as frontHistory from './frontHistory';
 import * as pk from './pk';
 import * as token from './tokens';
 import * as analytics from './analytics';
+import * as messages from './messages';
 
 // Todo: Verify all access types are setup correctly before moving to production
 export const setupV1routes = (app: core.Express) => {
@@ -103,6 +104,10 @@ export const setupV1routes = (app: core.Express) => {
 	app.patch("/v1/user/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(user.validateUserSchema), user.update)
 	app.patch("/v1/user/username/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(user.validateUsernameSchema), user.SetUsername)
 	app.delete("/v1/user/:id", isUserAppJwtAuthenticated, user.deleteAccount)
+
+	// Messages
+	app.get("/v1/messages", isUserAppJwtAuthenticated, messages.get)
+	app.post("/v1/messages/read", isUserAppJwtAuthenticated, validateBody(messages.validateMarkReadSchema), messages.maskAsRead)
 
 	// Private
 	app.get("/v1/user/private/:id", isUserAppJwtAuthenticated, priv.get)
