@@ -41,7 +41,18 @@ export const maskAsRead = async (req: Request, res: Response) => {
 
 export const createServerDataForMessages = async (uid: string, time: number) =>
 {
-	await getCollection("serverData").updateOne({uid: uid, _id: uid}, {$set: {lastReadMessage: time}}, {upsert: true})	
+	const activeMessages = await getCollection("messages").find({$and: [{start: { $lte: moment.now() }}, {end: { $gte: moment.now() }}]}).toArray()
+	
+	let oldestMessage = Number.MAX_VALUE;
+
+	activeMessages.forEach((msg) => {
+		if (oldestMessage > msg.start)
+		{
+			oldestMessage = msg.start;
+		}
+	})
+
+	await getCollection("serverData").updateOne({uid: uid, _id: uid}, {$set: {lastReadMessage: oldestMessage}}, {upsert: true})	
 }
 
 export const validateMarkReadSchema = (body: any): { success: boolean, msg: string } => {
