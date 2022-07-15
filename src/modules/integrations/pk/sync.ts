@@ -6,7 +6,7 @@ import { dispatchCustomEvent } from "../../socket";
 import { addPendingRequest, PkRequest, PkRequestType } from "./controller"
 import * as Sentry from "@sentry/node";
 import moment from "moment";
-
+import validUrl from "valid-url"
 export interface syncOptions {
 	name: boolean,
 	avatar: boolean,
@@ -100,6 +100,13 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 			memberDataToSync.color = updateColor;
 		}
 	}
+
+	if (memberDataToSync.avatar_url)
+	{
+		if (!validUrl.isUri(memberDataToSync.avatar_url)) {
+			delete memberDataToSync["avatar_url"]
+		}
+    }
 
 	if (spMemberResult) {
 		const pkId: string | undefined | null = spMemberResult.pkId;
