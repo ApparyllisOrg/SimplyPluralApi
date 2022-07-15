@@ -296,7 +296,7 @@ export const syncAllSpMembersToPk = async (options: syncOptions, _allSyncOptions
 		const result = await syncMemberToPk(options, member._id, token, userId, foundMember, systemResult?.data.id);
 		console.log(result)
 	}
-	return { success: true, msg: "sync completed" }
+	return { success: true, msg: "Sync completed" }
 }
 
 export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions: syncAllOptions, token: string, userId: string): Promise<{ success: boolean, msg: string }> => {
