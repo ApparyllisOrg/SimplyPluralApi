@@ -96,6 +96,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/user/analytics", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(analytics.validatGetAnalyticsSchema), analytics.get)
 
 	// User
+	app.get("/v1/me", isUserAuthenticated(ApiKeyAccessType.Read), user.getMe)
 	app.get("/v1/user/:id", isUserAuthenticated(ApiKeyAccessType.Read), user.get)
 	app.get("/v1/user/:id/reports", isUserAuthenticated(ApiKeyAccessType.Read), user.getReports)
 	app.delete("/v1/user/:id/report/:reportid", isUserAppJwtAuthenticated, user.deleteReport)

@@ -129,6 +129,11 @@ export const deleteReport = async (req: Request, res: Response) => {
 	})
 }
 
+export const getMe = async (req: Request, res: Response) => {
+	let document = await getCollection("users").findOne({ uid: res.locals.uid })
+	sendDocument(req, res, "users", document);
+}
+
 export const get = async (req: Request, res: Response) => {
 	let document = await getCollection("users").findOne({ uid: req.params.id })
 
