@@ -10,6 +10,11 @@ export const get = async (req: Request, res: Response) => {
 	fetchSimpleDocument(req, res, "tokens");
 }
 
+export const getPermission = async (req: Request, res: Response) => {
+	const token = await getCollection("tokens").findOne({token: req.headers.authorization})
+	res.status(200).send(token.permission.toString())
+}
+
 export const getAll = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "tokens", {});
 }

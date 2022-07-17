@@ -141,6 +141,7 @@ export const setupV1routes = (app: core.Express) => {
 
 	// Tokens
 	app.get("/v1/tokens", isUserAppJwtAuthenticated, token.getAll)
+	app.get("/v1/token/permissions", isUserAuthenticated(ApiKeyAccessType.Read | ApiKeyAccessType.Write | ApiKeyAccessType.Delete), token.getPermission)
 	app.get("/v1/token/:id", isUserAppJwtAuthenticated, token.get)
 	app.post("/v1/token/:id", isUserAppJwtAuthenticated, validateBody(token.validateApiKeySchema), validateId, token.add)
 	app.delete("/v1/token/:id", isUserAppJwtAuthenticated, token.del)
