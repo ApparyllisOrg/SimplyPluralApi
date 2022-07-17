@@ -52,7 +52,7 @@ export const revokeAllUserApiKeys = async (uid: string) => {
 export const validateApiKey = async (token: string): Promise<{ valid: boolean, accessType: number, uid: string }> => {
 	const doc = await getCollection("tokens").findOne({ "token": token });
 	if (doc && doc.token) {
-		return { valid: false, accessType: doc.permission, uid: doc.uid };
+		return { valid: true, accessType: doc.permission, uid: doc.uid };
 	}
 
 	return { valid: false, accessType: 0x00, uid: "" };

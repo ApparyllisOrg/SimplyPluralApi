@@ -16,7 +16,11 @@ export const validateToken = async (tokenStr: string): Promise<{ uid: string | u
 	}
 	catch (e) {
 		const result = await validateApiKey(tokenStr)
-		return { uid: result.uid, accessType: result.accessType, jwt: false }
+		if (result.valid === true)
+		{
+			return { uid: result.uid, accessType: result.accessType, jwt: false }
+		}
+		return { uid: undefined, accessType: 0x00, jwt: false }
 	}
 }
 
