@@ -441,7 +441,7 @@ export const validateUsernameSchema = (body: any): { success: boolean, msg: stri
 	const schema = {
 		type: "object",
 		properties: {
-			username: { type: "string" },
+			username: { type: "string", pattern: "^[a-zA-Z0-9-_]{1,35}$" },
 		},
 		nullable: false,
 		additionalProperties: false,

@@ -6,7 +6,7 @@ import { validateBody, validateSchema } from "../../util/validation";
 
 // Todo: Add schema
 export const AddFriend = async (req: Request, res: Response) => {
-	const target = req.params.id;
+	const target = req.params.usernameOrId;
 
 	const userDoc = await getCollection("users").findOne({
 		$or: [{ username: { $regex: "^" + target + "$", $options: "i" } }, { uid: target }],
@@ -170,7 +170,7 @@ export const RespondToFriendRequest = async (req: Request, res: Response) => {
 		 }
 	}
 
-	const target = req.params.id;
+	const target = req.params.usernameOrId;
 
 	const userDoc = await getCollection("users").findOne({
 		$or: [{ username: `^${target}$` }, { uid: target }],

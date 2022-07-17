@@ -92,6 +92,7 @@ export const validateParams = (req: Request, res: Response) => {
 			system: { type: "string", pattern: "^[A-Za-z0-9]{1,50}$" },
 			member: { type: "string", pattern: "^[A-Za-z0-9]{1,50}$" },
 			type: { type: "string", pattern: "^[A-Za-z0-9]{1,50}$" },
+			usernameOrId: { type: "string", pattern: "^[A-Za-z0-9-_]{1,50}$" },
 		},
 		nullable: false,
 		additionalProperties: false,
