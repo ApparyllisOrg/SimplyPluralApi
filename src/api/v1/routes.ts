@@ -21,6 +21,7 @@ import * as pk from './pk';
 import * as token from './tokens';
 import * as analytics from './analytics';
 import * as messages from './messages';
+import * as chats from './chats';
 
 // Todo: Verify all access types are setup correctly before moving to production
 export const setupV1routes = (app: core.Express) => {
@@ -109,6 +110,25 @@ export const setupV1routes = (app: core.Express) => {
 	// Messages
 	app.get("/v1/messages", isUserAppJwtAuthenticated, messages.get)
 	app.post("/v1/messages/read", isUserAppJwtAuthenticated, validateBody(messages.validateMarkReadSchema), messages.maskAsRead)
+
+	// Chat channels
+	app.get("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChat)
+	app.post("/v1/chat/channel/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateChannelschema), chats.addChat)
+	app.patch("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateChannelschema), chats.updateChat)
+	app.delete("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteChat)
+
+	// Chat categories
+	app.get("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChatCategory)
+	app.post("/v1/chat/category/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateChatCategorySchema), chats.addChatCategory)
+	app.patch("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateChatCategorySchema), chats.updateChatCategory)
+	app.delete("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteChatCategory)
+
+	// Chat messages
+	app.get("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getMessage)
+	app.get("/v1/chat/messages/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChatHistory)
+	app.post("/v1/chat/message/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateWriteMessageSchema), chats.writeMessage)
+	app.patch("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateUpdateMessageSchema), chats.updateMessage)
+	app.delete("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteMessage)
 
 	// Private
 	app.get("/v1/user/private/:id", isUserAppJwtAuthenticated, priv.get)
