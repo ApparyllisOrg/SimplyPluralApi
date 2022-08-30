@@ -4,42 +4,50 @@ import { getCollection, parseId } from "../../modules/mongo";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection } from "../../util";
 import { validateSchema } from "../../util/validation";
 
-export const getChatHistory = async (req: Request, res: Response) => {
+export const getChannelHistory = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "chatMessages", { channel: req.params.id });
 }
 
-export const getChat = async (req: Request, res: Response) => {
+export const getChannel = async (req: Request, res: Response) => {
 	fetchSimpleDocument(req, res, "channels");
 }
 
-export const addChat = async (req: Request, res: Response) => {
+export const getChannels = async (req: Request, res: Response) => {
+	fetchCollection(req, res, "channels", {});
+}
+
+export const addChannel = async (req: Request, res: Response) => {
 	addSimpleDocument(req, res, "channels");
 }
 
-export const updateChat = async (req: Request, res: Response) => {
+export const updateChannel = async (req: Request, res: Response) => {
 	updateSimpleDocument(req, res, "channels")
 }
 
-export const deleteChat = async (req: Request, res: Response) => {
+export const deleteChannel = async (req: Request, res: Response) => {
 	await getCollection("chatMessages").deleteMany({uid: res.locals.uid, channel: parseId(req.params.id)})
 	deleteSimpleDocument(req, res, "channels")
 }
 
-export const getChatCategory = async (req: Request, res: Response) => {
-	fetchSimpleDocument(req, res, "chatCategories");
+export const getChannelCategory = async (req: Request, res: Response) => {
+	fetchSimpleDocument(req, res, "channelCategories");
 }
 
-export const addChatCategory = async (req: Request, res: Response) => {
-	addSimpleDocument(req, res, "chatCategories");
+export const getChannelCategories = async (req: Request, res: Response) => {
+	fetchCollection(req, res, "channelCategories", {});
 }
 
-export const updateChatCategory = async (req: Request, res: Response) => {
-	updateSimpleDocument(req, res, "chatCategories")
+export const addChannelCategory = async (req: Request, res: Response) => {
+	addSimpleDocument(req, res, "channelCategories");
 }
 
-export const deleteChatCategory = async (req: Request, res: Response) => {
+export const updateChannmelCategory = async (req: Request, res: Response) => {
+	updateSimpleDocument(req, res, "channelCategories")
+}
+
+export const deleteChannelCategory = async (req: Request, res: Response) => {
 	await getCollection("channels").updateMany({uid: res.locals.uid}, {$set: {category: ""}})
-	deleteSimpleDocument(req, res, "chatCategories")
+	deleteSimpleDocument(req, res, "channelCategories")
 }
 
 export const getMessage = async (req: Request, res: Response) => {
@@ -137,7 +145,8 @@ export const validateChannelschema = (body: any): { success: boolean, msg: strin
 		properties: {
 			name: { type: "string", maxLength: 100, minLength: 1 },
 			desc: { type: "string",  maxLength: 2000 },
-			category: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$"  }
+			color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"},
+			category: { type: "string", pattern: "^$|^[A-Za-z0-9]{30,50}$"  }
 		},
 		required: ["name", "desc", "category"],
 		nullable: false,

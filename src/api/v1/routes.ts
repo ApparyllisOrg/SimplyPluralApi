@@ -112,20 +112,22 @@ export const setupV1routes = (app: core.Express) => {
 	app.post("/v1/messages/read", isUserAppJwtAuthenticated, validateBody(messages.validateMarkReadSchema), messages.maskAsRead)
 
 	// Chat channels
-	app.get("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChat)
-	app.post("/v1/chat/channel/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateChannelschema), chats.addChat)
-	app.patch("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateChannelschema), chats.updateChat)
-	app.delete("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteChat)
+	app.get("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannel)
+	app.get("/v1/chat/channels", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannels)
+	app.post("/v1/chat/channel/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateChannelschema), chats.addChannel)
+	app.patch("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateChannelschema), chats.updateChannel)
+	app.delete("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteChannel)
 
 	// Chat categories
-	app.get("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChatCategory)
-	app.post("/v1/chat/category/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateChatCategorySchema), chats.addChatCategory)
-	app.patch("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateChatCategorySchema), chats.updateChatCategory)
-	app.delete("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteChatCategory)
+	app.get("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannelCategory)
+	app.get("/v1/chat/categories", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannelCategories)
+	app.post("/v1/chat/category/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateChatCategorySchema), chats.addChannelCategory)
+	app.patch("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateChatCategorySchema), chats.updateChannmelCategory)
+	app.delete("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteChannelCategory)
 
 	// Chat messages
 	app.get("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getMessage)
-	app.get("/v1/chat/messages/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChatHistory)
+	app.get("/v1/chat/messages/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannelHistory)
 	app.post("/v1/chat/message/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateWriteMessageSchema), chats.writeMessage)
 	app.patch("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateUpdateMessageSchema), chats.updateMessage)
 	app.delete("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteMessage)
