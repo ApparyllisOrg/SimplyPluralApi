@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import moment from "moment";
 import { getCollection, parseId } from "../../modules/mongo";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection } from "../../util";
 import { validateSchema } from "../../util/validation";
@@ -46,6 +47,13 @@ export const getMessage = async (req: Request, res: Response) => {
 }
 
 export const writeMessage = async (req: Request, res: Response) => {
+
+	// Clamp writtenAt to now
+	if (req.body.writtenAt > moment.now())
+	{
+		req.body.writtenAt = moment.now();
+	}
+
 	const channel = await getCollection("channels").findOne({uid: res.locals.uid, _id: req.body.channel})
 	if (!channel)
 	{
@@ -77,6 +85,12 @@ export const writeMessage = async (req: Request, res: Response) => {
 }
 
 export const updateMessage = async (req: Request, res: Response) => {
+	// Clamp updatedAt to now
+	if (req.body.updatedAt > moment.now())
+	{
+		req.body.updatedAt = moment.now();
+	}
+
 	updateSimpleDocument(req, res, "chatMessages")
 }
 
@@ -91,9 +105,10 @@ export const validateWriteMessageSchema = (body: any): { success: boolean, msg: 
 			message: { type: "string", maxLength: 2500, minLength: 1 },
 			channel: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" },
 			writer: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$"  },
+			writtenAt: { type: "number" },
 			replyTo: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" },
 		},
-		required: ["message", "channel", "writer"],
+		required: ["message", "channel", "writer", "writtenAt"],
 		nullable: false,
 		additionalProperties: false,
 	};
@@ -106,8 +121,9 @@ export const validateUpdateMessageSchema = (body: any): { success: boolean, msg:
 		type: "object",
 		properties: {
 			message: { type: "string", maxLength: 2500, minLength: 1 },
+			updatedAt: { type: "number" },
 		},
-		required: ["message"],
+		required: ["message", "updatedAt"],
 		nullable: false,
 		additionalProperties: false,
 	};
