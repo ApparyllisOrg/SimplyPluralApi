@@ -145,23 +145,22 @@ export const validateChannelschema = (body: any): { success: boolean, msg: strin
 		properties: {
 			name: { type: "string", maxLength: 100, minLength: 1 },
 			desc: { type: "string",  maxLength: 2000 },
-			color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"},
-			category: { type: "string", pattern: "^$|^[A-Za-z0-9]{30,50}$"  }
+			color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"}
 		},
-		required: ["name", "desc", "category"],
+		required: ["name", "desc"],
 		nullable: false,
 		additionalProperties: false,
 	};
 
 	return validateSchema(schema, body);
 }
-
 export const validateChatCategorySchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
 			name: { type: "string", maxLength: 100, minLength: 1 },
-			desc: { type: "string",  maxLength: 2000 }
+			desc: { type: "string",  maxLength: 2000 },
+			channels: { type: "array",  items: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" }}
 		},
 		required: ["name", "desc"],
 		nullable: false,
