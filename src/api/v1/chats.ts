@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import moment from "moment";
+import { ObjectID } from "mongodb";
 import { getCollection, parseId } from "../../modules/mongo";
+import { documentObject } from "../../modules/mongo/baseTypes";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection } from "../../util";
 import { validateSchema } from "../../util/validation";
 
@@ -17,7 +19,22 @@ export const getChannels = async (req: Request, res: Response) => {
 }
 
 export const addChannel = async (req: Request, res: Response) => {
-	addSimpleDocument(req, res, "channels");
+	const category = await getCollection("channelCategories").findOne({uid: res.locals.uid, _id: parseId(req.body.category)});
+	if (!category)
+	{
+		res.status(400).send("Can't find category to add the channel to!")
+		return 
+	}
+
+	const categoryId = req.body.category
+	delete req.body.category;
+
+	await addSimpleDocument(req, res, "channels");
+
+	const channels = category.channels ?? [];
+	channels.push(categoryId.toString())
+
+	await getCollection("channelCategories").updateOne({_id: parseId(categoryId)}, {$set: {channels: channels}})
 }
 
 export const updateChannel = async (req: Request, res: Response) => {
@@ -38,7 +55,17 @@ export const getChannelCategories = async (req: Request, res: Response) => {
 }
 
 export const addChannelCategory = async (req: Request, res: Response) => {
+	const dataObj: documentObject = req.body;
+	dataObj._id = res.locals.useId ?? new ObjectID();
+	
 	addSimpleDocument(req, res, "channelCategories");
+
+	const privateUser = await getCollection("private").findOne({uid: res.locals.uid, _id: res.locals.uid});
+	const categories = privateUser.categories ?? [];
+	categories.push(dataObj._id.toString())
+
+	// Insert the category at the end
+	await getCollection("private").updateOne({uid: res.locals.uid, _id: res.locals.uid}, {$set: {categories: categories}})
 }
 
 export const updateChannmelCategory = async (req: Request, res: Response) => {
@@ -139,7 +166,24 @@ export const validateUpdateMessageSchema = (body: any): { success: boolean, msg:
 	return validateSchema(schema, body);
 }
 
-export const validateChannelschema = (body: any): { success: boolean, msg: string } => {
+export const validateAddChannelschema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			name: { type: "string", maxLength: 100, minLength: 1 },
+			desc: { type: "string",  maxLength: 2000 },
+			color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"},
+			category : { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" }
+		},
+		required: ["name", "desc", "category"],
+		nullable: false,
+		additionalProperties: false,
+	};
+
+	return validateSchema(schema, body);
+}
+
+export const validateUpdateChannelschema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -154,6 +198,7 @@ export const validateChannelschema = (body: any): { success: boolean, msg: strin
 
 	return validateSchema(schema, body);
 }
+
 export const validateChatCategorySchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
 		type: "object",
