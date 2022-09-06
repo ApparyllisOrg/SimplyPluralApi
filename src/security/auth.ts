@@ -5,6 +5,7 @@ import { FullApiAccess, validateApiKey } from "../modules/api/keys";
 import { logSecurity } from "../modules/logger";
 import { logUserUsage } from "../modules/usage";
 import { validateParams } from "../util/validation";
+import { isJwtValid } from "../api/v1/auth/auth.jwt";
 
 export const validateToken = async (tokenStr: string): Promise<{ uid: string | undefined, accessType: number, jwt: boolean }> => {
 	if (tokenStr == null)
@@ -19,6 +20,14 @@ export const validateToken = async (tokenStr: string): Promise<{ uid: string | u
 		if (result.valid === true)
 		{
 			return { uid: result.uid, accessType: result.accessType, jwt: false }
+		} 
+		else 
+		{
+			const jwtResult = await isJwtValid(tokenStr)
+			if (jwtResult.valid === true)
+			{
+				return { uid: jwtResult.decoded.uid, accessType: FullApiAccess, jwt: true }
+			}
 		}
 		return { uid: undefined, accessType: 0x00, jwt: false }
 	}

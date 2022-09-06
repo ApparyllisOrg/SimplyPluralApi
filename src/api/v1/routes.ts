@@ -22,6 +22,7 @@ import * as token from './tokens';
 import * as analytics from './analytics';
 import * as messages from './messages';
 import * as chats from './chats';
+import * as auth from './auth';
 
 // Todo: Verify all access types are setup correctly before moving to production
 export const setupV1routes = (app: core.Express) => {
@@ -168,4 +169,12 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/token/:id", isUserAppJwtAuthenticated, token.get)
 	app.post("/v1/token/:id", isUserAppJwtAuthenticated, validateBody(token.validateApiKeySchema), validateId, token.add)
 	app.delete("/v1/token/:id", isUserAppJwtAuthenticated, token.del)
+
+	// Auth
+	app.post("/v1/auth/login", validateBody(auth.validateRegisterSchema), auth.login)
+	app.post("/v1/auth/register", validateBody(auth.validateRegisterSchema), auth.register)
+	app.post("/v1/auth/verification/request", isUserAppJwtAuthenticated, auth.requestConfirmationEmail)
+	app.get("/v1/auth/verification/confirm", validateQuery(auth.validateRegisterSchema),  auth.validateConfirmEmailSchema)
+	app.get("/v1/auth/refresh", auth.refreshToken)
+	
 }
