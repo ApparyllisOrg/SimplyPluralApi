@@ -13,21 +13,6 @@ export const base64decodeJwt = (encoded : string) => {
 }
 
 //-------------------------------//
-// Get a new valid uid that can be used for a user
-//-------------------------------//
-export const getNewUid = async () => {
-	let randomUid = randomBytes(32).toString("hex")
-	const existingUser =  await getCollection("accounts").findOne({uid: randomUid})
-	// If it already exists (unlikely) try again until we find one that isn't taken yet
-	if (existingUser)
-	{
-		randomUid = await getNewUid()
-	}
-
-	return randomUid;
-}
-
-//-------------------------------//
 // Generate a new JWT for user
 //-------------------------------//
 export const jwtForUser = (uid: string) => {

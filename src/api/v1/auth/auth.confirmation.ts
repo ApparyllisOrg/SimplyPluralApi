@@ -1,18 +1,36 @@
 import { randomBytes } from "crypto";
 import { readFile } from "fs";
-import SMTPTransport from "nodemailer/lib/smtp-transport";
+import moment from "moment";
 import { promisify } from "util";
 import { mailerTransport } from "../../../modules/mail";
 import { getCollection } from "../../../modules/mongo";
+import * as Sentry from "@sentry/node";
 
+//-------------------------------//
+// Generate a new random confirmation key
+//-------------------------------//
 export const getConfirmationKey = () => randomBytes(64).toString("hex")
 
-export const sendConfirmationEmail = async (uid : string) : Promise<boolean> => {
-	const user = await getCollection("accounts").findOne({uid: uid})
+//-------------------------------//
+// Send the confirmation email for the supplied uid
+//-------------------------------//
+export const sendConfirmationEmail = async (uid : string) : Promise<{success: boolean, msg: string}> => {
+	const user = await getCollection("accounts").findOne({uid})
 	if (!user)
 	{
-		return false;
+		return {success: false, msg: "User not found"};
 	}
+
+	if (user.lastConfirmationEmailSent)
+	{
+		const lastTimestamp = user.lastConfirmationEmailSent
+		if (moment.now() - (1000 * 60) < lastTimestamp)
+		{
+			return {success: false, msg: "Confirmation links can only be requested once every minute"};
+		}
+	}
+
+	await getCollection("accounts").updateOne({uid}, { $set: { lastConfirmationEmailSent: moment.now() }})
 
 	const getFile = promisify(readFile);
 	let emailTemplate = await getFile("./templates/verifyEmail.html", "utf-8");
@@ -32,12 +50,16 @@ export const sendConfirmationEmail = async (uid : string) : Promise<boolean> => 
 
 	if (result && result.err)
 	{
-		return false;
+		Sentry.captureMessage(result.err.toString())
+		return {success: false, msg: "Failed to send confirmation email, does the email exist?"};
 	}
 
-	return true;
+	return {success: true, msg: ""};
 }
 
+//-------------------------------//
+// Confirm the email of the supplied uid with key
+//-------------------------------//
 export const confirmEmail = async (uid: string, key: string) : Promise<boolean> => {
 	return true;
 }

@@ -3,8 +3,9 @@ import { getCollection } from "../../modules/mongo";
 import { validateSchema } from "../../util/validation";
 import { randomBytes, timingSafeEqual } from "crypto"; 
 import { getConfirmationKey, sendConfirmationEmail } from "./auth/auth.confirmation";
-import { base64decodeJwt, getNewUid, isJwtValid, jwtForUser } from "./auth/auth.jwt";
+import { base64decodeJwt, isJwtValid, jwtForUser } from "./auth/auth.jwt";
 import { hash } from "./auth/auth.hash";
+import { getNewUid } from "./auth/auth.core";
 
 export const login = async (req: Request, res: Response) => {
 	const user = await getCollection("accounts").findOne({email: req.body.email})
@@ -64,18 +65,18 @@ export const register = async (req: Request, res: Response) => {
 	const verificationCode = getConfirmationKey()
 	await getCollection("accounts").insertOne({uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode});
 	res.status(200).send({uid: newUserId, jwt: jwtForUser(newUserId)})
-	sendConfirmationEmail(res.locals.uid)
+	sendConfirmationEmail(newUserId)
 }
 
 export const requestConfirmationEmail = async (req: Request, res: Response) => {
-	const result = await sendConfirmationEmail(res.locals.uid)
-	if (result)
+	const result : { success: boolean, msg: string }= await sendConfirmationEmail(res.locals.uid)
+	if (result.success === true)
 	{
 		res.status(200).send()
 	} 
 	else 
 	{
-		res.status(500).send()
+		res.status(400).send(result.msg)
 	}
 }
 
