@@ -21,6 +21,11 @@ export const sendConfirmationEmail = async (uid : string) : Promise<{success: bo
 		return {success: false, msg: "User not found"};
 	}
 
+	if (user.verified === true)
+	{
+		return {success: false, msg: "User is already verified!"};
+	}
+
 	if (user.lastConfirmationEmailSent)
 	{
 		const lastTimestamp = user.lastConfirmationEmailSent
@@ -60,6 +65,23 @@ export const sendConfirmationEmail = async (uid : string) : Promise<{success: bo
 //-------------------------------//
 // Confirm the email of the supplied uid with key
 //-------------------------------//
-export const confirmEmail = async (uid: string, key: string) : Promise<boolean> => {
-	return true;
+export const confirmUserEmail = async (uid: string, key: string) : Promise<boolean> => {
+	const user = await getCollection("accounts").findOne({uid})
+	if (!user)
+	{
+		return false;
+	}
+
+	if (user.verified === true)
+	{
+		return false;
+	}
+
+	if (user.verificationCode === key)
+	{
+		await getCollection("accounts").updateOne({uid}, { $set: { verified: true } })
+		return true;
+	}
+
+	return false;
 }

@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { getCollection } from "../../modules/mongo";
 import { validateSchema } from "../../util/validation";
 import { randomBytes, timingSafeEqual } from "crypto"; 
-import { getConfirmationKey, sendConfirmationEmail } from "./auth/auth.confirmation";
+import { confirmUserEmail, getConfirmationKey, sendConfirmationEmail } from "./auth/auth.confirmation";
 import { base64decodeJwt, isJwtValid, jwtForUser } from "./auth/auth.jwt";
 import { hash } from "./auth/auth.hash";
 import { getNewUid } from "./auth/auth.core";
@@ -80,8 +80,18 @@ export const requestConfirmationEmail = async (req: Request, res: Response) => {
 	}
 }
 
-export const confirmEmail = (req: Request, res: Response) => {
-	
+export const confirmEmail = async (req: Request, res: Response) => {
+	const result = await confirmUserEmail(req.query.uid?.toString() ?? "", req.query.key?.toString() ?? "")
+
+	// TODO: Send a html web page so this is prettier
+	if (result === true)
+	{
+		res.status(200).send("Email confirmed")
+	}
+	else 
+	{
+		res.status(400).send("Invalid confirmation link")
+	}
 }
 
 export const validateRegisterSchema = (body: any): { success: boolean, msg: string } => {
@@ -103,8 +113,8 @@ export const validateConfirmEmailSchema = (body: any): { success: boolean, msg: 
 	const schema = {
 		type: "object",
 		properties: {
-			user: { type: "string", pattern: "^[a-zA-Z0-9]{100}$" },
-			key: { type: "string", pattern: "^[a-zA-Z0-9]{100}$" }
+			uid: { type: "string", pattern: "^[a-zA-Z0-9]{64}$" },
+			key: { type: "string", pattern: "^[a-zA-Z0-9]{128}$" }
 		},
 		nullable: false,
 		additionalProperties: false,
