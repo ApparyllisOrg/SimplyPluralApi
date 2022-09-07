@@ -38,12 +38,14 @@ export const refreshToken = async (req: Request, res: Response) => {
 		return
 	}
 
-	const validResult = await isJwtValid(req.headers.authorization);
-	if (validResult.valid) {
+	const validResult = await isJwtValid(req.headers.authorization, true);
+	if (validResult.valid === true && validResult.decoded.refresh === true) {
 		const invalidatedToken = await getCollection("invalidJwtTokens").findOne({jwt: req.headers.authorization})
 		if (invalidatedToken) {
 			res.status(401).send("Invalid jwt")
 		} else {
+			// Invalidate this refresh token
+			getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization})
 			res.status(200).send(jwtForUser(validResult.decoded.uid))
 		}
 	} else {
