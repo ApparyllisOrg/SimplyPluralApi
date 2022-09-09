@@ -27,4 +27,4 @@ jobs:
     - run: cp /home/actions_runner/.env ./dist/.env
     - run: cp /home/actions_runner/spGoogle.json ./dist/spGoogle.json
     - run: cp -R ./templates ./dist/templates
-    - run: pm2 restart main
+    - run: pm2 restart prod
