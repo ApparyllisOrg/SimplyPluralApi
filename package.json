@@ -8,9 +8,11 @@
 		"start:watch": "ts-node-dev --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config --inspect",
 		"build": "tsc",
 		"lint": "eslint src/**/**/*",
-		"test": "mocha --require ts-node/register 'src/tests/**/*.ts' --delay -r dotenv/config --exit --nologs"
+		"test": "mocha --require ts-node/register 'src/tests/**/*.ts' --delay -r dotenv/config --exit --nologs",
+		"test:watch": "mocha --require ts-node/register 'src/tests/**/*.ts' --watch --watch-files 'src/tests/**/*.ts' --delay -r dotenv/config --exit --nologs"
 	},
 	"dependencies": {
+		"@faker-js/faker": "^7.5.0",
 		"@google-cloud/common": "^3.9.0",
 		"@sentry/node": "^6.17.9",
 		"@types/ajv": "^1.0.0",

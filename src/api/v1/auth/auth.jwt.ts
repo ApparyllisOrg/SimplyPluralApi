@@ -18,9 +18,9 @@ export const base64decodeJwt = (encoded : string) => {
 // Generate a new JWT for user
 //-------------------------------//
 export const jwtForUser = (uid: string) : {access: string, refresh: string} => {
-	
-	const access = jwt.sign({uid, exp: Math.floor(Date.now() / 1000) + 30 * 60}, jwtKey);
-	const refresh = jwt.sign({uid, exp: Math.floor(Date.now() / 1000) + thirtyDays, refresh: true}, jwtKey);
+	const now = Date.now() / 1000
+	const access = jwt.sign({uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + 30 * 60}, jwtKey);
+	const refresh = jwt.sign({uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + thirtyDays, refresh: true}, jwtKey);
 	return { access, refresh };
 }
 
