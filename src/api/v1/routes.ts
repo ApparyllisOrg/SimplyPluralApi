@@ -23,6 +23,7 @@ import * as analytics from './analytics';
 import * as messages from './messages';
 import * as chats from './chats';
 import * as auth from './auth';
+import * as event from './events';
 
 // Todo: Verify all access types are setup correctly before moving to production
 export const setupV1routes = (app: core.Express) => {
@@ -176,5 +177,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.post("/v1/auth/verification/request", isUserAppJwtAuthenticated, auth.requestConfirmationEmail)
 	app.get("/v1/auth/verification/confirm", validateQuery(auth.validateConfirmEmailSchema),  auth.confirmEmail)
 	app.get("/v1/auth/refresh", auth.refreshToken)
-	
+
+	// Events
+	app.post("/v1/event", isUserAppJwtAuthenticated, validateBody(event.validateEventSchema), event.event)
 }

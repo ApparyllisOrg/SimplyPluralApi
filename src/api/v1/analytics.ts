@@ -12,8 +12,6 @@ interface frontDurationType
 	min: number,
 	max: number
 }
-
-
 interface frontAnalyticValueType
 {
 	id: String,
