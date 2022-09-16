@@ -6,6 +6,7 @@ import { confirmUserEmail, getConfirmationKey, sendConfirmationEmail } from "./a
 import { base64decodeJwt, isJwtValid, jwtForUser } from "./auth/auth.jwt";
 import { hash } from "./auth/auth.hash";
 import { getNewUid } from "./auth/auth.core";
+import moment from "moment";
 
 export const login = async (req: Request, res: Response) => {
 	const user = await getCollection("accounts").findOne({email: req.body.email})
@@ -26,6 +27,7 @@ export const login = async (req: Request, res: Response) => {
 	
 	if (timingSafeEqual(bGeneratedHash, knownHash)) {
 		res.status(200).send(jwtForUser(user.uid));
+		await getCollection("securityLogs").insertOne({uid: user.uid, at: moment.now(), action: "Logged in from " + req.ip})
 	} else {
 		res.status(401).send("Unknown user or password")
 	}
@@ -67,6 +69,7 @@ export const register = async (req: Request, res: Response) => {
 	const verificationCode = getConfirmationKey()
 	await getCollection("accounts").insertOne({uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode});
 	res.status(200).send({uid: newUserId, jwt: jwtForUser(newUserId)})
+	await getCollection("securityLogs").insertOne({uid: newUserId, at: moment.now(), action: "Registerd your user account from " + req.ip})
 	sendConfirmationEmail(newUserId)
 }
 
@@ -74,6 +77,7 @@ export const requestConfirmationEmail = async (req: Request, res: Response) => {
 	const result : { success: boolean, msg: string }= await sendConfirmationEmail(res.locals.uid)
 	if (result.success === true)
 	{
+		await getCollection("securityLogs").insertOne({uid: res.locals.uid, at: moment.now(), action: "Requested confirm email"})
 		res.status(200).send()
 	} 
 	else 
@@ -88,6 +92,7 @@ export const confirmEmail = async (req: Request, res: Response) => {
 	// TODO: Send a html web page so this is prettier
 	if (result === true)
 	{
+		await getCollection("securityLogs").insertOne({uid: req.query.uid?.toString() ?? "", at: moment.now(), action: "Confirmed your email"})
 		res.status(200).send("Email confirmed")
 	}
 	else 
