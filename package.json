@@ -51,6 +51,7 @@
 		"express-validator": "^6.14.0",
 		"firebase": "^9.8.3",
 		"firebase-admin": "^10.3.0",
+		"google-auth-library": "^8.5.1",
 		"helmet": "^5.1.0",
 		"jsonwebtoken": "^8.5.1",
 		"lru-cache": "^7.10.1",

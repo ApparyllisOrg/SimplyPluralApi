@@ -7,6 +7,7 @@ import { base64decodeJwt, isJwtValid, jwtForUser } from "./auth/auth.jwt";
 import { hash } from "./auth/auth.hash";
 import { getNewUid } from "./auth/auth.core";
 import moment from "moment";
+import { loginWithGoogle } from "./auth/auth.google";
 
 export const login = async (req: Request, res: Response) => {
 	const user = await getCollection("accounts").findOne({email: req.body.email})
@@ -31,6 +32,28 @@ export const login = async (req: Request, res: Response) => {
 	} else {
 		res.status(401).send("Unknown user or password")
 	}
+}
+
+export const loginGoogle = async (req: Request, res: Response) => {
+	const result = await loginWithGoogle(req.body.credential, false);
+	if (result.success === true)
+	{
+		getCollection("securityLogs").insertOne({uid: result.uid, at: moment.now(), action: "Logged in from " + req.ip})
+		return res.status(200).send(result.uid);
+	}
+
+	return res.status(401).send();
+}
+
+export const registerGoogle = async (req: Request, res: Response) => {
+	const result = await loginWithGoogle(req.body.credential, true);
+	if (result.success === true)
+	{
+		getCollection("securityLogs").insertOne({uid: result.uid, at: moment.now(), action: "Registered from " + req.ip})
+		return res.status(200).send(result.uid);
+	}
+
+	return res.status(401).send();
 }
 
 export const refreshToken = async (req: Request, res: Response) => {
@@ -126,6 +149,20 @@ export const validateConfirmEmailSchema = (body: any): { success: boolean, msg: 
 		nullable: false,
 		additionalProperties: false,
 		required: ["key"]
+	};
+
+	return validateSchema(schema, body);
+}
+
+export const validateLoginGoogleSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			credential: { type: "string" },
+		},
+		nullable: false,
+		additionalProperties: false,
+		required: ["credential"]
 	};
 
 	return validateSchema(schema, body);
