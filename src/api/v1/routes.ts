@@ -180,5 +180,9 @@ export const setupV1routes = (app: core.Express) => {
 
 	// Events
 	app.post("/v1/event", isUserAppJwtAuthenticated, validateBody(event.validateEventSchema), event.event)
-	app.post("/v1/event/open", isUserAppJwtAuthenticated, event.openEvent) // Specific event handled with custom code
+
+	// Specific events with per-event code
+	{
+		app.post("/v1/event/open", isUserAppJwtAuthenticated, event.openEvent)
+	}
 }
