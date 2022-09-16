@@ -19,22 +19,7 @@ export const getChannels = async (req: Request, res: Response) => {
 }
 
 export const addChannel = async (req: Request, res: Response) => {
-	const category = await getCollection("channelCategories").findOne({uid: res.locals.uid, _id: parseId(req.body.category)});
-	if (!category)
-	{
-		res.status(400).send("Can't find category to add the channel to!")
-		return 
-	}
-
-	const categoryId = req.body.category
-	delete req.body.category;
-
 	await addSimpleDocument(req, res, "channels");
-
-	const channels = category.channels ?? [];
-	channels.push(categoryId.toString())
-
-	await getCollection("channelCategories").updateOne({_id: parseId(categoryId)}, {$set: {channels: channels}})
 }
 
 export const updateChannel = async (req: Request, res: Response) => {
@@ -172,10 +157,9 @@ export const validateAddChannelschema = (body: any): { success: boolean, msg: st
 		properties: {
 			name: { type: "string", maxLength: 100, minLength: 1 },
 			desc: { type: "string",  maxLength: 2000 },
-			color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"},
-			category : { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" }
+			color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"}
 		},
-		required: ["name", "desc", "category"],
+		required: ["name", "desc"],
 		nullable: false,
 		additionalProperties: false,
 	};
