@@ -74,7 +74,7 @@ export const writeMessage = async (req: Request, res: Response) => {
 		req.body.writtenAt = moment.now();
 	}
 
-	const channel = await getCollection("channels").findOne({uid: res.locals.uid, _id: req.body.channel})
+	const channel = await getCollection("channels").findOne({uid: res.locals.uid, _id: parseId(req.body.channel)})
 	if (!channel)
 	{
 		await getCollection("undeliveredMessages").insertOne({uid: res.locals.uid, message: req.body, reason: "channel not found"})
@@ -119,14 +119,14 @@ export const deleteMessage = async (req: Request, res: Response) => {
 }
 
 export const validateWriteMessageSchema = (body: any): { success: boolean, msg: string } => {
-	const schema = {
+	const schema = {		
 		type: "object",
 		properties: {
 			message: { type: "string", maxLength: 2500, minLength: 1 },
-			channel: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" },
-			writer: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$"  },
+			channel: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
+			writer: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$"  },
 			writtenAt: { type: "number" },
-			replyTo: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" },
+			replyTo: { type: "string", pattern: "^$|[A-Za-z0-9]{20,50}$" },
 		},
 		required: ["message", "channel", "writer", "writtenAt"],
 		nullable: false,
