@@ -34,7 +34,7 @@ const start = async () =>
 	while (instance < cpuCores) {
 		cluster.fork();
 		++instance;
-		print("Start worker")
+		console.log("Start worker")
 	}
 
 	const app = await initializeServer();
