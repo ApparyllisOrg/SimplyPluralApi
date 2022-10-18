@@ -58,10 +58,7 @@ export const init = () => {
 	// We don't want to run runEvents twice on two servers and have it return
 	// the same events on both. It needs to return atomically.
 	if (!process.env.DEVELOPMENT && process.env.LOCALEVENTS) {
-		if (cluster.isPrimary)
-		{
-			bindEvents();
-			console.log("Bound to events, started event controller")
-		}	
+		bindEvents();
+		console.log("Bound to events, started event controller")
 	} 
 };

@@ -5,8 +5,6 @@ import { startCollectingUsage } from "./modules/usage";
 import admin, { ServiceAccount } from "firebase-admin";
 import * as fs from 'fs';
 import { initializeServer, startServer } from "./modules/server";
-import { cpus } from "os";
-import cluster from "cluster";
 
 
 if (process.env.DEVELOPMENT) {
@@ -29,14 +27,6 @@ startCollectingUsage();
 
 const start = async () => 
 {
-	const cpuCores = cpus().length;
-	let instance = 0;
-	while (instance < cpuCores) {
-		cluster.fork();
-		++instance;
-		console.log("Start worker")
-	}
-
 	const app = await initializeServer();
 	const server = await startServer(app, process.env.DATABASE_URI ?? "")
 }
