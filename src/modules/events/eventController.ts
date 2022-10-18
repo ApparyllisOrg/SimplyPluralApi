@@ -61,6 +61,7 @@ export const init = () => {
 		if (cluster.isPrimary)
 		{
 			bindEvents();
+			console.log("Bound to events, started event controller")
 		}	
 	} 
 };
