@@ -2,6 +2,7 @@ import { OAuth2Client, TokenPayload } from "google-auth-library"
 import { getCollection } from "../../../modules/mongo";
 import * as Sentry from "@sentry/node";
 import { auth } from "firebase-admin";
+import { getNewUid } from "./auth.core";
 
 //-------------------------------//
 // Get a new valid uid that can be used for a user
@@ -83,7 +84,9 @@ const registerSub = async (payload: TokenPayload) : Promise<boolean> =>
 	const firebaseUser = await auth().getUserByEmail(payload.email ?? "")
 	if (!firebaseUser)
 	{
-		return false;
+		const newUserId = await getNewUid();
+		await getCollection("accounts").insertOne({uid: newUserId, sub: payload.sub, email: payload.email, verified: true})
+		return true;
 	}
 
 	const account = await getCollection("accounts").findOne({uid: firebaseUser.uid})

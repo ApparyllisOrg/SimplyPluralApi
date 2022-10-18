@@ -1,13 +1,32 @@
-import { Request, Response } from "express";
+import e, { Request, Response } from "express";
 import moment from "moment";
 import { ObjectID } from "mongodb";
+import * as Sentry from "@sentry/node";
 import { getCollection, parseId } from "../../modules/mongo";
 import { documentObject } from "../../modules/mongo/baseTypes";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 export const getChannelHistory = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "chatMessages", { channel: req.params.id });
+	const query : any = { channel: req.params.id };
+
+	if (req.query.skipTo?.toString() && req.query.sortOrder?.toString())
+	{
+		const sortOrder = req.query.sortOrder?.toString();
+		if (sortOrder === "-1") {
+			query["_id"] = { $lt: parseId(req.query.skipTo?.toString()) }
+		} 
+		else if (sortOrder === "1") {
+			query["_id"] = { $gt: parseId(req.query.skipTo?.toString()) }
+		} 
+		else {
+			Sentry.captureMessage("Invalid sort order found!")
+			res.status(500).send();
+		}
+		
+	}
+
+	fetchCollection(req, res, "chatMessages", query);
 }
 
 export const getChannel = async (req: Request, res: Response) => {
@@ -124,7 +143,7 @@ export const validateWriteMessageSchema = (body: any): { success: boolean, msg: 
 		properties: {
 			message: { type: "string", maxLength: 2500, minLength: 1 },
 			channel: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
-			writer: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$"  },
+			writer: { type: "string", pattern: "^[A-Za-z0-9]{5,50}$"  },
 			writtenAt: { type: "number" },
 			replyTo: { type: "string", pattern: "^$|[A-Za-z0-9]{20,50}$" },
 		},
@@ -189,9 +208,27 @@ export const validateChatCategorySchema = (body: any): { success: boolean, msg: 
 		properties: {
 			name: { type: "string", maxLength: 100, minLength: 1 },
 			desc: { type: "string",  maxLength: 2000 },
-			channels: { type: "array",  items: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" }}
+			channels: { type: "array",  items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true}
 		},
 		required: ["name", "desc"],
+		nullable: false,
+		additionalProperties: false,
+	};
+
+	return validateSchema(schema, body);
+}
+
+export const validateGetChannelHistorySchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			limit: { type: "string",  pattern: "^[1-9][0-9]?$|^100$"  },
+			skip: { type: "string",  pattern: "^[0-9]{1,}"  },
+			skipTo: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
+			sortOrder : { type: "string", pattern: "^-1$|^1$" },
+			sortBy: { type: "string", pattern: "^[A-Za-z0-9]{1,50}$" },
+		},
+		required: ["limit"],
 		nullable: false,
 		additionalProperties: false,
 	};

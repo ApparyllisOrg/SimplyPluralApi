@@ -431,7 +431,8 @@ export const validateUserSchema = (body: any): { success: boolean, msg: string }
 						required: ["name", "order", "private", "preventTrusted", "type"]
 					}
 				},
-				additionalProperties: false
+				additionalProperties: false, 
+				uniqueItems: true
 			}
 		},
 		nullable: false,

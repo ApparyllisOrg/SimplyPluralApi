@@ -129,7 +129,7 @@ export const setupV1routes = (app: core.Express) => {
 
 	// Chat messages
 	app.get("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getMessage)
-	app.get("/v1/chat/messages/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannelHistory)
+	app.get("/v1/chat/messages/:id", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(chats.validateGetChannelHistorySchema), chats.getChannelHistory)
 	app.post("/v1/chat/message/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateWriteMessageSchema), chats.writeMessage)
 	app.patch("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateUpdateMessageSchema), chats.updateMessage)
 	app.delete("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteMessage)
