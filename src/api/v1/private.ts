@@ -43,7 +43,7 @@ export const validatePrivateSchema = (body: any): { success: boolean, msg: strin
 			location: { type: "string" },
 			termsOfServiceAccepted: { type: "boolean", enum: [true] },
 			whatsNew: { type: "number" },
-			categories: { type: "array",  items: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" }}
+			categories: { type: "array",  items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }}
 		},
 		nullable: false,
 		additionalProperties: false,
