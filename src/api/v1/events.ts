@@ -43,7 +43,7 @@ export const validateEventSchema = (body: any): { success: boolean, msg: string 
 	const schema = {
 		type: "object",
 		properties: {
-			event: { type: "string", pattern: "^[a-zA-Z]{1,}$"  }
+			event: { type: "string", pattern: "^[a-zA-Z-_]{1,}$"  }
 		},
 		nullable: false,
 		additionalProperties: false,
