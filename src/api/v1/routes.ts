@@ -124,7 +124,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannelCategory)
 	app.get("/v1/chat/categories", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannelCategories)
 	app.post("/v1/chat/category/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateChatCategorySchema), chats.addChannelCategory)
-	app.patch("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateChatCategorySchema), chats.updateChannmelCategory)
+	app.patch("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateChatCategorySchema), chats.updateChannelCategory)
 	app.delete("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteChannelCategory)
 
 	// Chat messages

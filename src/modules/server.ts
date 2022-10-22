@@ -11,7 +11,7 @@ import http from "http";
 import prom from "express-prom-bundle"
 import promclient from "prom-client"
 import express from "express";
-import { validateOperationTime } from "../util/validation";
+import { validateOperationTime, validatePostId } from "../util/validation";
 import { NextFunction, Request, Response } from "express-serve-static-core";
 import cors from "cors";
 

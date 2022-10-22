@@ -150,7 +150,7 @@ export const fetchCollection = async (req: Request, res: Response, collection: s
 
 export const addSimpleDocument = async (req: Request, res: Response, collection: string) => {
 	const dataObj: documentObject = req.body;
-	dataObj._id = res.locals.useId ?? new ObjectID();
+	dataObj._id = parseId(res.locals.useId) ?? new ObjectID();
 	dataObj.uid = res.locals.uid;
 	dataObj.lastOperationTime = res.locals.operationTime;
 	const result = await Mongo.getCollection(collection).insertOne(dataObj).catch(() => {

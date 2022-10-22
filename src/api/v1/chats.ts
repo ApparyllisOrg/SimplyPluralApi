@@ -47,6 +47,9 @@ export const updateChannel = async (req: Request, res: Response) => {
 
 export const deleteChannel = async (req: Request, res: Response) => {
 	await getCollection("chatMessages").deleteMany({uid: res.locals.uid, channel: parseId(req.params.id)})
+
+	await getCollection("channelCategories").updateOne({uid: res.locals.uid}, { $pull: { channels: req.params.id.toString()}})
+
 	deleteSimpleDocument(req, res, "channels")
 }
 
@@ -58,21 +61,47 @@ export const getChannelCategories = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "channelCategories", {});
 }
 
+const verifyValidChannelsPayload = async (req: Request, res: Response) =>
+{
+	// TODO: Ensure a channel can only belong to one category
+
+	// Ensure all channels exist
+	if (req.body.channels)
+	{
+		const validChannels = await getCollection("channels").find({uid: res.locals.uid}).toArray()
+
+		let channels : string[] = req.body.channels
+
+		// Remove non-existing channels
+		for (let i = channels.length - 1; i >= 0; --i)
+		{
+			const channel = channels[i];
+			const channelDoc = validChannels.findIndex((value) => value._id.toString() === channel)
+			if (channelDoc == -1)
+			{
+				channels.splice(i, 1)
+			}
+		}
+
+		req.body.channels = channels
+	}
+}
+
 export const addChannelCategory = async (req: Request, res: Response) => {
 	const dataObj: documentObject = req.body;
 	dataObj._id = res.locals.useId ?? new ObjectID();
-	
+
+	await verifyValidChannelsPayload(req, res)
+
 	addSimpleDocument(req, res, "channelCategories");
 
-	const privateUser = await getCollection("private").findOne({uid: res.locals.uid, _id: res.locals.uid});
-	const categories = privateUser.categories ?? [];
-	categories.push(dataObj._id.toString())
-
 	// Insert the category at the end
-	await getCollection("private").updateOne({uid: res.locals.uid, _id: res.locals.uid}, {$set: {categories: categories}})
+	await getCollection("private").updateOne({uid: res.locals.uid, _id: res.locals.uid}, {$addToSet: {categories: dataObj._id.toString()}})
 }
 
-export const updateChannmelCategory = async (req: Request, res: Response) => {
+export const updateChannelCategory = async (req: Request, res: Response) => {
+	await verifyValidChannelsPayload(req, res)
+
 	updateSimpleDocument(req, res, "channelCategories")
 }
 
@@ -145,7 +174,7 @@ export const validateWriteMessageSchema = (body: any): { success: boolean, msg: 
 			channel: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
 			writer: { type: "string", pattern: "^[A-Za-z0-9]{5,50}$"  },
 			writtenAt: { type: "number" },
-			replyTo: { type: "string", pattern: "^$|[A-Za-z0-9]{20,50}$" },
+			replyTo: { type: "string", pattern: "^$|[A-Za-z0-9]{20,50}$" }
 		},
 		required: ["message", "channel", "writer", "writtenAt"],
 		nullable: false,
@@ -176,7 +205,7 @@ export const validateAddChannelschema = (body: any): { success: boolean, msg: st
 		properties: {
 			name: { type: "string", maxLength: 100, minLength: 1 },
 			desc: { type: "string",  maxLength: 2000 },
-			color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"}
+			// color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"} Color is currently not supported
 		},
 		required: ["name", "desc"],
 		nullable: false,
@@ -192,7 +221,7 @@ export const validateUpdateChannelschema = (body: any): { success: boolean, msg:
 		properties: {
 			name: { type: "string", maxLength: 100, minLength: 1 },
 			desc: { type: "string",  maxLength: 2000 },
-			color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"}
+			// color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"} Color is currently not supported
 		},
 		required: ["name", "desc"],
 		nullable: false,
@@ -208,7 +237,7 @@ export const validateChatCategorySchema = (body: any): { success: boolean, msg: 
 		properties: {
 			name: { type: "string", maxLength: 100, minLength: 1 },
 			desc: { type: "string",  maxLength: 2000 },
-			channels: { type: "array",  items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true}
+			channels: { type: "array",  items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true }
 		},
 		required: ["name", "desc"],
 		nullable: false,

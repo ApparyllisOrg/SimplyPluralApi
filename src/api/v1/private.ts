@@ -25,6 +25,39 @@ export const update = async (req: Request, res: Response) => {
 			await updateUser(previousDocument.latestVersion, req.body.latestVersion, res.locals.uid)
 			userLog(res.locals.uid, `Updated user account to version ${req.body.latestVersion}`)
 		}
+
+		if (req.body.categories)
+		{
+			const expectedCategories = await getCollection("channelCategories").find({uid: res.locals.uid}).toArray()
+
+			let categories : string[] = req.body.categories
+			for (let i = categories.length - 1; i >= 0; --i)
+			{
+				const category = categories[i];
+				const categoryDoc = expectedCategories.findIndex((value) => value._id == parseId(category))
+				if (!categoryDoc)
+				{
+					 categories.splice(i, 1)
+				}
+			}
+
+			let allCategoriesPresent = true;
+			expectedCategories.forEach((category) => {
+				if (categories.findIndex(((value) => value == category._id.toString())) == -1)
+				{
+					allCategoriesPresent = false;
+				}
+			})
+
+			if (!allCategoriesPresent)
+			{
+				res.status(400).send("Categories requires all existing categories to be part of the ordered array")
+				return;
+			}
+
+			req.body.categories = categories
+		}
+
 		updateSimpleDocument(req, res, "private")
 	}
 	else {

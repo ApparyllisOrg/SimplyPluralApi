@@ -4,7 +4,7 @@ import { Request, Response } from "express";
 import { FullApiAccess, validateApiKey } from "../modules/api/keys";
 import { logSecurity } from "../modules/logger";
 import { logUserUsage } from "../modules/usage";
-import { validateParams } from "../util/validation";
+import { validateParams, validatePostId } from "../util/validation";
 import { isJwtValid } from "../api/v1/auth/auth.jwt";
 
 export const validateToken = async (tokenStr: string): Promise<{ uid: string | undefined, accessType: number, jwt: boolean }> => {
@@ -75,6 +75,8 @@ export const isUserAuthenticated = function (accessRequested: number): authMiddl
 		{
 			return 
 		}
+
+		validatePostId(req, res);
 
 		next();
 
