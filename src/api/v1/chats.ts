@@ -107,6 +107,7 @@ export const updateChannelCategory = async (req: Request, res: Response) => {
 
 export const deleteChannelCategory = async (req: Request, res: Response) => {
 	await getCollection("channels").updateMany({uid: res.locals.uid}, {$set: {category: ""}})
+	await getCollection("private").updateOne({uid: res.locals.uid, _id: res.locals.uid}, {$pull: {"categories": req.params.id}})
 	deleteSimpleDocument(req, res, "channelCategories")
 }
 
