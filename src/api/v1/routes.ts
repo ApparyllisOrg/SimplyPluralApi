@@ -188,6 +188,17 @@ export const setupV1routes = (app: core.Express) => {
 
 	app.post("/v1/auth/verification/request", isUserAppJwtAuthenticated, auth.requestConfirmationEmail)
 	app.get("/v1/auth/verification/confirm", validateQuery(auth.validateConfirmEmailSchema),  auth.confirmEmail)
+
+	{
+		app.get("/v1/auth/password/reset", validateQuery(auth.validateResetPasswordRequestSchema), auth.resetPasswordRequest)
+		app.post("/v1/auth/password/reset/change", validateBody(auth.validateResetPasswordExecutionSchema), auth.resetPassword)
+		app.post("/v1/auth/password/change", validateBody(auth.validateChangePasswordSchema), auth.changePassword)
+	}
+
+	{
+		app.post("/v1/auth/email/change", validateBody(auth.validateChangeEmailSchema), auth.resetPasswordRequest)
+	}
+	
 	app.get("/v1/auth/refresh", auth.refreshToken)
 
 	// Events

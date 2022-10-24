@@ -79,7 +79,7 @@ export const confirmUserEmail = async (uid: string, key: string) : Promise<boole
 
 	if (user.verificationCode === key)
 	{
-		await getCollection("accounts").updateOne({uid}, { $set: { verified: true } })
+		await getCollection("accounts").updateOne({uid}, { $set: { verified: true }, $unset: {verificationCode: ""} })
 		return true;
 	}
 

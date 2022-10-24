@@ -9,7 +9,7 @@ import { update122 } from "./user/updates/update112";
 import AWS from "aws-sdk";
 import { nanoid } from "nanoid";
 import { auth } from "firebase-admin";
-import { getFriendLevel, isTrustedFriend } from "../../security";
+import { getFriendLevel, isTrustedFriend, logSecurityUserEvent } from "../../security";
 import { mailerTransport } from "../../modules/mail";
 import { readFile } from "fs";
 import { promisify } from "util";
@@ -360,7 +360,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 	else
 	{
 		await getCollection("private").updateOne({uid: res.locals.uid, _id: parseId(res.locals.uid)}, {$set: {lastExport : moment.now()}})
-		await getCollection("securityLogs").insertOne({uid: res.locals.uid, at: moment.now(), action: "Exported user account"});
+		logSecurityUserEvent(res.locals.uid, "Exported user account", _req.ip)
 
 		res.status(200).send({success:true});
 		userLog(res.locals.uid, `Exported user data and sent to ${email}.`);
@@ -431,8 +431,7 @@ export const validateUserSchema = (body: any): { success: boolean, msg: string }
 						required: ["name", "order", "private", "preventTrusted", "type"]
 					}
 				},
-				additionalProperties: false, 
-				uniqueItems: true
+				additionalProperties: false
 			}
 		},
 		nullable: false,

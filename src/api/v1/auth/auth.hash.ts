@@ -8,8 +8,8 @@ import * as Sentry from "@sentry/node";
 const passwordHash = {
  hash: {
    algorithm: 'SCRYPT',
-   key: 'placeholder-base64key-eGpvaXpYZHQ1LD0sKG94Pykwe3FjTS0=',
-   saltSeparator: 'placeholder-base64seperator-eGpvaXpYZHQ1LD0sKG94Pykwe3FjTS0=',
+   key: 'placeholder-base64key-eGpvaXpYZHQ1LD0sKG94Pykwe3FjTS0=', //TODO: Change to env variable
+   saltSeparator: 'placeholder-base64seperator-eGpvaXpYZHQ1LD0sKG94Pykwe3FjTS0=', //TODO: Change to env variable
    rounds: 8,
    memoryCost: 14
  }

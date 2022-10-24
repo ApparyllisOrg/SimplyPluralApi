@@ -6,7 +6,9 @@ import { getTestAxiosUrl, sleep } from "../utils";
 
 describe("validate authentication flow", () => {
 	const email = "test@apparyllis.com"
+	const changedEmail = "test2@apparyllis.com"
 	const password = "APasswordTh3tFitsTh3Regexp!";
+	const changedPassword = "APasswordTh3tFitsTh3Regexp3ndCh3nged!";
 
 	let userId = "";
 
@@ -68,5 +70,46 @@ describe("validate authentication flow", () => {
 
 		const successResult2 = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: successResult.data.refresh} })
 		assert(successResult2.status == 200, "Refreshing with the newly refresh token should be functional")
+	}).timeout(4000);
+
+	mocha.test("Request password reset", async () => {
+		{
+			const result = await axios.get(getTestAxiosUrl(`v1/auth/password/reset?email=${email}`)).catch((reason) => { return reason.response })
+			assert(result.status == 200, "Request password reset")
+
+			const user = await getCollection("accounts").findOne({email})
+			assert(user.passwordResetToken, "Password reset token valid")
+		}
+	}).timeout(4000);
+
+	mocha.test("Reset password from request", async () => {
+		{
+			const user = await getCollection("accounts").findOne({email})
+			assert(user.passwordResetToken, "Password reset token valid")
+			const result = await axios.post(getTestAxiosUrl("v1/auth/password/reset/change"), {resetKey: user.passwordResetToken, newPassword: password}).catch((reason) => { return reason.response })
+			console.log(result.status)
+			assert(result.status == 200, "Password reset")
+			const updatedUser = await getCollection("accounts").findOne({email})
+			assert(updatedUser.passwordResetToken, "Password reset token invalid")
+		}
+	}).timeout(4000);
+
+	mocha.test("Change user password", async () => {
+		{
+			const result = await axios.post(getTestAxiosUrl(`v1/auth/password/change`), {password: password, uid: userId, newPassword: changedPassword, refreshToken}).catch((reason) => { return reason.response })
+			assert(result.status == 200, "change password")
+		}
+
+		{
+			const result = await axios.post(getTestAxiosUrl("v1/auth/login"), {email, password: changedPassword}).catch((reason) => { return reason.response })
+			assert(result.status == 200, "login")
+		}
+	}).timeout(4000);
+
+	mocha.test("Change user email", async () => {
+		{
+			const result = await axios.post(getTestAxiosUrl(`v1/auth/email/change`), {password: password, oldEmail: email, newEmail: changedEmail}).catch((reason) => { return reason.response })
+			assert(result.status == 200, "change email")
+		}
 	}).timeout(4000);
 })

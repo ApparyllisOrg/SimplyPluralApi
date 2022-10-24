@@ -1,5 +1,7 @@
 import * as Mongo from "../modules/mongo";
 import LRU from "lru-cache";
+import { getCollection } from "../modules/mongo";
+import moment from "moment";
 const users = "users";
 const groups = "groups";
 const members = "members";
@@ -92,4 +94,9 @@ export const canAccessDocument = async (requestor: string, owner: string, privat
 		return false;
 	}
 	return !!(friendLevel === FriendLevel.Friends) || !!(friendLevel === FriendLevel.Trusted);
+}
+
+export const logSecurityUserEvent = async (uid: string, action: string, ip: string) =>
+{
+	await getCollection("securityLogs").insertOne({uid: uid, at: moment.now(), action, ip})
 }

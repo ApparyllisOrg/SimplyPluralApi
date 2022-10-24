@@ -85,7 +85,7 @@ const registerSub = async (payload: TokenPayload) : Promise<boolean> =>
 	if (!firebaseUser)
 	{
 		const newUserId = await getNewUid();
-		await getCollection("accounts").insertOne({uid: newUserId, sub: payload.sub, email: payload.email, verified: true})
+		await getCollection("accounts").insertOne({uid: newUserId, sub: payload.sub, email: payload.email, verified: true, oAuth2: true})
 		return true;
 	}
 
@@ -96,7 +96,7 @@ const registerSub = async (payload: TokenPayload) : Promise<boolean> =>
 	}
 	else
 	{
-		await getCollection("accounts").insertOne({uid: firebaseUser.uid, sub: payload.sub, email: firebaseUser.email, verified: true})
+		await getCollection("accounts").insertOne({uid: firebaseUser.uid, sub: payload.sub, email: firebaseUser.email, verified: true , oAuth2: true})
 	}
 
 	return true;
