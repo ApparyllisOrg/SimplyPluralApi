@@ -10,11 +10,11 @@ import { base64decodeJwt } from "./auth.jwt";
 //-------------------------------//
 // Change password
 //-------------------------------//
-export const changeEmail_Execution = async (oldEmail: string, passowrd: string, newEmail: string) : Promise<{success: boolean, msg: string, uid: string}> => {
+export const changeEmail_Execution = async (oldEmail: string, password: string, newEmail: string) : Promise<{success: boolean, msg: string, uid: string}> => {
 	const user = await getCollection("accounts").findOne({email: oldEmail})
 	if (user)
 	{
-		const hashedPasswd = await hash(passowrd, user.salt)
+		const hashedPasswd = await hash(password, user.salt)
 
 		const knownHash = base64decodeJwt(user.password)
 		const bGeneratedHash = base64decodeJwt(hashedPasswd.hashed)
