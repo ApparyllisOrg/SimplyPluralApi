@@ -47,7 +47,7 @@ export const update = async (req: Request, res: Response) => {
 }
 
 export const del = async (req: Request, res: Response) => {
-	getCollection("queuedEvents").deleteMany({ uid: res.locals.uid, reminderId: req.params.id });
+	getCollection("queuedEvents").deleteMany({ uid: res.locals.uid, reminderId: parseId(req.params.id) });
 	deleteSimpleDocument(req, res, "repeatedReminders");
 }
 
