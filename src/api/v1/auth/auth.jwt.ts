@@ -34,6 +34,12 @@ export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean) : Promis
 			if (err || !decoded) {
 				resolve({valid: false, decoded: ""});
 			} else if (payload) {
+				if (payload.iss !== "Apparyllis")
+				{
+					resolve({valid: false, decoded: ""});
+					return;
+				}
+
 				if (wantsRefresh === true)
 				{		
 					if (payload["refresh"] === true)

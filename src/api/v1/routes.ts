@@ -196,7 +196,7 @@ export const setupV1routes = (app: core.Express) => {
 	}
 
 	{
-		app.post("/v1/auth/email/change", validateBody(auth.validateChangeEmailSchema), auth.resetPasswordRequest)
+		app.post("/v1/auth/email/change", validateBody(auth.validateChangeEmailSchema), auth.changeEmail)
 	}
 	
 	app.get("/v1/auth/refresh", auth.refreshToken)

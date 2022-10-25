@@ -21,16 +21,16 @@ export const login = async (req: Request, res: Response) => {
 		res.status(401).send("Unknown user or password")
 		return
 	}
-
 	const hashedPasswd = await hash(req.body.password, user.salt)
 
 	const knownHash = base64decodeJwt(user.password)
 	const bGeneratedHash = base64decodeJwt(hashedPasswd.hashed)
+
 	if (bGeneratedHash.length !== knownHash.length) {
 		res.status(401).send("Unknown user or password")
 		return
 	}
-	
+
 	if (timingSafeEqual(bGeneratedHash, knownHash)) {
 		res.status(200).send(jwtForUser(user.uid));
 		logSecurityUserEvent(user.uid, "Logged in ", req.ip)
@@ -74,10 +74,16 @@ export const refreshToken = async (req: Request, res: Response) => {
 		if (invalidatedToken) {
 			res.status(401).send("Invalid jwt")
 		} else {
-			const newToken = jwtForUser(validResult.decoded.uid)
-	
-			getCollection("accounts").updateOne({ uid:validResult.decoded.uid }, {$push: {refreshTokens: newToken}, $pull:{refreshTokens: req.headers.authorization}})
+			const user = await getCollection("accounts").findOne({uid: validResult.decoded.uid})
 
+			// No first valid jwt means means all jwts issues from apparyllis are valid, as long as they're not expired
+			if (user.firstValidJWtTime && validResult.decoded.iat < user.firstValidJWtTime)
+			{
+				res.status(401).send("Invalid jwt")
+				return;
+			}
+
+			const newToken = jwtForUser(validResult.decoded.uid)
 			// Invalidate used refresh token
 			getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization})
 
@@ -109,41 +115,40 @@ export const resetPasswordRequest = async (req: Request, res: Response) =>
 
 export const resetPassword = async (req: Request, res: Response) =>
 {
-		console.log("a")
 	const result = await resetPassword_Exection(req.body.resetKey, req.body.newPassword)
-		console.log("b")
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Changed your password", req.ip)
 		res.status(200).send("Password changed succesfully!")
 	} 
 
-	res.status(400).send(result.msg)
+	res.status(401).send(result.msg)
 }
 
 export const changeEmail = async (req: Request, res: Response) =>
 {
-	const result = await changeEmail_Execution(req.body.email, req.body.password, req.body.newEmail)
+	const result = await changeEmail_Execution(req.body.oldEmail, req.body.password, req.body.newEmail)
 	if (result.success === true)
 	{
-		logSecurityUserEvent(result.uid, "Changed email from " + req.body.email + " to " + req.body.newEmail, req.ip)
+		logSecurityUserEvent(result.uid, "Changed email from " + req.body.oldEmail + " to " + req.body.newEmail, req.ip)
 		res.status(200).send("Email changed succesfully!")
 	} 
 
-	res.status(400).send(result.msg)
+	res.status(401).send(result.msg)
 }
 
 export const changePassword = async (req: Request, res: Response) =>
 {
-	const result = await changePassword_Execution(req.body.uid, req.body.password, req.body.newPassword, req.body.refreshToken)
+	const result = await changePassword_Execution(req.body.uid, req.body.oldPassword, req.body.newPassword)
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Changed password", req.ip)
+		// TODO: Send new refresh token
 		res.status(200).send("Password changed succesfully!")
 		return;
 	} 
 
-	res.status(400).send("Failed to change password")
+	res.status(401).send("Failed to change password")
 }
 
 export const register = async (req: Request, res: Response) => {
@@ -190,7 +195,7 @@ export const confirmEmail = async (req: Request, res: Response) => {
 	}
 	else 
 	{
-		res.status(400).send("Invalid confirmation link")
+		res.status(401).send("Invalid confirmation link")
 	}
 }
 
@@ -254,13 +259,13 @@ export const validateResetPasswordRequestSchema = (body: any): { success: boolea
 	return validateSchema(schema, body);
 }
 
-
 export const validateResetPasswordExecutionSchema = (body: any): { success: boolean, msg: string } => {
+
 	const schema = {
 		type: "object",
 		properties: {
 			resetKey: { type: "string", pattern: "^[a-zA-Z0-9]{128}$" },
-			newPassword: { type: "string", format: getPasswordRegex()  }
+			newPassword: { type: "string", pattern: getPasswordRegex()  }
 		},
 		nullable: false,
 		additionalProperties: false,
@@ -270,24 +275,21 @@ export const validateResetPasswordExecutionSchema = (body: any): { success: bool
 	return validateSchema(schema, body);
 }
 
-
 export const validateChangePasswordSchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
-			uid: { type: "string", pattern: "^[a-zA-Z0-9]{64}$" },
-			oldPassword: { type: "string", format: getPasswordRegex()   },
-			newPassword: { type: "string", format: getPasswordRegex()   },
-			refreshToken: { type: "string", pattern: "^[A-Za-z0-9-_=]+\.[A-Za-z0-9-_=]+\.?[A-Za-z0-9-_.+/=]*$"} // Supply next refresh token of the client that changed the password so we can invalidate all but the token that requested this
+			uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
+			oldPassword: { type: "string", pattern: getPasswordRegex() },
+			newPassword: { type: "string", pattern: getPasswordRegex() }
 		},
 		nullable: false,
 		additionalProperties: false,
-		required: ["uid", "oldPassword", "newPassword", "refreshToken"]
+		required: ["uid", "oldPassword", "newPassword"]
 	};
 
 	return validateSchema(schema, body);
 }
-
 
 export const validateChangeEmailSchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {

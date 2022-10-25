@@ -18,7 +18,7 @@ describe("validate authentication flow", () => {
 	mocha.test("Register a new user", async () => {
 		const result = await axios.post(getTestAxiosUrl("v1/auth/register"), {email, password})
 		assert(result.data)
-		userId = result.data
+		userId = result.data.uid
 
 		const firstAcc = await getCollection("accounts").findOne({email: {$ne: null}})
 		assert(firstAcc)
@@ -46,7 +46,7 @@ describe("validate authentication flow", () => {
 		assert(firstAccVerified.verified === true)
 
 		const secondResult = await axios.get(getTestAxiosUrl(`v1/auth/verification/confirm?uid=${firstAcc.uid}&key=${firstAcc.verificationCode}`)).catch((reason) => { return reason.response })
-		assert(secondResult.status == 400, "Verifying twice should not be possible")
+		assert(secondResult.status == 401, "Verifying twice should not be possible")
 	});
 
 	mocha.test("Refresh JWT tokens", async () => {
@@ -87,7 +87,7 @@ describe("validate authentication flow", () => {
 			const user = await getCollection("accounts").findOne({email})
 			assert(user.passwordResetToken, "Password reset token valid")
 			const result = await axios.post(getTestAxiosUrl("v1/auth/password/reset/change"), {resetKey: user.passwordResetToken, newPassword: password}).catch((reason) => { return reason.response })
-			console.log(result.status)
+
 			assert(result.status == 200, "Password reset")
 			const updatedUser = await getCollection("accounts").findOne({email})
 			assert(updatedUser.passwordResetToken, "Password reset token invalid")
@@ -96,7 +96,7 @@ describe("validate authentication flow", () => {
 
 	mocha.test("Change user password", async () => {
 		{
-			const result = await axios.post(getTestAxiosUrl(`v1/auth/password/change`), {password: password, uid: userId, newPassword: changedPassword, refreshToken}).catch((reason) => { return reason.response })
+			const result = await axios.post(getTestAxiosUrl(`v1/auth/password/change`), {oldPassword: password, uid: userId, newPassword: changedPassword}).catch((reason) => { return reason.response })
 			assert(result.status == 200, "change password")
 		}
 
@@ -104,12 +104,17 @@ describe("validate authentication flow", () => {
 			const result = await axios.post(getTestAxiosUrl("v1/auth/login"), {email, password: changedPassword}).catch((reason) => { return reason.response })
 			assert(result.status == 200, "login")
 		}
-	}).timeout(4000);
+	}).timeout(8000);
 
 	mocha.test("Change user email", async () => {
 		{
-			const result = await axios.post(getTestAxiosUrl(`v1/auth/email/change`), {password: password, oldEmail: email, newEmail: changedEmail}).catch((reason) => { return reason.response })
+			const result = await axios.post(getTestAxiosUrl(`v1/auth/email/change`), {password: changedPassword, oldEmail: email, newEmail: changedEmail}).catch((reason) => { return reason.response })
 			assert(result.status == 200, "change email")
+		}
+
+		{
+			const result = await axios.post(getTestAxiosUrl("v1/auth/login"), {email: changedEmail, password: changedPassword}).catch((reason) => { return reason.response })
+			assert(result.status == 200, "login")
 		}
 	}).timeout(4000);
 })

@@ -1,4 +1,4 @@
-import { randomBytes } from "crypto";
+import { randomBytes, timingSafeEqual } from "crypto";
 import { readFile } from "fs";
 import moment from "moment";
 import { promisify } from "util";
@@ -10,7 +10,7 @@ import { base64decodeJwt } from "./auth.jwt";
 //-------------------------------//
 // Change password
 //-------------------------------//
-export const changePassword_Execution = async (uid: string, oldPassword : string, newPassword: string, activeRefreshToken: string) : Promise<{success: boolean, msg: string, uid: string}> => {
+export const changePassword_Execution = async (uid: string, oldPassword: string, newPassword: string) : Promise<{success: boolean, msg: string, uid: string}> => {
 	const user = await getCollection("accounts").findOne({uid})
 	if (user)
 	{
@@ -23,47 +23,44 @@ export const changePassword_Execution = async (uid: string, oldPassword : string
 
 		const knownHash = base64decodeJwt(user.password)
 		const bGeneratedHash = base64decodeJwt(hashedPasswd.hashed)
+
 		if (bGeneratedHash.length !== knownHash.length) {
 			return {success: false, msg:"Unknown user or password", uid: ""}
 		}
 
-		// Revoke all refresh tokens except the one that requested this
-		const refreshTokens: string[] = user.refreshTokens
-		refreshTokens.forEach((token : any) =>
-		{
-			if (token !== activeRefreshToken)
-			{
-				getCollection("invalidJwtTokens").insertOne({jwt: token})
-			}
-		});
+		if (!timingSafeEqual(bGeneratedHash, knownHash)) {
+			return {success: false, msg:"Unknown user or password", uid: ""}
+		}
+
+		// Revoke all refresh tokens
+		getCollection("accounts").updateOne({uid}, {$set: { firstValidJWtTime: moment.now() }})
 
 		const newHashedPasswd = await hash(newPassword, user.salt)
 
-		await getCollection("accounts").updateOne({uid}, {$set: {password: newHashedPasswd}})
+		await getCollection("accounts").updateOne({uid}, {$set: {password: newHashedPasswd.hashed}})
 		{
-				const getFile = promisify(readFile);
-				let emailTemplate = await getFile("./templates/passwordChangedEmail.html", "utf-8");
+			const getFile = promisify(readFile);
+			let emailTemplate = await getFile("./templates/passwordChangedEmail.html", "utf-8");
 
-				// This template has the url twice
-				if (process.env.PRETESTING === "true")
-				{
-					emailTemplate = emailTemplate.replace("{{resetUrl}}", `https://devapi.apparyllis.com/v1/auth/password/reset?email=${user.email}`)
-				}
-				else 
-				{
-					emailTemplate = emailTemplate.replace("{{resetUrl}}", `https://api.apparyllis.com/v1/auth/password/reset?email=${user.email}`)
-				}
-
-				mailerTransport?.sendMail({
-					from: '"Apparyllis" <noreply@apparyllis.com>',
-					to: user.email,
-					html: emailTemplate,
-					subject: "Your Simply Plural password changed",
-				}).catch((reason) => {err: reason.toString() as string})
+			// This template has the url twice
+			if (process.env.PRETESTING === "true")
+			{
+				emailTemplate = emailTemplate.replace("{{resetUrl}}", `https://devapi.apparyllis.com/v1/auth/password/reset?email=${user.email}`)
+			}
+			else 
+			{
+				emailTemplate = emailTemplate.replace("{{resetUrl}}", `https://api.apparyllis.com/v1/auth/password/reset?email=${user.email}`)
 			}
 
-		return {success:true, msg:"", uid: user.uid}
+			mailerTransport?.sendMail({
+				from: '"Apparyllis" <noreply@apparyllis.com>',
+				to: user.email,
+				html: emailTemplate,
+				subject: "Your Simply Plural password changed",
+			}).catch((reason) => {err: reason.toString() as string})
+		}
 
+		return {success:true, msg:"", uid: user.uid}
 	}
 	else 
 	{

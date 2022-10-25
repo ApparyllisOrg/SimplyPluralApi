@@ -35,20 +35,19 @@ export const hash = async (passwd: string, salt: string) => {
 			r: passwordHash.hash.rounds,
 			p: 1,
 		}, async (err : Error | null, derivedKey) => {
-			
-		if (err) {
-			Sentry.captureMessage(err.message)
-			reject()
-			return;
-		}
+			if (err) {
+				Sentry.captureMessage(err.message)
+				reject()
+				return;
+			}
 
-		try {
-			const cipher = createCipheriv(ALGORITHM, derivedKey, iv)
-			resolve({salt: salt, hashed: Buffer.concat([ cipher.update(base64decodeJwt(passwordHash.hash.key)), cipher.final() ]).toString('base64')})
-		} catch (error) {
-			Sentry.captureException(error)
-			reject("")
-		}
+			try {
+				const cipher = createCipheriv(ALGORITHM, derivedKey, iv)
+				resolve({salt: salt, hashed: Buffer.concat([ cipher.update(base64decodeJwt(passwordHash.hash.key)), cipher.final() ]).toString('base64')})
+			} catch (error) {
+				Sentry.captureException(error)
+				reject("")
+			}
 		})
 	})
 }

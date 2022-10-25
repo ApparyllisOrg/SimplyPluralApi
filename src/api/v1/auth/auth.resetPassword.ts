@@ -76,7 +76,6 @@ export const resetPasswordRequest_Execution = async (email : string) : Promise<{
 //-------------------------------//
 export const resetPassword_Exection = async (resetKey : string, newPassword: string) : Promise<{success: boolean, msg: string, uid: string}> => {
 	const user = await getCollection("accounts").findOne({passwordResetToken: resetKey})
-	console.log(user)
 	if (user)
 	{
 		assert(resetKey === user.passwordResetToken)

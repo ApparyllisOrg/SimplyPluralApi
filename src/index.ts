@@ -6,8 +6,8 @@ import admin, { ServiceAccount } from "firebase-admin";
 import * as fs from 'fs';
 import { initializeServer, startServer } from "./modules/server";
 
-
-if (process.env.DEVELOPMENT) {
+if (process.env.DEVELOPMENT === "true") {
+	console.log("Development mode")
 	process.on('uncaughtException', console.error);
 	process.on('unhandledRejection', console.error);
 }
