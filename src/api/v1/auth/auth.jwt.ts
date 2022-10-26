@@ -30,7 +30,7 @@ export const jwtForUser = (uid: string) : {access: string, refresh: string} => {
 //-------------------------------//
 export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean) : Promise<{valid : boolean, decoded: any}> => {
 	return new Promise<{valid : boolean, decoded: any}>((resolve, reject) => { 
-		jwt.verify(jwtStr, jwtKey, function(err, decoded) {
+		jwt.verify(jwtStr, jwtKey, async function(err, decoded) {
 			let payload = decoded as jwt.JwtPayload
 			if (err || !decoded) {
 				resolve({valid: false, decoded: ""});
@@ -43,12 +43,27 @@ export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean) : Promis
 
 				if (wantsRefresh === true)
 				{		
-					if (payload["refresh"] === true)
+
+				const invalidatedToken = await getCollection("invalidJwtTokens").findOne({jwt: jwtStr})
+				if (invalidatedToken) {
+					resolve({valid: false, decoded: ""});
+				} else {
+					const user = await getCollection("accounts").findOne({uid: payload.uid})
+
+					// No first valid jwt means means all jwts issues from apparyllis are valid, as long as they're not expired
+					if (user.firstValidJWtTime && payload.iat! <= user.firstValidJWtTime)
 					{
-						resolve({valid: true, decoded: decoded});
-					} else {
 						resolve({valid: false, decoded: ""});
+						return;
 					}
+				}
+
+				if (payload["refresh"] === true)
+				{
+					resolve({valid: true, decoded: decoded});
+				} else {
+					resolve({valid: false, decoded: ""});
+				}
 					
 				} else  {
 					if (!payload["refresh"])

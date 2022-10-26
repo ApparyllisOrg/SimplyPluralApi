@@ -200,6 +200,7 @@ export const setupV1routes = (app: core.Express) => {
 	}
 	
 	app.get("/v1/auth/refresh", auth.refreshToken)
+	app.get("/v1/auth/refresh/valid", auth.checkRefreshTokenValidity)
 
 	// Events
 	app.post("/v1/event", isUserAppJwtAuthenticated, validateBody(event.validateEventSchema), event.event)

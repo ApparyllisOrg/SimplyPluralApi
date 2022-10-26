@@ -44,7 +44,7 @@ export const loginGoogle = async (req: Request, res: Response) => {
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Logged in", req.ip)
-		return res.status(200).send(result.uid);
+		return res.status(200).send(jwtForUser(result.uid));
 	}
 
 	return res.status(401).send();
@@ -55,7 +55,7 @@ export const registerGoogle = async (req: Request, res: Response) => {
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Registers", req.ip)
-		return res.status(200).send(result.uid);
+		return res.status(200).send(jwtForUser(result.uid));
 	}
 
 	return res.status(401).send();
@@ -89,6 +89,21 @@ export const refreshToken = async (req: Request, res: Response) => {
 
 			res.status(200).send(newToken)
 		}
+	} else {
+		res.status(401).send("Invalid jwt")
+	}
+}
+
+export const checkRefreshTokenValidity = async (req: Request, res: Response) => {
+	if (!req.headers.authorization)
+	{
+		res.status(400).send("You need to include the authorization header")
+		return
+	}
+
+	const validResult = await isJwtValid(req.headers.authorization, true);
+	if (validResult.valid === true && validResult.decoded.refresh === true) {
+		res.status(200).send()
 	} else {
 		res.status(401).send("Invalid jwt")
 	}
@@ -169,7 +184,7 @@ export const register = async (req: Request, res: Response) => {
 	const hashedPasswd = await hash(req.body.password, salt)
 	const verificationCode = getConfirmationKey()
 	await getCollection("accounts").insertOne({uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode});
-	res.status(200).send({uid: newUserId, jwt: jwtForUser(newUserId)})
+	res.status(200).send(jwtForUser(newUserId))
 
 	logSecurityUserEvent(newUserId, "Registerd your user account", req.ip)
 

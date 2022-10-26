@@ -1,5 +1,6 @@
 import assert from "assert";
 import axios from "axios";
+import { decode } from "jsonwebtoken";
 import * as mocha from "mocha";
 import { getCollection } from "../../modules/mongo";
 import { getTestAxiosUrl, sleep } from "../utils";
@@ -20,7 +21,10 @@ describe("validate authentication flow", () => {
 	mocha.test("Register a new user", async () => {
 		const result = await axios.post(getTestAxiosUrl("v1/auth/register"), {email, password})
 		assert(result.data)
-		userId = result.data.uid
+
+		const jwt = decode(result.data.access, {json: true})
+
+		userId = jwt!.uid;
 
 		const firstAcc = await getCollection("accounts").findOne({email: {$ne: null}})
 		assert(firstAcc)
