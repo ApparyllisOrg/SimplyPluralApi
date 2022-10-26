@@ -14,6 +14,8 @@ describe("validate authentication flow", () => {
 
 	let accessToken = "";
 	let refreshToken = "";
+	let refreshToken2 = "";
+	let refreshToken3 = "";
 
 	mocha.test("Register a new user", async () => {
 		const result = await axios.post(getTestAxiosUrl("v1/auth/register"), {email, password})
@@ -97,6 +99,7 @@ describe("validate authentication flow", () => {
 	mocha.test("Change user password", async () => {
 		{
 			const result = await axios.post(getTestAxiosUrl(`v1/auth/password/change`), {oldPassword: password, uid: userId, newPassword: changedPassword}).catch((reason) => { return reason.response })
+			refreshToken2 = result.data.refresh
 			assert(result.status == 200, "change password")
 		}
 
@@ -104,17 +107,43 @@ describe("validate authentication flow", () => {
 			const result = await axios.post(getTestAxiosUrl("v1/auth/login"), {email, password: changedPassword}).catch((reason) => { return reason.response })
 			assert(result.status == 200, "login")
 		}
+
+		{
+			const failResult = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: refreshToken} }).catch((reason) => { return reason.response })
+			assert(failResult.status == 401, "Old refresh tokens should be discarded")
+		}
+
+		{
+			const failResult = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: refreshToken2} }).catch((reason) => { return reason.response })
+			assert(failResult.status == 200, "New refresh token should work")
+		}
 	}).timeout(8000);
 
 	mocha.test("Change user email", async () => {
 		{
 			const result = await axios.post(getTestAxiosUrl(`v1/auth/email/change`), {password: changedPassword, oldEmail: email, newEmail: changedEmail}).catch((reason) => { return reason.response })
+			refreshToken3 = result.data.refresh
 			assert(result.status == 200, "change email")
 		}
 
 		{
 			const result = await axios.post(getTestAxiosUrl("v1/auth/login"), {email: changedEmail, password: changedPassword}).catch((reason) => { return reason.response })
 			assert(result.status == 200, "login")
+		}
+
+		{
+			const failResult = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: refreshToken} }).catch((reason) => { return reason.response })
+			assert(failResult.status == 401, "Old refresh token 1 should be discarded")
+		}
+
+		{
+			const failResult = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: refreshToken2} }).catch((reason) => { return reason.response })
+			assert(failResult.status == 401, "Old refresh token 2 should be discarded")
+		}
+
+		{
+			const failResult = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: refreshToken3} }).catch((reason) => { return reason.response })
+			assert(failResult.status == 200, "New refresh token should work")
 		}
 	}).timeout(4000);
 })
