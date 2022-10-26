@@ -119,7 +119,7 @@ export const resetPassword = async (req: Request, res: Response) =>
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Changed your password", req.ip)
-		res.status(200).send("Password changed succesfully!")
+		res.status(200).send("Password changed successfully!")
 	} 
 
 	res.status(401).send(result.msg)
@@ -131,7 +131,7 @@ export const changeEmail = async (req: Request, res: Response) =>
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Changed email from " + req.body.oldEmail + " to " + req.body.newEmail, req.ip)
-		res.status(200).send("Email changed succesfully!")
+		res.status(200).send("Email changed successfully!")
 	} 
 
 	res.status(401).send(result.msg)
@@ -144,7 +144,7 @@ export const changePassword = async (req: Request, res: Response) =>
 	{
 		logSecurityUserEvent(result.uid, "Changed password", req.ip)
 		// TODO: Send new refresh token
-		res.status(200).send("Password changed succesfully!")
+		res.status(200).send("Password changed successfully!")
 		return;
 	} 
 
