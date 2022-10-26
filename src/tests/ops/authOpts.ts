@@ -24,7 +24,7 @@ describe("validate authentication flow", () => {
 
 		const jwt = decode(result.data.access, {json: true})
 
-		userId = jwt!.uid;
+		userId = jwt!.sub!;
 
 		const firstAcc = await getCollection("accounts").findOne({email: {$ne: null}})
 		assert(firstAcc)

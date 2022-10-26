@@ -26,7 +26,7 @@ export const validateToken = async (tokenStr: string): Promise<{ uid: string | u
 			const jwtResult = await isJwtValid(tokenStr, false)
 			if (jwtResult.valid === true)
 			{
-				return { uid: jwtResult.decoded.uid, accessType: FullApiAccess, jwt: true }
+				return { uid: jwtResult.decoded.uid ?? jwtResult.decoded.sub, accessType: FullApiAccess, jwt: true }
 			}
 		}
 		return { uid: undefined, accessType: 0x00, jwt: false }

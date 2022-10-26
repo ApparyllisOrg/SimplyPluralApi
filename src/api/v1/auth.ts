@@ -69,29 +69,40 @@ export const refreshToken = async (req: Request, res: Response) => {
 	}
 
 	const validResult = await isJwtValid(req.headers.authorization, true);
-	if (validResult.valid === true && validResult.decoded.refresh === true) {
-		const invalidatedToken = await getCollection("invalidJwtTokens").findOne({jwt: req.headers.authorization})
-		if (invalidatedToken) {
-			res.status(401).send("Invalid jwt")
-		} else {
-			const user = await getCollection("accounts").findOne({uid: validResult.decoded.uid})
-
-			// No first valid jwt means means all jwts issues from apparyllis are valid, as long as they're not expired
-			if (user.firstValidJWtTime && validResult.decoded.iat <= user.firstValidJWtTime)
-			{
+	if (validResult.valid === true ) {
+		if (validResult.google === false && validResult.decoded.refresh === true)
+		{
+			const invalidatedToken = await getCollection("invalidJwtTokens").findOne({jwt: req.headers.authorization})
+			if (invalidatedToken) {
 				res.status(401).send("Invalid jwt")
 				return;
+			} else {
+				const user = await getCollection("accounts").findOne({uid: validResult.decoded.sub!})
+
+				// No first valid jwt means means all jwts issues from apparyllis are valid, as long as they're not expired
+				if (user.firstValidJWtTime && validResult.decoded.iat <= user.firstValidJWtTime)
+				{
+					res.status(401).send("Invalid jwt")
+					return;
+				}
+
+				const newToken = jwtForUser(validResult.decoded.sub)
+				// Invalidate used refresh token
+				getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization})
+
+				res.status(200).send(newToken)
+				return;
 			}
-
-			const newToken = jwtForUser(validResult.decoded.uid)
-			// Invalidate used refresh token
-			getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization})
-
+		} 
+		else if (validResult.google === true)
+		{
+			const newToken = jwtForUser(validResult.decoded)
 			res.status(200).send(newToken)
+			return;
 		}
-	} else {
-		res.status(401).send("Invalid jwt")
-	}
+	} 
+	
+	res.status(401).send("Invalid jwt")
 }
 
 export const checkRefreshTokenValidity = async (req: Request, res: Response) => {

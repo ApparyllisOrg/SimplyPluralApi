@@ -8,7 +8,7 @@ import { setupNewUser } from "./user";
 import { updateUser } from "./user/updates/updateUser";
 
 export const get = async (req: Request, res: Response) => {
-	const privateDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) })
+	const privateDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id:res.locals.uid })
 	if (!privateDocument && req.params.id === res.locals.uid) {
 		await getCollection("private").insertOne({ uid: res.locals.uid, _id: res.locals.uid, termsOfServicesAccepted: false }).catch((e) => {
 
@@ -19,7 +19,7 @@ export const get = async (req: Request, res: Response) => {
 }
 
 export const update = async (req: Request, res: Response) => {
-	const previousDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) })
+	const previousDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: res.locals.uid })
 	if (previousDocument) {
 		if (previousDocument.latestVersion && previousDocument.latestVersion < req.body.latestVersion) {
 			await updateUser(previousDocument.latestVersion, req.body.latestVersion, res.locals.uid)
