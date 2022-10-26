@@ -8,7 +8,7 @@
 		"start:watch": "ts-node-dev --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config --inspect",
 		"build": "tsc",
 		"lint": "eslint src/**/**/*",
-		"test": "mocha --require ts-node/register 'src/tests/**/*.ts' --delay -r dotenv/config --exit --nologs --verbose --DEVELOPMENT=false",
+		"test": "mocha --require ts-node/register 'src/tests/**/*.ts' --delay -r dotenv/config --exit --nologs --verbose --DEVELOPMENT=false --JWT_KEY=J2JaTklLcjhOQykhdCM9YG9LUU8ycHlLL0soOX0xeSN2RTUgNHU1SDYsZ19vTQ==",
 		"test:watch": "mocha --require ts-node/register 'src/tests/**/*.ts' --watch --watch-files 'src/tests/**/*.ts' --delay -r dotenv/config --exit --nologs --verbose --DEVELOPMENT=false"
 	},
 	"dependencies": {
