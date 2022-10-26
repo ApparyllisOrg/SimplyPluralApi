@@ -119,7 +119,7 @@ export const resetPassword = async (req: Request, res: Response) =>
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Changed your password", req.ip)
-
+    
 		const newToken = jwtForUser(result.uid)
 		res.status(200).send(newToken)
 	} 
@@ -133,7 +133,7 @@ export const changeEmail = async (req: Request, res: Response) =>
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Changed email from " + req.body.oldEmail + " to " + req.body.newEmail, req.ip)
-		
+    
 		const newToken = jwtForUser(result.uid)
 		res.status(200).send(newToken)
 	} 
