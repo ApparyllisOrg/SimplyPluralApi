@@ -77,7 +77,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 			const user = await getCollection("accounts").findOne({uid: validResult.decoded.uid})
 
 			// No first valid jwt means means all jwts issues from apparyllis are valid, as long as they're not expired
-			if (user.firstValidJWtTime && validResult.decoded.iat < user.firstValidJWtTime)
+			if (user.firstValidJWtTime && validResult.decoded.iat <= user.firstValidJWtTime)
 			{
 				res.status(401).send("Invalid jwt")
 				return;
@@ -119,7 +119,9 @@ export const resetPassword = async (req: Request, res: Response) =>
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Changed your password", req.ip)
-		res.status(200).send("Password changed successfully!")
+    
+		const newToken = jwtForUser(result.uid)
+		res.status(200).send(newToken)
 	} 
 
 	res.status(401).send(result.msg)
@@ -131,7 +133,9 @@ export const changeEmail = async (req: Request, res: Response) =>
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Changed email from " + req.body.oldEmail + " to " + req.body.newEmail, req.ip)
-		res.status(200).send("Email changed successfully!")
+    
+		const newToken = jwtForUser(result.uid)
+		res.status(200).send(newToken)
 	} 
 
 	res.status(401).send(result.msg)
@@ -143,8 +147,9 @@ export const changePassword = async (req: Request, res: Response) =>
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Changed password", req.ip)
-		// TODO: Send new refresh token
-		res.status(200).send("Password changed successfully!")
+
+		const newToken = jwtForUser(result.uid)
+		res.status(200).send(newToken)
 		return;
 	} 
 

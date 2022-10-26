@@ -1,5 +1,7 @@
 import { randomBytes } from "crypto";
+import moment from "moment";
 import { getCollection } from "../../../modules/mongo";
+import { getUserConnections } from "../../../modules/socket";
 
 //-------------------------------//
 // Get a new valid uid that can be used for a user
@@ -14,4 +16,15 @@ export const getNewUid = async () => {
 	}
 
 	return randomUid;
+}
+
+//-------------------------------//
+// Revokes all user access
+//-------------------------------//
+export const revokeAllUserAccess = async (uid: string) => 
+{
+	// Division by 1000 because iat is in seconds, not milliseconds
+	await getCollection("accounts").updateOne({uid}, {$set: { firstValidJWtTime: moment.now() / 1000 }})
+
+	getUserConnections(uid).forEach((connection) => connection.send("Session invalidated", true))
 }

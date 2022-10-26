@@ -6,6 +6,8 @@ import { mailerTransport } from "../../../modules/mail";
 import { getCollection } from "../../../modules/mongo";
 import { hash } from "./auth.hash";
 import { base64decodeJwt } from "./auth.jwt";
+import moment from "moment";
+import { revokeAllUserAccess } from "./auth.core";
 
 //-------------------------------//
 // Change password
@@ -25,8 +27,10 @@ export const changeEmail_Execution = async (oldEmail: string, password: string, 
 		if (timingSafeEqual(bGeneratedHash, knownHash)) {
 
 			// Invalidate verified email
-			await getCollection("accounts").updateOne({uid: user.uid}, {$set: { email: newEmail, verified: false}})
-
+			await getCollection("accounts").updateOne({uid: user.uid}, {$set: { email: newEmail, verified: false }})
+			
+			revokeAllUserAccess(user.uid)
+			
 			{
 				const getFile = promisify(readFile);
 				let emailTemplate = await getFile("./templates/emailChanged.html", "utf-8");

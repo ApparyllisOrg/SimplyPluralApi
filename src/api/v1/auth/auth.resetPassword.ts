@@ -8,6 +8,7 @@ import * as Sentry from "@sentry/node";
 import { auth } from "firebase-admin";
 import { assert } from "console";
 import { hash } from "./auth.hash";
+import { revokeAllUserAccess } from "./auth.core";
 
 //-------------------------------//
 // Generate a new random reset password key
@@ -90,6 +91,8 @@ export const resetPassword_Exection = async (resetKey : string, newPassword: str
 		const salt = randomBytes(16).toString("hex")
 		const hashedPasswd = await hash(newPassword, salt)
 		await getCollection("accounts").updateOne({uid: user.uid}, { $set: { password: hashedPasswd.hashed, salt: salt },  $unset: { resetKey: "" } })
+
+		revokeAllUserAccess(user.uid)
 
 		return {success:true, msg:"", uid: user.uid}
 	}

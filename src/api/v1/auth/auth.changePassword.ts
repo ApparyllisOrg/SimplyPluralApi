@@ -4,6 +4,7 @@ import moment from "moment";
 import { promisify } from "util";
 import { mailerTransport } from "../../../modules/mail";
 import { getCollection } from "../../../modules/mongo";
+import { revokeAllUserAccess } from "./auth.core";
 import { hash } from "./auth.hash";
 import { base64decodeJwt } from "./auth.jwt";
 
@@ -32,8 +33,7 @@ export const changePassword_Execution = async (uid: string, oldPassword: string,
 			return {success: false, msg:"Unknown user or password", uid: ""}
 		}
 
-		// Revoke all refresh tokens
-		getCollection("accounts").updateOne({uid}, {$set: { firstValidJWtTime: moment.now() }})
+		revokeAllUserAccess(user.uid)
 
 		const newHashedPasswd = await hash(newPassword, user.salt)
 
