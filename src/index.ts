@@ -5,6 +5,12 @@ import { startCollectingUsage } from "./modules/usage";
 import admin, { ServiceAccount } from "firebase-admin";
 import * as fs from 'fs';
 import { initializeServer, startServer } from "./modules/server";
+import { namedArguments } from "./util/args";
+
+if (namedArguments.development === true)
+{
+	process.env.DEVELOPMENT = "true"
+}
 
 if (process.env.DEVELOPMENT === "true") {
 	console.log("Development mode")

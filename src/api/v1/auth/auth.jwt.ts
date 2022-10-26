@@ -1,8 +1,9 @@
 import { randomBytes } from "crypto";
 import * as jwt from "jsonwebtoken";
 import { getCollection } from "../../../modules/mongo"
+import { namedArguments } from "../../../util/args";
 
-const jwtKey = process.env.JWT_KEY ?? ""
+const jwtKey = process.env.JWT_KEY ?? (namedArguments.jwt_key ?? "")
 if (jwtKey.length === 0) throw new Error("JWT_KEY needs to be defined!")
 
 const thirtyDays = 60 * 60 * 24 * 30
