@@ -333,7 +333,7 @@ export const exportAvatars = async (req: Request, res: Response) => {
 
 	result.forEach((result) =>
 	{
-		zip.file(result.name, Buffer.concat(result.data));
+		zip.file(result.name + ".png", Buffer.concat(result.data));
 	})
 
 	logSecurityUserEvent(res.locals.uid, "Exported user avatars", req.ip)
