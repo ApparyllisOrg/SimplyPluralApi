@@ -337,18 +337,15 @@ export const exportAvatars = async (req: Request, res: Response) => {
 	})
 
 	logSecurityUserEvent(res.locals.uid, "Exported user avatars", req.ip)
-	
-	res.setHeader('content-type', 'application/zip')
-	res.setHeader('Content-Disposition', 'attachment');
 
 	res.status(200)
 
 	zip.generateAsync(({ type: 'nodebuffer' })).then((buffer) => {
-    let filename = `Avatars_${req.query.uid}.zip`;
-    // Send zip as a download
-    res.setHeader('Content-Type', 'application/octet-stream');
-    res.setHeader('Content-disposition', 'attachment; filename="' + filename + '"');
-    res.end(buffer);
+		let filename = `Avatars_${req.query.uid}.zip`;
+		// Send zip as a download
+		res.setHeader('Content-Type', 'application/octet-stream');
+		res.setHeader('Content-disposition', 'attachment; filename="' + filename + '"');
+		res.end(buffer);
    });
 };
 

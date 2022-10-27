@@ -127,7 +127,7 @@ const privateUser = await getCollection("private").findOne({uid})
 
 	if (resolution === "ERR")
 	{
-		return {success: true, code: 400, msg: 'Unable to deliver the data to your email. Does the email exist?'}
+		return {success: false, code: 400, msg: 'Unable to deliver the data to your email. Does the email exist?'}
 	}
 
 	getCollection("avatarExports").insertOne({uid, key: randomKey, exp: moment.now() + (1000 * 60 * 60 * 24 * 7)})

@@ -4,8 +4,8 @@ const minioClient = new minio.Client({
     endPoint: 'localhost',
     port: 9001,
 	useSSL: false,
-    accessKey: process.env.SPACES_KEY!,
-    secretKey: process.env.SPACES_SECRET!
+    accessKey: process.env.MINIO_KEY!,
+    secretKey: process.env.MINIO_SECRET!
 });
 
 //-------------------------------//
