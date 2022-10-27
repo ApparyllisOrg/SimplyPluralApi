@@ -19,6 +19,8 @@ import * as minio from "minio";
 import * as Sentry from "@sentry/node";
 import { ERR_FUNCTIONALITY_EXPECTED_VALID } from "../../modules/errors";
 import { createUser } from "./user/migrate";
+import { exportData, fetchAllAvatars } from "./user/export";
+import JSZip from "jszip";
 
 const minioClient = new minio.Client({
     endPoint: 'localhost',
@@ -300,71 +302,54 @@ export const deleteAccount = async (req: Request, res: Response) => {
 };
 
 export const exportUserData = async (_req: Request, res: Response) => {
-	const privateUser = await getCollection("private").findOne({uid: res.locals.uid})
-
-	if (!privateUser)
+	const result = await exportData(res.locals.uid)
+	if (!result.success)
 	{
-		res.status(404).send("Can't find user")
+		res.status(result.code).send(result.msg)
 		return;
-	}
-
-	const lastExport : number = privateUser.lastExport ?? 0;
-	if (moment(moment.now()).diff(moment(lastExport), "hours") < 24)
-	{
-		res.status(403).send({success:false, msg:'You already exported your data in the last 24 hours'})
-		return;
-	}
-
-	const collections = await db()!.listCollections().toArray();
-
-	let allData: { [key: string]: any } = {};
-
-	for (let i = 0; i < collections.length; ++i)
-	{	
-		const collection = collections[i];
-		const name: string = collection.name;
-		const split = name.split(".");
-		const actualName = split[split.length - 1];
-
-		const collectionData = await getCollection(actualName).find({ uid: res.locals.uid }).toArray();
-		allData[actualName] = collectionData;
 	}
 
 	const user = await auth().getUser(res.locals.uid)
-
 	const email = user.email ?? "";
 
-	const getFile = promisify(readFile);
-	let emailTemplate = await getFile("./templates/exportEmailTemplate.html", "utf-8");
+	await getCollection("private").updateOne({uid: res.locals.uid, _id: parseId(res.locals.uid)}, {$set: {lastExport : moment.now()}})
+	logSecurityUserEvent(res.locals.uid, "Exported user account", _req.ip)
 
-	const attachement : Mail.Attachment ={
-			filename: "export.json",
-			content: JSON.stringify(allData)
-		};
+	res.status(200).send({success:true});
+	userLog(res.locals.uid, `Exported user data and sent to ${email}.`);
+};
 
-	const resolution = await mailerTransport?.sendMail({
-		from: '"Apparyllis" <noreply@apparyllis.com>',
-		to: email,
-		subject: "Your requested data export",
-		html: emailTemplate,
-		attachments: [attachement]
-	}).catch((e) => {
-		console.log(e)
-		return "ERR";
+export const exportAvatars = async (req: Request, res: Response) => {
+	const requestedExport = await getCollection("avatarExports").findOne({uid: req.query.uid, key: req.query.key, exp: { $gte: moment.now() }})
+	if (!requestedExport)
+	{
+		res.status(400).send("Cannot find the requested export")
+		return
+	}
+
+	const result = await fetchAllAvatars(req.query.uid?.toString() ?? "")
+
+	const zip = new JSZip();
+
+	result.forEach((result) =>
+	{
+		zip.file(result.name, Buffer.concat(result.data));
 	})
 
-	if (resolution === "ERR")
-	{
-		res.status(500).send({success:false, msg:"Unable to deliver the data to your email. Does the email exist?"});
-	}
-	else
-	{
-		await getCollection("private").updateOne({uid: res.locals.uid, _id: parseId(res.locals.uid)}, {$set: {lastExport : moment.now()}})
-		logSecurityUserEvent(res.locals.uid, "Exported user account", _req.ip)
+	logSecurityUserEvent(res.locals.uid, "Exported user avatars", req.ip)
+	
+	res.setHeader('content-type', 'application/zip')
+	res.setHeader('Content-Disposition', 'attachment');
 
-		res.status(200).send({success:true});
-		userLog(res.locals.uid, `Exported user data and sent to ${email}.`);
-	}
+	res.status(200)
+
+	zip.generateAsync(({ type: 'nodebuffer' })).then((buffer) => {
+    let filename = `Avatars_${req.query.uid}.zip`;
+    // Send zip as a download
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-disposition', 'attachment; filename="' + filename + '"');
+    res.end(buffer);
+   });
 };
 
 export const setupNewUser = async (uid: string) => {
@@ -451,6 +436,21 @@ export const validateUsernameSchema = (body: any): { success: boolean, msg: stri
 		nullable: false,
 		additionalProperties: false,
 		required: ["username"]
+	};
+
+	return validateSchema(schema, body);
+}
+
+export const validateExportAvatarsSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			key: { type: "string", pattern: "^[a-zA-Z0-9-_]{128}$" },
+			uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
+		},
+		nullable: false,
+		additionalProperties: false,
+		required: ["key", "uid"]
 	};
 
 	return validateSchema(schema, body);

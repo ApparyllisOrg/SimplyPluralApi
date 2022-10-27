@@ -55,6 +55,7 @@
 		"google-auth-library": "^8.5.1",
 		"helmet": "^5.1.0",
 		"jsonwebtoken": "^8.5.1",
+		"jszip": "^3.10.1",
 		"lru-cache": "^7.10.1",
 		"markdown-it": "^13.0.1",
 		"minio": "^7.0.28",
