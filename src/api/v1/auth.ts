@@ -83,28 +83,23 @@ export const refreshToken = async (req: Request, res: Response) => {
 	}
 
 	const validResult = await isJwtValid(req.headers.authorization, true);
+
 	if (validResult.valid === true ) {
 		if (validResult.google === false && validResult.decoded.refresh === true)
 		{
-			const invalidatedToken = await getCollection("invalidJwtTokens").findOne({jwt: req.headers.authorization})
-			if (invalidatedToken) {
-				res.status(401).send("Invalid jwt")
-				return;
-			} else {
-				const isSuspended = await isUserSuspended(validResult.decoded.sub)
-				if (isSuspended)
-				{
-					res.status(401).send("Your account is suspended")
-					return;
-				}
-
-				const newToken = jwtForUser(validResult.decoded.sub)
-				// Invalidate used refresh token
-				getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization})
-
-				res.status(200).send(newToken)
+			const isSuspended = await isUserSuspended(validResult.decoded.sub)
+			if (isSuspended)
+			{
+				res.status(401).send("Your account is suspended")
 				return;
 			}
+
+			const newToken = jwtForUser(validResult.decoded.sub)
+			// Invalidate used refresh token
+			getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization})
+
+			res.status(200).send(newToken)
+			return;
 		} 
 		else if (validResult.google === true)
 		{

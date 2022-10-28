@@ -41,7 +41,7 @@ const isJwtValidIssueTime = async (uid: string, time: number) : Promise<boolean>
 		return true;
 	}
 
-	return false;
+	return true;
 }
 
 //-------------------------------//
@@ -84,6 +84,7 @@ export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean) : Promis
 				const invalidatedToken = await getCollection("invalidJwtTokens").findOne({jwt: jwtStr})
 				if (invalidatedToken) {
 					resolve({valid: false, decoded: "", google: false});
+					return
 				} else {
 					const result = await isJwtValidIssueTime(payload.sub!, payload.iat!)
 					if (!result)

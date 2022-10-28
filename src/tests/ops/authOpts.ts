@@ -62,7 +62,7 @@ describe("validate authentication flow", () => {
 		// We need to sleep so that the jwt's from register and refresh won't be the same if iss and exp are identical for register and refresh
 		await sleep(2000)
 
-		const successResult = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: refreshToken} })
+		const successResult = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: refreshToken} }).catch((reason) => { return reason.response })
 		assert(successResult.status == 200, "Refreshing with a refresh token should be functional")
 
 		assert(successResult.data.access)
@@ -74,7 +74,7 @@ describe("validate authentication flow", () => {
 		const failResult2 = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: accessToken} }).catch((reason) => { return reason.response })
 		assert(failResult2.status == 401, "Refreshing with a refresh token that was previously used, is illegal!")
 
-		const successResult2 = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: successResult.data.refresh} })
+		const successResult2 = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: successResult.data.refresh} }).catch((reason) => { return reason.response })
 		assert(successResult2.status == 200, "Refreshing with the newly refresh token should be functional")
 	}).timeout(4000);
 
