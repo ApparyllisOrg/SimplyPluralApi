@@ -12,7 +12,7 @@ import { auth } from "firebase-admin";
 import { resetPassword_Exection, resetPasswordRequest_Execution } from "./auth/auth.resetPassword";
 import { changeEmail_Execution } from "./auth/auth.changeEmail";
 import { changePassword_Execution } from "./auth/auth.changePassword";
-import { logSecurityUserEvent } from "../../security";
+import { isUserSuspended, logSecurityUserEvent } from "../../security";
 
 export const login = async (req: Request, res: Response) => {
 	const user = await getCollection("accounts").findOne({email: req.body.email})
@@ -32,6 +32,13 @@ export const login = async (req: Request, res: Response) => {
 	}
 
 	if (timingSafeEqual(bGeneratedHash, knownHash)) {
+		const isSuspended = await isUserSuspended(user.uid)
+		if (isSuspended)
+		{
+			res.status(401).send("Your account is suspended")
+			return;
+		}
+
 		res.status(200).send(jwtForUser(user.uid));
 		logSecurityUserEvent(user.uid, "Logged in ", req.ip)
 	} else {
@@ -43,6 +50,13 @@ export const loginGoogle = async (req: Request, res: Response) => {
 	const result = await loginWithGoogle(req.body.credential, false);
 	if (result.success === true)
 	{
+		const isSuspended = await isUserSuspended(result.uid)
+		if (isSuspended)
+		{
+			res.status(401).send("Your account is suspended")
+			return;
+		}
+
 		logSecurityUserEvent(result.uid, "Logged in", req.ip)
 		return res.status(200).send(jwtForUser(result.uid));
 	}
@@ -77,12 +91,10 @@ export const refreshToken = async (req: Request, res: Response) => {
 				res.status(401).send("Invalid jwt")
 				return;
 			} else {
-				const user = await getCollection("accounts").findOne({uid: validResult.decoded.sub!})
-
-				// No first valid jwt means means all jwts issues from apparyllis are valid, as long as they're not expired
-				if (user.firstValidJWtTime && validResult.decoded.iat <= user.firstValidJWtTime)
+				const isSuspended = await isUserSuspended(validResult.decoded.sub)
+				if (isSuspended)
 				{
-					res.status(401).send("Invalid jwt")
+					res.status(401).send("Your account is suspended")
 					return;
 				}
 
@@ -146,8 +158,18 @@ export const resetPassword = async (req: Request, res: Response) =>
 	{
 		logSecurityUserEvent(result.uid, "Changed your password", req.ip)
     
-		const newToken = jwtForUser(result.uid)
-		res.status(200).send(newToken)
+		const isSuspended = await isUserSuspended(result.uid)
+		if (isSuspended)
+		{
+			res.status(200).send("Password changed, but your account is suspended so you will not be able to login")
+			return;
+		}
+		else 
+		{
+			const newToken = jwtForUser(result.uid)
+			res.status(200).send(newToken)
+			return;
+		}
 	} 
 
 	res.status(401).send(result.msg)
@@ -160,8 +182,18 @@ export const changeEmail = async (req: Request, res: Response) =>
 	{
 		logSecurityUserEvent(result.uid, "Changed email from " + req.body.oldEmail + " to " + req.body.newEmail, req.ip)
     
-		const newToken = jwtForUser(result.uid)
-		res.status(200).send(newToken)
+		const isSuspended = await isUserSuspended(result.uid)
+		if (isSuspended)
+		{
+			res.status(200).send("Email changed, but your account is suspended so you will not be able to login")
+			return;
+		}
+		else 
+		{
+			const newToken = jwtForUser(result.uid)
+			res.status(200).send(newToken)
+			return
+		}
 	} 
 
 	res.status(401).send(result.msg)
@@ -174,9 +206,18 @@ export const changePassword = async (req: Request, res: Response) =>
 	{
 		logSecurityUserEvent(result.uid, "Changed password", req.ip)
 
-		const newToken = jwtForUser(result.uid)
-		res.status(200).send(newToken)
-		return;
+		const isSuspended = await isUserSuspended(result.uid)
+		if (isSuspended)
+		{
+			res.status(200).send("Password changed, but your account is suspended so you will not be able to login")
+			return;
+		}
+		else 
+		{
+			const newToken = jwtForUser(result.uid)
+			res.status(200).send(newToken)
+			return;
+		}
 	} 
 
 	res.status(401).send("Failed to change password")

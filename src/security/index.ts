@@ -2,6 +2,7 @@ import * as Mongo from "../modules/mongo";
 import LRU from "lru-cache";
 import { getCollection } from "../modules/mongo";
 import moment from "moment";
+import { auth } from "firebase-admin";
 const users = "users";
 const groups = "groups";
 const members = "members";
@@ -99,4 +100,31 @@ export const canAccessDocument = async (requestor: string, owner: string, privat
 export const logSecurityUserEvent = async (uid: string, action: string, ip: string) =>
 {
 	await getCollection("securityLogs").insertOne({uid: uid, at: moment.now(), action, ip})
+}
+
+export const isUserSuspended = async (uid: string) => 
+{
+	const result = await getCollection("accounts").findOne({uid})
+	return result && result.suspended === true;
+}
+
+export const isUserVerified = async (uid: string) => 
+{
+	const result = await getCollection("accounts").findOne({uid})
+	if (result && result.verified === true || result.oAuth2 === true)
+	{
+		return true;
+	} 
+	else 
+	{
+		const firebaseUser = await auth().getUser(uid)
+
+		// oAuth2 is always verified
+		if (firebaseUser && firebaseUser.emailVerified === true || firebaseUser.providerData.length > 0)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }

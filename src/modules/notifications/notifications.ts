@@ -4,6 +4,7 @@ import promclient from "prom-client"
 import { messaging } from "firebase-admin";
 import moment from "moment";
 import { notify as socketNotify } from "../../modules/socket";
+import { isUserSuspended } from "../../security";
 
 export interface Notification 
 {
@@ -69,6 +70,14 @@ const sendNotification = async (notification: Notification) =>
 
 
 export const notifyUser = async (instigator: string, target: string, title: string, message: string, lifetime?: number | undefined) => {
+
+	// Don't send notifications to users who are suspended
+	const isSuspended = await isUserSuspended(target)
+	if (isSuspended)
+	{
+		return;
+	}
+	
 	socketNotify(target, title, message);
 
 	if (message.length > 1000)

@@ -1,4 +1,5 @@
 import WebSocket from "ws";
+import { isUserSuspended } from "../../security";
 import { validateToken } from "../../security/auth";
 import { userLog } from "../logger";
 
@@ -37,7 +38,15 @@ export default class Connection {
 		const resolvedToken = await validateToken(token);
 
 		if (resolvedToken.accessType == 0)
+		{
 			return this.send({ msg: "Authentication violation: Token is missing or invalid. Goodbye :)" }, true);
+		}
+
+		const isSuspended = await isUserSuspended(resolvedToken.uid!)
+		if (isSuspended)
+		{
+			return this.send({ msg: "Authentication violation: Your account is suspended" }, true);
+		}
 
 		this.uid = resolvedToken.uid;
 		this.send({ msg: "Successfully authenticated", resolvedToken });
