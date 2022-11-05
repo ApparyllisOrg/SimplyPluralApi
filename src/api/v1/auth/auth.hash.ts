@@ -2,14 +2,20 @@ import { createCipheriv, scrypt } from "crypto";
 import { base64decodeJwt } from "./auth.jwt";
 import * as Sentry from "@sentry/node";
 
+const PASSWORD_KEY = process.env.PASSWORD_KEY ?? ""
+const PASSWORD_SEPERATOR = process.env.PASSWORD_SEPERATOR ?? ""
+
+if (PASSWORD_KEY.length === 0) throw new Error("PASSWORD_KEY needs to be defined!")
+if (PASSWORD_SEPERATOR.length === 0) throw new Error("PASSWORD_SEPERATOR needs to be defined!")
+
 //-------------------------------//
 // Static password hash paremeters
 //-------------------------------//
 const passwordHash = {
  hash: {
    algorithm: 'SCRYPT',
-   key: 'placeholder-base64key-eGpvaXpYZHQ1LD0sKG94Pykwe3FjTS0=', //TODO: Change to env variable
-   saltSeparator: 'placeholder-base64seperator-eGpvaXpYZHQ1LD0sKG94Pykwe3FjTS0=', //TODO: Change to env variable
+   key: PASSWORD_KEY,
+   saltSeparator:PASSWORD_SEPERATOR, 
    rounds: 8,
    memoryCost: 14
  }

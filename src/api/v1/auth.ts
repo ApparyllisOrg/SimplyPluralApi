@@ -55,7 +55,7 @@ export const login = async (req: Request, res: Response) => {
 			return;
 		}
 
-		const jwt = await jwtForUser(user.uid);
+		const jwt = await jwtForUser(user.uid, undefined, undefined);
 		res.status(200).send(jwt);
 		logSecurityUserEvent(user.uid, "Logged in ", req.ip)
 	} else {
@@ -75,7 +75,7 @@ export const loginGoogle = async (req: Request, res: Response) => {
 		}
 
 		logSecurityUserEvent(result.uid, "Logged in", req.ip)
-		const jwt = await jwtForUser(result.uid);
+		const jwt = await jwtForUser(result.uid, undefined, undefined);
 		return res.status(200).send(jwt);
 	}
 
@@ -87,7 +87,7 @@ export const registerGoogle = async (req: Request, res: Response) => {
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Registers", req.ip)
-		const jwt = await jwtForUser(result.uid);
+		const jwt = await jwtForUser(result.uid, undefined, undefined);
 		return res.status(200).send(jwt);
 	}
 
@@ -115,7 +115,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 
 			const user = await getCollection("accounts").findOne({uid: validResult.decoded.sub})
 
-			const newToken = await jwtForUser(validResult.decoded.sub)
+			const newToken = await jwtForUser(validResult.decoded.sub, user.email, true)
 			// Invalidate used refresh token
 			getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization})
 
@@ -125,7 +125,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 		else if (validResult.google === true)
 		{
 			const user = await getCollection("accounts").findOne({uid: validResult.decoded})
-			const newToken = await jwtForUser(validResult.decoded)
+			const newToken = await jwtForUser(validResult.decoded, validResult.email, true)
 			res.status(200).send(newToken)
 			return;
 		}
@@ -184,7 +184,7 @@ export const resetPassword = async (req: Request, res: Response) =>
 		else 
 		{
 			const user = await getCollection("accounts").findOne({uid: result.uid})
-			const newToken = await jwtForUser(result.uid)
+			const newToken = await jwtForUser(result.uid, undefined, undefined)
 			res.status(200).send(newToken)
 			return;
 		}
@@ -208,7 +208,7 @@ export const changeEmail = async (req: Request, res: Response) =>
 		}
 		else 
 		{
-			const newToken = await jwtForUser(result.uid)
+			const newToken = await jwtForUser(result.uid, undefined, undefined)
 			res.status(200).send(newToken)
 			return
 		}
@@ -233,7 +233,7 @@ export const changePassword = async (req: Request, res: Response) =>
 		else 
 		{
 			const user = await getCollection("accounts").findOne({uid: result.uid})
-			const newToken = await jwtForUser(result.uid)
+			const newToken = await jwtForUser(result.uid, undefined, undefined)
 			res.status(200).send(newToken)
 			return;
 		}
@@ -255,7 +255,7 @@ export const register = async (req: Request, res: Response) => {
 	const hashedPasswd = await hash(req.body.password, salt)
 	const verificationCode = getConfirmationKey()
 	await getCollection("accounts").insertOne({uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode, verified: false, registeredAt: moment.now()});
-	const jwt = await jwtForUser(newUserId);
+	const jwt = await jwtForUser(newUserId, undefined, undefined);
 	res.status(200).send(jwt)
 
 	logSecurityUserEvent(newUserId, "Registerd your user account", req.ip)
