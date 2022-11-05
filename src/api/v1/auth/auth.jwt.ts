@@ -21,11 +21,21 @@ export const base64decodeJwt = (encoded : string) => {
 //-------------------------------//
 // Generate a new JWT for user
 //-------------------------------//
-export const jwtForUser = async (uid: string) : Promise<{access: string, refresh: string}> => {
+export const jwtForUser = async (uid: string, fallbackEmail: string | undefined, fallbackVerified: boolean | undefined) : Promise<{access: string, refresh: string}> => {
 	const now = Date.now() / 1000
 	const user = await getCollection("accounts").findOne({uid})
-	const access = jwt.sign({sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + 30 * 60, verified: user.verified, email: user.email}, jwtKey);
-	const refresh = jwt.sign({sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + thirtyDays, refresh: true,verified: user.verified, email: user.email}, jwtKey);
+
+	const verified = user ? user.verified : fallbackVerified
+	const email = user ? user.email : fallbackEmail
+
+	if (verified === undefined)
+	throw "Unable to fetch verified for jwt"
+
+	if (email === undefined)
+	throw "Unable to fetch email for jwt"
+
+	const access = jwt.sign({sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + 30 * 60, verified, email}, jwtKey);
+	const refresh = jwt.sign({sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + thirtyDays, refresh: true, verified, email}, jwtKey);
 	return { access, refresh };
 }
 
@@ -48,8 +58,8 @@ const isJwtValidIssueTime = async (uid: string, time: number) : Promise<boolean>
 //-------------------------------//
 //  Validate JWT
 //-------------------------------//
-export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean) : Promise<{valid : boolean, decoded: any, google: boolean}> => {
-	return new Promise<{valid : boolean, decoded: any, google: boolean}>((resolve, reject) => { 
+export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean) : Promise<{valid : boolean, decoded: any, google: boolean, email: string}> => {
+	return new Promise<{valid : boolean, decoded: any, google: boolean, email: string}>((resolve, reject) => { 
 		jwt.verify(jwtStr, jwtKey, async function(err, decoded) {
 			let payload = decoded as jwt.JwtPayload
 			if (err || !decoded) {
@@ -60,54 +70,52 @@ export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean) : Promis
 					const existingUser = await getCollection("accounts").findOne({uid: result.uid})
 					if (existingUser)
 					{
-						resolve({valid: false, decoded: "", google: true})
+						resolve({valid: false, decoded: "", google: true, email: existingUser.email})
 						return;
 					}
 
 					// Google JWTs are always refresh tokens
-					resolve({valid: true, decoded: result.uid, google: true})
+					resolve({valid: true, decoded: result.uid, google: true, email: result.email!})
 					return
 				}
 				else 
 				{
-					resolve({valid: false, decoded: "", google: false});
+					resolve({valid: false, decoded: "", google: false, email: ""});
 				}
 			} else if (payload) {
 				if (payload.iss !== "Apparyllis")
 				{
-					resolve({valid: false, decoded: "", google: false});
+					resolve({valid: false, decoded: "", google: false, email: ""});
 					return;
 				}
 
 				if (wantsRefresh === true)
 				{		
-
-				const invalidatedToken = await getCollection("invalidJwtTokens").findOne({jwt: jwtStr})
-				if (invalidatedToken) {
-					resolve({valid: false, decoded: "", google: false});
-					return
-				} else {
-					const result = await isJwtValidIssueTime(payload.sub!, payload.iat!)
-					if (!result)
-					{
-						resolve({valid: false, decoded: "", google: false});
-						return;
+					const invalidatedToken = await getCollection("invalidJwtTokens").findOne({jwt: jwtStr})
+					if (invalidatedToken) {
+						resolve({valid: false, decoded: "", google: false, email: ""});
+						return
+					} else {
+						const result = await isJwtValidIssueTime(payload.sub!, payload.iat!)
+						if (!result)
+						{
+							resolve({valid: false, decoded: "", google: false, email: ""});
+							return;
+						}
 					}
-				}
 
-				if (payload["refresh"] === true)
-				{
-					resolve({valid: true, decoded: decoded, google: false});
-				} else {
-					resolve({valid: false, decoded: "", google: false});
-				}
-					
+					if (payload["refresh"] === true)
+					{
+						resolve({valid: true, decoded: decoded, google: false, email: payload.email ?? ""});
+					} else {
+						resolve({valid: false, decoded: "", google: false, email: ""});
+					}
 				} else  {
 					if (!payload["refresh"])
 					{
-						resolve({valid: true, decoded: decoded, google: false});
+						resolve({valid: true, decoded: decoded, google: false, email: payload.email ?? ""});
 					} else {
-						resolve({valid: false, decoded: "", google: false});
+						resolve({valid: false, decoded: "", google: false, email: ""});
 					}
 				}
 			}

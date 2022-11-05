@@ -1,10 +1,10 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import mongoUnit from "mongo-unit"
 import { initializeServer, startServer, stopServer } from "../modules/server";
-import dotenv from "dotenv";
 import { assignApiKey, generateNewApiKey } from "../modules/api/keys";
 import { setTestToken } from "./utils";
-
-dotenv.config();
 
 process.env.UNITTEST = "true";
 
