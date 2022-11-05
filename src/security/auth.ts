@@ -4,7 +4,8 @@ import { Request, Response } from "express";
 import { FullApiAccess, validateApiKey } from "../modules/api/keys";
 import { logSecurity } from "../modules/logger";
 import { logUserUsage } from "../modules/usage";
-import { validateParams } from "../util/validation";
+import { validateParams, validatePostId } from "../util/validation";
+import { isJwtValid } from "../api/v1/auth/auth.jwt";
 
 export const validateToken = async (tokenStr: string): Promise<{ uid: string | undefined, accessType: number, jwt: boolean }> => {
 	if (tokenStr == null)
@@ -19,6 +20,14 @@ export const validateToken = async (tokenStr: string): Promise<{ uid: string | u
 		if (result.valid === true)
 		{
 			return { uid: result.uid, accessType: result.accessType, jwt: false }
+		} 
+		else 
+		{
+			const jwtResult = await isJwtValid(tokenStr, false)
+			if (jwtResult.valid === true)
+			{
+				return { uid: jwtResult.decoded.uid ?? jwtResult.decoded.sub, accessType: FullApiAccess, jwt: true }
+			}
 		}
 		return { uid: undefined, accessType: 0x00, jwt: false }
 	}
@@ -66,6 +75,8 @@ export const isUserAuthenticated = function (accessRequested: number): authMiddl
 		{
 			return 
 		}
+
+		validatePostId(req, res);
 
 		next();
 

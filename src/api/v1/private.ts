@@ -8,7 +8,7 @@ import { setupNewUser } from "./user";
 import { updateUser } from "./user/updates/updateUser";
 
 export const get = async (req: Request, res: Response) => {
-	const privateDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) })
+	const privateDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id:res.locals.uid })
 	if (!privateDocument && req.params.id === res.locals.uid) {
 		await getCollection("private").insertOne({ uid: res.locals.uid, _id: res.locals.uid, termsOfServicesAccepted: false }).catch((e) => {
 
@@ -19,12 +19,45 @@ export const get = async (req: Request, res: Response) => {
 }
 
 export const update = async (req: Request, res: Response) => {
-	const previousDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) })
+	const previousDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: res.locals.uid })
 	if (previousDocument) {
 		if (previousDocument.latestVersion && previousDocument.latestVersion < req.body.latestVersion) {
 			await updateUser(previousDocument.latestVersion, req.body.latestVersion, res.locals.uid)
 			userLog(res.locals.uid, `Updated user account to version ${req.body.latestVersion}`)
 		}
+
+		if (req.body.categories)
+		{
+			const expectedCategories = await getCollection("channelCategories").find({uid: res.locals.uid}).toArray()
+
+			let categories : string[] = req.body.categories
+			for (let i = categories.length - 1; i >= 0; --i)
+			{
+				const category = categories[i];
+				const categoryDoc = expectedCategories.findIndex((value) => value._id == parseId(category))
+				if (!categoryDoc)
+				{
+					 categories.splice(i, 1)
+				}
+			}
+
+			let allCategoriesPresent = true;
+			expectedCategories.forEach((category) => {
+				if (categories.findIndex(((value) => value == category._id.toString())) == -1)
+				{
+					allCategoriesPresent = false;
+				}
+			})
+
+			if (!allCategoriesPresent)
+			{
+				res.status(400).send("Categories requires all existing categories to be part of the ordered array")
+				return;
+			}
+
+			req.body.categories = categories
+		}
+
 		updateSimpleDocument(req, res, "private")
 	}
 	else {
@@ -43,7 +76,7 @@ export const validatePrivateSchema = (body: any): { success: boolean, msg: strin
 			location: { type: "string" },
 			termsOfServiceAccepted: { type: "boolean", enum: [true] },
 			whatsNew: { type: "number" },
-			categories: { type: "array",  items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }}
+			categories: { type: "array",  items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true}
 		},
 		nullable: false,
 		additionalProperties: false,

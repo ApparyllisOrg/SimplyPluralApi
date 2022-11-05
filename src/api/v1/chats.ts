@@ -1,13 +1,32 @@
-import { Request, Response } from "express";
+import e, { Request, Response } from "express";
 import moment from "moment";
 import { ObjectID } from "mongodb";
+import * as Sentry from "@sentry/node";
 import { getCollection, parseId } from "../../modules/mongo";
 import { documentObject } from "../../modules/mongo/baseTypes";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 export const getChannelHistory = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "chatMessages", { channel: req.params.id });
+	const query : any = { channel: req.params.id };
+
+	if (req.query.skipTo?.toString() && req.query.sortOrder?.toString())
+	{
+		const sortOrder = req.query.sortOrder?.toString();
+		if (sortOrder === "-1") {
+			query["_id"] = { $lt: parseId(req.query.skipTo?.toString()) }
+		} 
+		else if (sortOrder === "1") {
+			query["_id"] = { $gt: parseId(req.query.skipTo?.toString()) }
+		} 
+		else {
+			Sentry.captureMessage("Invalid sort order found!")
+			res.status(500).send();
+		}
+		
+	}
+
+	fetchCollection(req, res, "chatMessages", query);
 }
 
 export const getChannel = async (req: Request, res: Response) => {
@@ -19,22 +38,7 @@ export const getChannels = async (req: Request, res: Response) => {
 }
 
 export const addChannel = async (req: Request, res: Response) => {
-	const category = await getCollection("channelCategories").findOne({uid: res.locals.uid, _id: parseId(req.body.category)});
-	if (!category)
-	{
-		res.status(400).send("Can't find category to add the channel to!")
-		return 
-	}
-
-	const categoryId = req.body.category
-	delete req.body.category;
-
 	await addSimpleDocument(req, res, "channels");
-
-	const channels = category.channels ?? [];
-	channels.push(categoryId.toString())
-
-	await getCollection("channelCategories").updateOne({_id: parseId(categoryId)}, {$set: {channels: channels}})
 }
 
 export const updateChannel = async (req: Request, res: Response) => {
@@ -43,6 +47,9 @@ export const updateChannel = async (req: Request, res: Response) => {
 
 export const deleteChannel = async (req: Request, res: Response) => {
 	await getCollection("chatMessages").deleteMany({uid: res.locals.uid, channel: parseId(req.params.id)})
+
+	await getCollection("channelCategories").updateOne({uid: res.locals.uid}, { $pull: { channels: req.params.id.toString()}})
+
 	deleteSimpleDocument(req, res, "channels")
 }
 
@@ -54,21 +61,47 @@ export const getChannelCategories = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "channelCategories", {});
 }
 
+const verifyValidChannelsPayload = async (req: Request, res: Response) =>
+{
+	// TODO: Ensure a channel can only belong to one category
+
+	// Ensure all channels exist
+	if (req.body.channels)
+	{
+		const validChannels = await getCollection("channels").find({uid: res.locals.uid}).toArray()
+
+		let channels : string[] = req.body.channels
+
+		// Remove non-existing channels
+		for (let i = channels.length - 1; i >= 0; --i)
+		{
+			const channel = channels[i];
+			const channelDoc = validChannels.findIndex((value) => value._id.toString() === channel)
+			if (channelDoc == -1)
+			{
+				channels.splice(i, 1)
+			}
+		}
+
+		req.body.channels = channels
+	}
+}
+
 export const addChannelCategory = async (req: Request, res: Response) => {
 	const dataObj: documentObject = req.body;
 	dataObj._id = res.locals.useId ?? new ObjectID();
-	
+
+	await verifyValidChannelsPayload(req, res)
+
 	addSimpleDocument(req, res, "channelCategories");
 
-	const privateUser = await getCollection("private").findOne({uid: res.locals.uid, _id: res.locals.uid});
-	const categories = privateUser.categories ?? [];
-	categories.push(dataObj._id.toString())
-
 	// Insert the category at the end
-	await getCollection("private").updateOne({uid: res.locals.uid, _id: res.locals.uid}, {$set: {categories: categories}})
+	await getCollection("private").updateOne({uid: res.locals.uid, _id: res.locals.uid}, {$addToSet: {categories: dataObj._id.toString()}})
 }
 
-export const updateChannmelCategory = async (req: Request, res: Response) => {
+export const updateChannelCategory = async (req: Request, res: Response) => {
+	await verifyValidChannelsPayload(req, res)
+
 	updateSimpleDocument(req, res, "channelCategories")
 }
 
@@ -90,7 +123,7 @@ export const writeMessage = async (req: Request, res: Response) => {
 		req.body.writtenAt = moment.now();
 	}
 
-	const channel = await getCollection("channels").findOne({uid: res.locals.uid, _id: req.body.channel})
+	const channel = await getCollection("channels").findOne({uid: res.locals.uid, _id: parseId(req.body.channel)})
 	if (!channel)
 	{
 		await getCollection("undeliveredMessages").insertOne({uid: res.locals.uid, message: req.body, reason: "channel not found"})
@@ -135,14 +168,14 @@ export const deleteMessage = async (req: Request, res: Response) => {
 }
 
 export const validateWriteMessageSchema = (body: any): { success: boolean, msg: string } => {
-	const schema = {
+	const schema = {		
 		type: "object",
 		properties: {
 			message: { type: "string", maxLength: 2500, minLength: 1 },
-			channel: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" },
-			writer: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$"  },
+			channel: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
+			writer: { type: "string", pattern: "^[A-Za-z0-9]{5,50}$"  },
 			writtenAt: { type: "number" },
-			replyTo: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" },
+			replyTo: { type: "string", pattern: "^$|[A-Za-z0-9]{20,50}$" }
 		},
 		required: ["message", "channel", "writer", "writtenAt"],
 		nullable: false,
@@ -173,10 +206,9 @@ export const validateAddChannelschema = (body: any): { success: boolean, msg: st
 		properties: {
 			name: { type: "string", maxLength: 100, minLength: 1 },
 			desc: { type: "string",  maxLength: 2000 },
-			color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"},
-			category : { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" }
+			// color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"} Color is currently not supported
 		},
-		required: ["name", "desc", "category"],
+		required: ["name", "desc"],
 		nullable: false,
 		additionalProperties: false,
 	};
@@ -190,7 +222,7 @@ export const validateUpdateChannelschema = (body: any): { success: boolean, msg:
 		properties: {
 			name: { type: "string", maxLength: 100, minLength: 1 },
 			desc: { type: "string",  maxLength: 2000 },
-			color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"}
+			// color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"} Color is currently not supported
 		},
 		required: ["name", "desc"],
 		nullable: false,
@@ -206,9 +238,27 @@ export const validateChatCategorySchema = (body: any): { success: boolean, msg: 
 		properties: {
 			name: { type: "string", maxLength: 100, minLength: 1 },
 			desc: { type: "string",  maxLength: 2000 },
-			channels: { type: "array",  items: { type: "string", pattern: "^[A-Za-z0-9]{30,50}$" }}
+			channels: { type: "array",  items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true }
 		},
 		required: ["name", "desc"],
+		nullable: false,
+		additionalProperties: false,
+	};
+
+	return validateSchema(schema, body);
+}
+
+export const validateGetChannelHistorySchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			limit: { type: "string",  pattern: "^[1-9][0-9]?$|^100$"  },
+			skip: { type: "string",  pattern: "^[0-9]{1,}"  },
+			skipTo: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
+			sortOrder : { type: "string", pattern: "^-1$|^1$" },
+			sortBy: { type: "string", pattern: "^[A-Za-z0-9]{1,50}$" },
+		},
+		required: ["limit"],
 		nullable: false,
 		additionalProperties: false,
 	};

@@ -3,6 +3,8 @@ import { Request, Response } from "express";
 import { logger, userLog } from "../../modules/logger";
 import { validateSchema } from "../../util/validation";
 import * as minio from "minio";
+import { getCollection } from "../../modules/mongo";
+import { isUserVerified } from "../../security";
 
 const minioClient = new minio.Client({
     endPoint: 'localhost',
@@ -12,7 +14,14 @@ const minioClient = new minio.Client({
     secretKey: process.env.MINIO_SECRET!
 });
 
-export function Store(req: Request, res: Response) {
+export const Store = async (req: Request, res: Response) => {
+	const result = await isUserVerified(res.locals.uid)
+	if (result === false)
+	{
+		res.status(403).send("You need to verify your account to upload images");
+		return false;
+	}
+
 	const path = `avatars/${res.locals.uid}/${req.params.dashedid}`;
 
 	const buffer = Buffer.from(req.body["buffer"]);
@@ -40,7 +49,14 @@ export const validateStoreAvatarSchema = (body: any): { success: boolean, msg: s
 	return validateSchema(schema, body);
 }
 
-export function Delete(req: Request, res: Response) {
+export const Delete = async (req: Request, res: Response) => {
+	const result = await isUserVerified(res.locals.uid)
+	if (result === false)
+	{
+		res.status(403).send("You need to verify your account to delete images");
+		return false;
+	}
+
 	const path = `avatars/${res.locals.uid}/${req.params.dashedid}`;
 	minioClient.removeObject("spaces",path).then(() => 
 	{

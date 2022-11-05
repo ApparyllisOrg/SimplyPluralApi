@@ -1,6 +1,6 @@
 import moment from "moment-timezone";
-import { notifyUser } from "../../util";
 import { getCollection } from "../mongo";
+import { notifyUser } from "../notifications/notifications";
 
 const scheduleReminder = async (uid: string, data: any, userData: any) => {
 	const queuedEvents = getCollection("queuedEvents");
@@ -48,7 +48,7 @@ export const repeatRemindersEvent = async (uid: string) => {
 export const repeatRemindersDueEvent = async (uid: string, event: any) => {
 	const privateUserData = await getCollection("private").findOne({ uid: uid });
 	if (privateUserData) {
-		notifyUser(uid, "Reminder", event.message);
+		notifyUser(uid, uid, "Reminder", event.message);
 		const repeatReminders = getCollection("repeatedReminders");
 		const foundReminder = await repeatReminders.findOne({ uid: uid, _id: event.reminderId });
 		if (foundReminder) { // We can delete the timer

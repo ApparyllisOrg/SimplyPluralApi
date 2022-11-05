@@ -17,5 +17,5 @@ export const startMailTransport = async () => {
 		}
 	})
 
-	mailerTransport.verify().catch((e) => console.log(e))
+	mailerTransport.verify().catch((e) => console.log(e)).then((value) => console.log("SMTP connection live"))
 }

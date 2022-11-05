@@ -1,5 +1,5 @@
-import { notifyUser } from "../../util";
 import { getCollection, parseId } from "../mongo";
+import { notifyUser } from "../notifications/notifications";
 
 export const notifyOfFrontChange = async (uid: string, removed: boolean, memberId: string) => {
 
@@ -50,7 +50,7 @@ export const automatedRemindersDueEvent = async (uid: string, event: any) => {
 	const automatedReminders = getCollection("automatedReminders");
 	const foundReminder = await automatedReminders.findOne({ uid: uid, _id: event.reminderId });
 	if (foundReminder) { // We can delete the timer
-		notifyUser(uid, "Reminder", foundReminder.message);
+		notifyUser(uid, uid, "Reminder", foundReminder.message);
 	}
 };
 

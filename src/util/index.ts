@@ -9,8 +9,6 @@ import { dispatchDelete, notify as socketNotify, OperationType } from "../module
 import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
 import { parseForAllowedReadValues } from "../security/readRules";
 
-import promclient from "prom-client"
-
 export function transformResultForClientRead(value: documentObject, requestorUid: string) {
 
 	parseForAllowedReadValues(value, requestorUid);
@@ -22,93 +20,6 @@ export function transformResultForClientRead(value: documentObject, requestorUid
 		content: other,
 	};
 }
-
-const wait = (time: number): Promise<void> =>
-	new Promise<void>((res) => setTimeout(res, time));
-
-const counter  = new promclient.Counter({
-	name: 'apparyllis_api_notifs',
-	help: 'Counter for notifs sent'
-});
-
-const sendNotification = async (payload: {notification: {title: string, body: string}, data: {title: string, body: string}, token: string, }, uid: string) =>
-{
-	counter.inc()
-
-	const privateCollection = Mongo.getCollection("private");
-	
-	const sendPayload = {...payload, apns:  {headers: {	"apns-expiration": "216000"}}}
-	messaging()
-		.send(sendPayload)
-		.catch(async (error) => {
-			if (error.code === "messaging/registration-token-not-registered") {
-				const tokenToRemove = payload.token;
-				privateCollection.updateOne({ uid: uid }, { $pull: { notificationToken: { tokenToRemove } } });
-			} else if (error.code === "app/network-timeout" || error.code === "messaging/server-unavailable") {
-
-				// Retry sending when it timed out
-				await wait(1000);
-				sendNotification(payload, uid)
-				
-			} else if (error.code === "messaging/invalid-argument") {
-				Sentry.captureMessage("Error during notification: " + error + " " + JSON.stringify(payload));
-			} else if (error.code !== "messaging/internal-error") {
-				Sentry.captureMessage("Error during notification: " + error);
-			}
-		});
-}
-
-export const notifyUser = async (uid: string, title: string, message: string) => {
-	socketNotify(uid, title, message);
-
-	if (message.length > 1000)
-	{
-		message = message.substring(0, 999)
-	}
-
-	const privateCollection = Mongo.getCollection("private");
-	const privateFriendData = await privateCollection.findOne({ uid: uid });
-	if (privateFriendData) {
-		privateCollection.updateOne({ uid, _id: uid }, {
-			$push: {
-				notificationHistory: {
-					$each: [
-						{
-							timestamp: Date.now(),
-							title,
-							message
-						}
-					],
-					$slice: -30
-				},
-			},
-		});
-
-		const token = privateFriendData["notificationToken"];
-		if (Array.isArray(token)) {
-			token.forEach((element) => {
-				const payload = {
-					notification: {
-						title: title,
-						body: message,
-					},
-					data: {
-						title: title,
-						body: message,
-					},
-					token: element,
-					apns: {
-						headers: {
-							"apns-expiration": "216000"
-						}
-					}
-				};
-
-				sendNotification(payload, uid)
-			});
-		}
-	}
-};
 
 export const getDocumentAccess = async (_req: Request, res: Response, document: documentObject, collection: string): Promise<{ access: boolean, statusCode: number, message: string }> => {
 	if (document.uid == res.locals.uid) {
@@ -239,7 +150,7 @@ export const fetchCollection = async (req: Request, res: Response, collection: s
 
 export const addSimpleDocument = async (req: Request, res: Response, collection: string) => {
 	const dataObj: documentObject = req.body;
-	dataObj._id = res.locals.useId ?? new ObjectID();
+	dataObj._id = parseId(res.locals.useId) ?? new ObjectID();
 	dataObj.uid = res.locals.uid;
 	dataObj.lastOperationTime = res.locals.operationTime;
 	const result = await Mongo.getCollection(collection).insertOne(dataObj).catch(() => {

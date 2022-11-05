@@ -143,6 +143,22 @@ export const validateGetQuery = (req: Request, res: Response, next: NextFunction
 	next();
 }
 
+export const validatePostId = async (req: Request, res: Response) => {
+	if (req.method === "POST") {
+		if (req.params.id && req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+			if (ObjectId.isValid(req.params.id)) {
+				res.locals.useId = new ObjectId(req.params.id);
+				return;
+			}
+		}
+		else if (!req.params.id) {
+			return;
+		}
+
+		res.status(400).send("Id does not resolve to a mongo id");
+	}
+}
+
 export const validateId = async (req: Request, res: Response, next: any) => {
 	if (req.params.id && req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
 		if (ObjectId.isValid(req.params.id)) {

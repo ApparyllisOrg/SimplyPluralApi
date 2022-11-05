@@ -3,7 +3,7 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Apparyllis - Your data</title>
+    <title>Apparyllis - Your user report</title>
     <style>
       /* -------------------------------------
           GLOBAL RESETS
@@ -331,7 +331,7 @@
     </style>
   </head>
   <body>
-    <span class="preheader">Your data has been exported</span>
+    <span class="preheader">Your Simply Plural Confirmation Link</span>
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="body">
       <tr>
         <td>&nbsp;</td>
@@ -348,9 +348,24 @@
                     <tr>
                       <td>
                         <p>Hello!</p>
-                        <p>As per your request, all your account data has been exported and attached to this email for you.</p>
-						            <p>If you wish to also have a copy of all your avatars, click <a href="{{export_avatar_url}}" target="_blank">here</a>. </p>
-                        <p>The link to download your avatars is valid for 7 days.</p>
+                        <p>Here is your confirmation link to verify your account on Simply Plural.</p>
+                        <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="btn btn-primary">
+                          <tbody>
+                            <tr>
+                              <td align="left">
+                                <table role="presentation" border="0" cellpadding="0" cellspacing="0">
+                                  <tbody>
+                                    <tr>
+                                      <td> <a href="{{verificationUrl}}" target="_blank">Confirm email</a> </td>
+                                    </tr>
+                                  </tbody>
+                                </table>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                        <p>If you have trouble clicking the button you can copy the following link and navigate to it: 
+							{{verificationUrl}}</p>
                       </td>
                     </tr>
                   </table>
@@ -367,7 +382,7 @@
                 <tr>
                   <td class="content-block">
                     <span class="apple-link"><a href="https://apparyllis.com" target="_blank">Apparyllis U.G.</a>, Friedrich-Ebert-Strasse 214, 47800 Krefeld, Germany</span>
-                    <br> You received this email because you, or someone else requested your data to be exported and be sent to you.
+                    <br> You received this email to verify your account on Simply Plural.
                   </td>
                 </tr>
                 <tr>
