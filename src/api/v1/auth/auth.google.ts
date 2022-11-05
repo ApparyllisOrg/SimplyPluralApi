@@ -4,6 +4,7 @@ import * as Sentry from "@sentry/node";
 import { auth } from "firebase-admin";
 import { getNewUid } from "./auth.core";
 import { namedArguments } from "../../../util/args";
+import moment from "moment";
 
 //-------------------------------//
 // Get a new valid uid that can be used for a user
@@ -25,10 +26,10 @@ if (namedArguments.without_google !== true) {
 	console.log("Running without google")
 } 
 
-export const loginWithGoogle = async (credential : string, registerOnly : boolean) : Promise<{ success: boolean, uid: string }> => {
+export const loginWithGoogle = async (credential : string, registerOnly : boolean) : Promise<{ success: boolean, uid: string, email: string }> => {
 	if (!client)
 	{
-		return {success: false, uid: ""};
+		return {success: false, uid: "", email: ""};
 	}
 
 	const ticket = await client.verifyIdToken({
@@ -46,19 +47,19 @@ export const loginWithGoogle = async (credential : string, registerOnly : boolea
 
 	if (!ticket)
 	{
-		return {success: false, uid: ""}
+		return {success: false, uid: "", email: ""}
 	}
 
   	const payload = ticket.getPayload();
 
   	if (!payload)
 	{
-		return {success: false, uid: ""}
+		return {success: false, uid: "", email: ""}
 	}
 
 	if (payload.aud !== GOOGLE_CLIENT_AUD)
 	{
-		return {success: false, uid: ""}
+		return {success: false, uid: "", email: ""}
 	}
 
 	const googleUserId = payload['sub'];
@@ -70,7 +71,7 @@ export const loginWithGoogle = async (credential : string, registerOnly : boolea
 
 		if (result !== true)
 		{
-			return {success: false, uid: ""}
+			return {success: false, uid: "", email: ""}
 		}
 
 		const registeredAccount = await getCollection("accounts").findOne({sub: googleUserId})
@@ -78,17 +79,17 @@ export const loginWithGoogle = async (credential : string, registerOnly : boolea
 		if (!registeredAccount)
 		{
 			Sentry.captureMessage("Unable to register account of sub " + googleUserId)
-			return {success: false, uid: ""}
+			return {success: false, uid: "",  email:  ""}
 		}
 
-		return {success: true, uid: registeredAccount.uid}
+		return {success: true, uid: registeredAccount.uid,  email: registeredAccount.email}
 	} 
 	else if (!registerOnly)
 	{
-		return {success: true, uid: account.uid}
+		return {success: true, uid: account.uid, email: account.email}
 	}
 
-	return {success: false, uid: "" }
+	return {success: false, uid: "", email: "" }
 }
 
 const registerSub = async (payload: TokenPayload) : Promise<boolean> => 
@@ -97,7 +98,7 @@ const registerSub = async (payload: TokenPayload) : Promise<boolean> =>
 	if (!firebaseUser)
 	{
 		const newUserId = await getNewUid();
-		await getCollection("accounts").insertOne({uid: newUserId, sub: payload.sub, email: payload.email, verified: true, oAuth2: true})
+		await getCollection("accounts").insertOne({uid: newUserId, sub: payload.sub, email: payload.email, verified: true, oAuth2: true, registeredAt: moment.now()})
 		return true;
 	}
 
@@ -108,7 +109,7 @@ const registerSub = async (payload: TokenPayload) : Promise<boolean> =>
 	}
 	else
 	{
-		await getCollection("accounts").insertOne({uid: firebaseUser.uid, sub: payload.sub, email: firebaseUser.email, verified: true , oAuth2: true})
+		await getCollection("accounts").insertOne({uid: firebaseUser.uid, sub: payload.sub, email: firebaseUser.email, verified: true , oAuth2: true, registeredAt: firebaseUser.metadata.creationTime ?? moment.now()})
 	}
 
 	return true;

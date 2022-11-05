@@ -21,10 +21,11 @@ export const base64decodeJwt = (encoded : string) => {
 //-------------------------------//
 // Generate a new JWT for user
 //-------------------------------//
-export const jwtForUser = (uid: string) : {access: string, refresh: string} => {
+export const jwtForUser = async (uid: string) : Promise<{access: string, refresh: string}> => {
 	const now = Date.now() / 1000
-	const access = jwt.sign({sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + 30 * 60}, jwtKey);
-	const refresh = jwt.sign({sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + thirtyDays, refresh: true}, jwtKey);
+	const user = await getCollection("accounts").findOne({uid})
+	const access = jwt.sign({sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + 30 * 60, verified: user.verified, email: user.email}, jwtKey);
+	const refresh = jwt.sign({sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + thirtyDays, refresh: true,verified: user.verified, email: user.email}, jwtKey);
 	return { access, refresh };
 }
 

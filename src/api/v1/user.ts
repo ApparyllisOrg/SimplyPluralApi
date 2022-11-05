@@ -285,16 +285,24 @@ export const deleteAccount = async (req: Request, res: Response) => {
 
 	const user = await auth().getUser(res.locals.uid)
 
+	// Don't delete avatars and reports when deleting pretesting
+	if (process.env.PRETESTING !== "true")
 	{
-		await deleteUploadedUserFolder(res.locals.uid, "reports")
-		await deleteUploadedUserFolder(res.locals.uid, "avatars")
+		{
+			await deleteUploadedUserFolder(res.locals.uid, "reports")
+			await deleteUploadedUserFolder(res.locals.uid, "avatars")
+		}
 	}
 
 	const email = user.email ?? "";
 
 	userLog(res.locals.uid, `Pre Delete User ${email} and username ${username}`);
 
-	auth().deleteUser(res.locals.uid);
+	if (process.env.PRETESTING !== "true")
+	{
+		auth().deleteUser(res.locals.uid);
+		userLog(res.locals.uid, `Post Delete Firebase User ${email} and username ${username}`);
+	}
 
 	userLog(res.locals.uid, `Post Delete User ${email} and username ${username}`);
 

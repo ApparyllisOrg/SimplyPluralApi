@@ -9,18 +9,34 @@ import { getNewUid } from "./auth/auth.core";
 import moment from "moment";
 import { loginWithGoogle } from "./auth/auth.google";
 import { auth } from "firebase-admin";
+import { getAuth, signInWithEmailAndPassword } from "firebase/auth";
 import { resetPassword_Exection, resetPasswordRequest_Execution } from "./auth/auth.resetPassword";
 import { changeEmail_Execution } from "./auth/auth.changeEmail";
 import { changePassword_Execution } from "./auth/auth.changePassword";
 import { isUserSuspended, logSecurityUserEvent } from "../../security";
+import { initializeApp } from "firebase/app";
+
+initializeApp({projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY})
 
 export const login = async (req: Request, res: Response) => {
-	const user = await getCollection("accounts").findOne({email: req.body.email})
+	let user = await getCollection("accounts").findOne({email: req.body.email})
 	if (!user)
-	{
-		res.status(401).send("Unknown user or password")
-		return
+	{	
+		const result = await signInWithEmailAndPassword(getAuth(), req.body.email, req.body.password).catch((e) => undefined)
+		if (result)
+		{
+			const salt = randomBytes(16).toString("hex")
+			const hashedPasswd = await hash(req.body.password, salt)
+			await getCollection("accounts").insertOne({uid: result.user.uid, email: req.body.email, verified: result.user.emailVerified, salt, password: hashedPasswd.hashed, registeredAt: result.user.metadata.creationTime ?? moment.now()})
+			user = await getCollection("accounts").findOne({email: req.body.email})
+		}
+		else 
+		{
+				res.status(401).send("Unknown user or password")
+				return
+		}
 	}
+
 	const hashedPasswd = await hash(req.body.password, user.salt)
 
 	const knownHash = base64decodeJwt(user.password)
@@ -39,7 +55,8 @@ export const login = async (req: Request, res: Response) => {
 			return;
 		}
 
-		res.status(200).send(jwtForUser(user.uid));
+		const jwt = await jwtForUser(user.uid);
+		res.status(200).send(jwt);
 		logSecurityUserEvent(user.uid, "Logged in ", req.ip)
 	} else {
 		res.status(401).send("Unknown user or password")
@@ -58,7 +75,8 @@ export const loginGoogle = async (req: Request, res: Response) => {
 		}
 
 		logSecurityUserEvent(result.uid, "Logged in", req.ip)
-		return res.status(200).send(jwtForUser(result.uid));
+		const jwt = await jwtForUser(result.uid);
+		return res.status(200).send(jwt);
 	}
 
 	return res.status(401).send();
@@ -69,7 +87,8 @@ export const registerGoogle = async (req: Request, res: Response) => {
 	if (result.success === true)
 	{
 		logSecurityUserEvent(result.uid, "Registers", req.ip)
-		return res.status(200).send(jwtForUser(result.uid));
+		const jwt = await jwtForUser(result.uid);
+		return res.status(200).send(jwt);
 	}
 
 	return res.status(401).send();
@@ -94,7 +113,9 @@ export const refreshToken = async (req: Request, res: Response) => {
 				return;
 			}
 
-			const newToken = jwtForUser(validResult.decoded.sub)
+			const user = await getCollection("accounts").findOne({uid: validResult.decoded.sub})
+
+			const newToken = await jwtForUser(validResult.decoded.sub)
 			// Invalidate used refresh token
 			getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization})
 
@@ -103,7 +124,8 @@ export const refreshToken = async (req: Request, res: Response) => {
 		} 
 		else if (validResult.google === true)
 		{
-			const newToken = jwtForUser(validResult.decoded)
+			const user = await getCollection("accounts").findOne({uid: validResult.decoded})
+			const newToken = await jwtForUser(validResult.decoded)
 			res.status(200).send(newToken)
 			return;
 		}
@@ -161,7 +183,8 @@ export const resetPassword = async (req: Request, res: Response) =>
 		}
 		else 
 		{
-			const newToken = jwtForUser(result.uid)
+			const user = await getCollection("accounts").findOne({uid: result.uid})
+			const newToken = await jwtForUser(result.uid)
 			res.status(200).send(newToken)
 			return;
 		}
@@ -185,7 +208,7 @@ export const changeEmail = async (req: Request, res: Response) =>
 		}
 		else 
 		{
-			const newToken = jwtForUser(result.uid)
+			const newToken = await jwtForUser(result.uid)
 			res.status(200).send(newToken)
 			return
 		}
@@ -209,7 +232,8 @@ export const changePassword = async (req: Request, res: Response) =>
 		}
 		else 
 		{
-			const newToken = jwtForUser(result.uid)
+			const user = await getCollection("accounts").findOne({uid: result.uid})
+			const newToken = await jwtForUser(result.uid)
 			res.status(200).send(newToken)
 			return;
 		}
@@ -230,8 +254,9 @@ export const register = async (req: Request, res: Response) => {
 	const newUserId = await getNewUid()
 	const hashedPasswd = await hash(req.body.password, salt)
 	const verificationCode = getConfirmationKey()
-	await getCollection("accounts").insertOne({uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode});
-	res.status(200).send(jwtForUser(newUserId))
+	await getCollection("accounts").insertOne({uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode, verified: false, registeredAt: moment.now()});
+	const jwt = await jwtForUser(newUserId);
+	res.status(200).send(jwt)
 
 	logSecurityUserEvent(newUserId, "Registerd your user account", req.ip)
 

@@ -87,8 +87,12 @@ const privateUser = await getCollection("private").findOne({uid})
 		const split = name.split(".");
 		const actualName = split[split.length - 1];
 
-		const collectionData = await getCollection(actualName).find({uid}).toArray();
-		allData[actualName] = collectionData;
+		// Don't send accounts info, this contains password and hash.
+		if (actualName !== "accounts")
+		{
+			const collectionData = await getCollection(actualName).find({uid}).toArray();
+			allData[actualName] = collectionData;
+		}
 	}
 
 	const user = await auth().getUser(uid)

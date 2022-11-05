@@ -4,13 +4,18 @@ import { getCollection } from "../../modules/mongo";
 import { validateSchema } from "../../util/validation";
 
 export const event = async (req: Request, res: Response) => {
-	const eventName =  req.body.event
-	const update = { $inc: { count : 1 }}
 
-	const logTime = moment(res.locals.operationTime)
-	const date = logTime.startOf("day")
+	const events : {time: number, event: string}[] = req.body.events;
+	
+	events.forEach((value) => 
+	{
+		const eventName =  value.event
+		const update = { $inc: { count : 1 }}
 
-	await getCollection("events").updateOne({date: date.toDate(), event: eventName}, update, { upsert: true })
+		const logTime = moment(value.time)
+		const date = logTime.startOf("day")
+		getCollection("events").updateOne({date: date.toDate(), event: eventName}, update, { upsert: true })
+	})
 
 	res.status(200).send()
 }
@@ -43,11 +48,23 @@ export const validateEventSchema = (body: any): { success: boolean, msg: string 
 	const schema = {
 		type: "object",
 		properties: {
-			event: { type: "string", pattern: "^[a-zA-Z-_]{1,}$"  }
+			events: { 
+				type: "array", 
+				items: { type: "object", 
+				properties: {
+					event: { type: "string", pattern: "^[a-zA-Z-_/#]{1,}$"  }, 
+					time: { type : "number", minimum: 0 },
+			 	},
+				nullable: false,
+				additionalProperties: false,
+				required: ["event", "time"],
+			 	},
+				uniqueItems: true,
+			}
 		},
 		nullable: false,
 		additionalProperties: false,
-		required: ["event"]
+		required: ["events"]
 	};
 
 	return validateSchema(schema, body);
