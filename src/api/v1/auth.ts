@@ -115,7 +115,8 @@ export const refreshToken = async (req: Request, res: Response) => {
 
 			const user = await getCollection("accounts").findOne({uid: validResult.decoded.sub})
 
-			const newToken = await jwtForUser(validResult.decoded.sub, user.email, true)
+			// TODO: Figure out how user here is null and how to get around it
+			const newToken = await jwtForUser(validResult.decoded.sub, user?.email ?? "ERROR", true)
 			// Invalidate used refresh token
 			getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization})
 
