@@ -113,10 +113,20 @@ export const refreshToken = async (req: Request, res: Response) => {
 				return;
 			}
 
-			const user = await getCollection("accounts").findOne({uid: validResult.decoded.sub})
+			let email = undefined
 
-			// TODO: Figure out how user here is null and how to get around it
-			const newToken = await jwtForUser(validResult.decoded.sub, user?.email ?? "ERROR", true)
+			const user = await getCollection("accounts").findOne({uid: validResult.decoded.sub})
+			if (!user)
+			{
+					const firebaseUser = await auth().getUser(validResult.decoded.sub)
+					email = firebaseUser.email;
+			} 
+			else 
+			{
+				email = user.email;
+			}
+
+			const newToken = await jwtForUser(validResult.decoded.sub, email, true)
 			// Invalidate used refresh token
 			getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization})
 
@@ -251,11 +261,18 @@ export const register = async (req: Request, res: Response) => {
 		return;
 	}
 
+	const firebaseUser = await auth().getUserByEmail(req.body.email)
+	if (firebaseUser)
+	{
+		res.status(403).send("User already exists")
+		return;
+	}
+
 	const salt = randomBytes(16).toString("hex")
 	const newUserId = await getNewUid()
 	const hashedPasswd = await hash(req.body.password, salt)
 	const verificationCode = getConfirmationKey()
-	await getCollection("accounts").insertOne({uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode, verified: false, registeredAt: moment.now()});
+	await getCollection("accounts").insertOne({uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode, verified: false, registeredAt: new Date()});
 	const jwt = await jwtForUser(newUserId, undefined, undefined);
 	res.status(200).send(jwt)
 
