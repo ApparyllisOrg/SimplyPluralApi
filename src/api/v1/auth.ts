@@ -5,7 +5,7 @@ import { randomBytes, timingSafeEqual } from "crypto";
 import { confirmUserEmail, getConfirmationKey, sendConfirmationEmail } from "./auth/auth.confirmation";
 import { base64decodeJwt, isJwtValid, jwtForUser } from "./auth/auth.jwt";
 import { hash } from "./auth/auth.hash";
-import { getNewUid } from "./auth/auth.core";
+import { getNewUid, getPasswordRegex } from "./auth/auth.core";
 import moment from "moment";
 import { loginWithGoogle } from "./auth/auth.google";
 import { auth } from "firebase-admin";
@@ -268,6 +268,13 @@ export const register = async (req: Request, res: Response) => {
 		return;
 	}
 
+	const regexp = new RegExp(getPasswordRegex())
+	if (!regexp.test(req.body.password))
+	{
+		res.status(401).send("Unknown user or password")
+		return
+	}
+
 	const salt = randomBytes(16).toString("hex")
 	const newUserId = await getNewUid()
 	const hashedPasswd = await hash(req.body.password, salt)
@@ -309,14 +316,12 @@ export const confirmEmail = async (req: Request, res: Response) => {
 	}
 }
 
-const getPasswordRegex = () => "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{12,100}$"
-
 export const validateRegisterSchema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
 			email: { type: "string", format: "email"  },
-			password: { type: "string", pattern: getPasswordRegex(),  }
+			password: { type: "string"  }
 		},
 		nullable: false,
 		additionalProperties: false,
@@ -390,7 +395,7 @@ export const validateChangePasswordSchema = (body: any): { success: boolean, msg
 		type: "object",
 		properties: {
 			uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
-			oldPassword: { type: "string", pattern: getPasswordRegex() },
+			oldPassword: { type: "string" },
 			newPassword: { type: "string", pattern: getPasswordRegex() }
 		},
 		nullable: false,

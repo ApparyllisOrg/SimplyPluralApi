@@ -28,3 +28,8 @@ export const revokeAllUserAccess = async (uid: string) =>
 
 	getUserConnections(uid).forEach((connection) => connection.send("Session invalidated", true))
 }
+
+//-------------------------------//
+// Get Password Regex for the API
+//-------------------------------//
+export  const getPasswordRegex = () => "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{12,100}$"
