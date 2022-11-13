@@ -111,7 +111,7 @@ export const isUserSuspended = async (uid: string) =>
 export const isUserVerified = async (uid: string) => 
 {
 	const result = await getCollection("accounts").findOne({uid})
-	if (result && result.verified === true || result.oAuth2 === true)
+	if (result && (result.verified === true || result.oAuth2 === true))
 	{
 		return true;
 	} 
