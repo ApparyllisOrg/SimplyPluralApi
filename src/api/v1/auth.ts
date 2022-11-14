@@ -261,7 +261,10 @@ export const register = async (req: Request, res: Response) => {
 		return;
 	}
 
-	const firebaseUser = await auth().getUserByEmail(req.body.email).catch((err) => undefined)
+	const firebaseUser = await auth().getUserByEmail(req.body.email).catch((err) => {
+		return undefined
+	})
+
 	if (firebaseUser)
 	{
 		res.status(403).send("User already exists")

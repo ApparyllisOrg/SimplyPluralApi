@@ -4,8 +4,9 @@ import { ObjectID } from "mongodb";
 import * as Sentry from "@sentry/node";
 import { getCollection, parseId } from "../../modules/mongo";
 import { documentObject } from "../../modules/mongo/baseTypes";
-import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection } from "../../util";
+import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection, sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
+import { decryptMessage, encryptMessage } from "./chat/chat.core";
 
 export const getChannelHistory = async (req: Request, res: Response) => {
 	const query : any = { channel: req.params.id };
@@ -26,7 +27,16 @@ export const getChannelHistory = async (req: Request, res: Response) => {
 		
 	}
 
-	fetchCollection(req, res, "chatMessages", query);
+	fetchCollection(req, res, "chatMessages", query, (document ) => 
+	{
+		if (document.iv)
+		{
+			document.message = decryptMessage(document.message, document.iv)
+			delete document.iv
+		}
+
+		return document
+	});
 }
 
 export const getChannel = async (req: Request, res: Response) => {
@@ -112,7 +122,15 @@ export const deleteChannelCategory = async (req: Request, res: Response) => {
 }
 
 export const getMessage = async (req: Request, res: Response) => {
-	fetchSimpleDocument(req, res, "chatMessages");
+	const document = await getCollection("chatMessages").findOne({ _id: parseId(req.params.id), uid: req.params.system ?? res.locals.uid });
+
+	if (document && document.iv)
+	{
+		document.message = decryptMessage(document.message, document.iv)
+		delete document.iv
+	}
+
+	sendDocument(req, res, "chatMessages", document)
 }
 
 export const writeMessage = async (req: Request, res: Response) => {
@@ -150,6 +168,10 @@ export const writeMessage = async (req: Request, res: Response) => {
 		}
 	}
 
+	const encrpyted = encryptMessage(req.body.message)
+	req.body.message = encrpyted.msg
+	req.body.iv = encrpyted.iv
+
 	addSimpleDocument(req, res, "chatMessages");
 }
 
@@ -158,6 +180,13 @@ export const updateMessage = async (req: Request, res: Response) => {
 	if (req.body.updatedAt > moment.now())
 	{
 		req.body.updatedAt = moment.now();
+	}
+
+	if (req.body.message)
+	{
+		const encrpyted = encryptMessage(req.body.message)
+		req.body.message = encrpyted.msg
+		req.body.iv = encrpyted.iv
 	}
 
 	updateSimpleDocument(req, res, "chatMessages")
