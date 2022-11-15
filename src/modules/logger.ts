@@ -47,12 +47,12 @@ export const logger = winston.createLogger({
 		format.timestamp({ format: "YYYY-MM-DD HH:mm:ss" }),
 		format.printf(info => `${info.timestamp} ${info.level}: ${info.message}` + (info.splat !== undefined ? `${info.splat}` : " "))
 	),
-	transports: [
+	transports: process.env.DEVELOPMENT ? undefined : [
 		errorTransport,
 		warnTransport,
 		infoTransport
 	],
-	exceptionHandlers: [
+	exceptionHandlers: process.env.DEVELOPMENT ? undefined : [
 		exceptionstransform
 	]
 });
