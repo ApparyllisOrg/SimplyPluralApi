@@ -450,7 +450,7 @@ export const validateExportAvatarsSchema = (body: any): { success: boolean, msg:
 	const schema = {
 		type: "object",
 		properties: {
-			key: { type: "string", pattern: "^[a-zA-Z0-9-_]{128}$" },
+			key: { type: "string", pattern: "^[a-zA-Z0-9-_]{256}$" },
 			uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
 		},
 		nullable: false,
