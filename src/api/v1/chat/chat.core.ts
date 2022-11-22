@@ -2,7 +2,9 @@ import { createCipheriv, createDecipheriv, randomBytes } from "crypto"
 import { namedArguments } from "../../../util/args"
 
 const algorithm = 'aes-256-ctr'
-const secretKey = process.env.MESSAGES_KEY ?? (namedArguments.messages_key ?? "bwUfRcyR*nVTXVW$FXWJ14S#rAB5DsB2")
+const secretKey = process.env.MESSAGES_KEY ?? (namedArguments.messages_key ?? undefined)
+
+if (!secretKey) throw new Error("You require to specify a MESSAGES_KEY!");
 
 export const encryptMessage = (message: string) : { iv: string, msg: string } =>
 {

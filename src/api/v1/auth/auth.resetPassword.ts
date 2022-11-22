@@ -9,6 +9,7 @@ import { auth } from "firebase-admin";
 import { assert } from "console";
 import { hash } from "./auth.hash";
 import { revokeAllUserAccess } from "./auth.core";
+import { getAPIUrl } from "../../../util";
 
 //-------------------------------//
 // Generate a new random reset password key
@@ -33,7 +34,7 @@ export const resetPasswordRequest_Execution = async (email : string) : Promise<{
 			}
 		}
 		const resetKey = getResetPasswordKey();
-		resetUrl = `https://api.apparyllis.com/v1/auth/verification/resetpassword?key=${resetKey}`;
+		resetUrl = getAPIUrl(`v1/auth/password/resetpassword?key=${resetKey}`);
 		await getCollection("accounts").updateOne({email}, { $set: { lastResetPasswordEmailSent: moment.now(), passwordResetToken: resetKey}})
 	}
 	else 
@@ -90,7 +91,7 @@ export const resetPassword_Exection = async (resetKey : string, newPassword: str
 
 		const salt = randomBytes(16).toString("hex")
 		const hashedPasswd = await hash(newPassword, salt)
-		await getCollection("accounts").updateOne({uid: user.uid}, { $set: { password: hashedPasswd.hashed, salt: salt },  $unset: { resetKey: "" } })
+		await getCollection("accounts").updateOne({uid: user.uid}, { $set: { password: hashedPasswd.hashed, salt: salt, passwordResetToken: null },  $unset: { resetKey: "" } })
 
 		revokeAllUserAccess(user.uid)
 

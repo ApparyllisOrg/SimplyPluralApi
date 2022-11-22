@@ -4,6 +4,7 @@ import moment from "moment";
 import { promisify } from "util";
 import { mailerTransport } from "../../../modules/mail";
 import { getCollection } from "../../../modules/mongo";
+import { getAPIUrl } from "../../../util";
 import { revokeAllUserAccess } from "./auth.core";
 import { hash } from "./auth.hash";
 import { base64decodeJwt } from "./auth.jwt";
@@ -42,15 +43,7 @@ export const changePassword_Execution = async (uid: string, oldPassword: string,
 			const getFile = promisify(readFile);
 			let emailTemplate = await getFile("./templates/passwordChangedEmail.html", "utf-8");
 
-			// This template has the url twice
-			if (process.env.PRETESTING === "true")
-			{
-				emailTemplate = emailTemplate.replace("{{resetUrl}}", `https://devapi.apparyllis.com/v1/auth/password/reset?email=${user.email}`)
-			}
-			else 
-			{
-				emailTemplate = emailTemplate.replace("{{resetUrl}}", `https://api.apparyllis.com/v1/auth/password/reset?email=${user.email}`)
-			}
+			emailTemplate = emailTemplate.replace("{{resetUrl}}", getAPIUrl(`v1/auth/password/reset?email=${user.email}`))
 
 			mailerTransport?.sendMail({
 				from: '"Apparyllis" <noreply@apparyllis.com>',

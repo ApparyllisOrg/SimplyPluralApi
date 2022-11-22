@@ -50,7 +50,7 @@ const rejectEntry = (req: Request, res: Response, msg: string, ip: string) => {
 }
 
 export type authMiddleware = (req: Request, _res: Response, _next: any) => void
-export const isUserAuthenticated = function (accessRequested: number): authMiddleware {
+export const isUserAuthenticated = function (accessRequested: number, skipPostIdCheck?: boolean): authMiddleware {
 	return async (req: Request, res: Response, next: any) => {
 
 		const authorization = req.headers.authorization;
@@ -76,7 +76,10 @@ export const isUserAuthenticated = function (accessRequested: number): authMiddl
 			return 
 		}
 
-		validatePostId(req, res);
+		if (skipPostIdCheck != true && !validatePostId(req, res))
+		{
+			return
+		}
 
 		next();
 

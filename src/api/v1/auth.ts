@@ -15,6 +15,9 @@ import { changeEmail_Execution } from "./auth/auth.changeEmail";
 import { changePassword_Execution } from "./auth/auth.changePassword";
 import { isUserSuspended, logSecurityUserEvent } from "../../security";
 import { initializeApp } from "firebase/app";
+import { promisify } from "node:util";
+import { readFile } from "fs";
+import { getAPIUrl, getAPIUrlBase } from "../../util";
 
 initializeApp({projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY})
 
@@ -178,6 +181,15 @@ export const resetPasswordRequest = async (req: Request, res: Response) =>
 	res.status(200).send("If an account exists under this email you will receive a reset password email shortly.")
 }
 
+export const resetPasswordPage = async (req: Request, res: Response) =>
+{
+	const getFile = promisify(readFile);
+	let htmlTemplate = await getFile("./templates/resetPassword.html", "utf-8");
+	
+	htmlTemplate = htmlTemplate.replace("{{url}}", getAPIUrl(`v1/auth/password/reset/change`))
+
+	res.status(200).send(htmlTemplate)
+}
 
 export const resetPassword = async (req: Request, res: Response) =>
 {
@@ -372,6 +384,21 @@ export const validateResetPasswordRequestSchema = (body: any): { success: boolea
 		nullable: false,
 		additionalProperties: false,
 		required: ["email"]
+	};
+
+	return validateSchema(schema, body);
+}
+
+
+export const validateResetPasswordSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			key: { type: "string", }
+		},
+		nullable: false,
+		additionalProperties: false,
+		required: ["key"]
 	};
 
 	return validateSchema(schema, body);

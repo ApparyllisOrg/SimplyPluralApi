@@ -5,6 +5,7 @@ import { promisify } from "util";
 import { mailerTransport } from "../../../modules/mail";
 import { getCollection } from "../../../modules/mongo";
 import * as Sentry from "@sentry/node";
+import { getAPIUrl } from "../../../util";
 
 //-------------------------------//
 // Generate a new random confirmation key
@@ -40,7 +41,7 @@ export const sendConfirmationEmail = async (uid : string) : Promise<{success: bo
 	const getFile = promisify(readFile);
 	let emailTemplate = await getFile("./templates/verifyEmail.html", "utf-8");
 
-	const verificationUrl = `https://api.apparyllis.com/v1/auth/verification/confirm?key=${user.verificationCode}&uid=${uid}`
+	const verificationUrl = getAPIUrl(`v1/auth/verification/confirm?key=${user.verificationCode}&uid=${uid}`)
 
 	// This template has the url twice
 	emailTemplate = emailTemplate.replace("{{verificationUrl}}", verificationUrl)
