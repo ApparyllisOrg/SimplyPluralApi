@@ -34,7 +34,7 @@ export const update = async (req: Request, res: Response) => {
 			for (let i = categories.length - 1; i >= 0; --i)
 			{
 				const category = categories[i];
-				const categoryDoc = expectedCategories.findIndex((value) => value._id == parseId(category))
+				const categoryDoc = expectedCategories.findIndex((value : any) => value._id == parseId(category))
 				if (!categoryDoc)
 				{
 					 categories.splice(i, 1)
@@ -42,18 +42,14 @@ export const update = async (req: Request, res: Response) => {
 			}
 
 			let allCategoriesPresent = true;
-			expectedCategories.forEach((category) => {
+			expectedCategories.forEach((category : any) => {
 				if (categories.findIndex(((value) => value == category._id.toString())) == -1)
 				{
 					allCategoriesPresent = false;
+					categories.push(category._id.toString())
+	
 				}
 			})
-
-			if (!allCategoriesPresent)
-			{
-				res.status(400).send("Categories requires all existing categories to be part of the ordered array")
-				return;
-			}
 
 			req.body.categories = categories
 		}

@@ -18,6 +18,7 @@ import { initializeApp } from "firebase/app";
 import { promisify } from "node:util";
 import { readFile } from "fs";
 import { getAPIUrl, getAPIUrlBase } from "../../util";
+import { loginWithApple } from "./auth/auth.apple";
 
 initializeApp({projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY})
 
@@ -67,7 +68,7 @@ export const login = async (req: Request, res: Response) => {
 }
 
 export const loginGoogle = async (req: Request, res: Response) => {
-	const result = await loginWithGoogle(req.body.credential, false);
+	const result = await loginWithApple(req.body.credential);
 	if (result.success === true)
 	{
 		const isSuspended = await isUserSuspended(result.uid)
@@ -85,11 +86,18 @@ export const loginGoogle = async (req: Request, res: Response) => {
 	return res.status(401).send();
 }
 
-export const registerGoogle = async (req: Request, res: Response) => {
-	const result = await loginWithGoogle(req.body.credential, true);
+export const loginApple = async (req: Request, res: Response) => {
+	const result = await loginWithGoogle(req.body.credential);
 	if (result.success === true)
 	{
-		logSecurityUserEvent(result.uid, "Registers", req.ip)
+		const isSuspended = await isUserSuspended(result.uid)
+		if (isSuspended)
+		{
+			res.status(401).send("Your account is suspended")
+			return;
+		}
+
+		logSecurityUserEvent(result.uid, "Logged in", req.ip)
 		const jwt = await jwtForUser(result.uid, undefined, undefined);
 		return res.status(200).send(jwt);
 	}
@@ -361,7 +369,7 @@ export const validateConfirmEmailSchema = (body: any): { success: boolean, msg: 
 	return validateSchema(schema, body);
 }
 
-export const validateLoginGoogleSchema = (body: any): { success: boolean, msg: string } => {
+export const validateLoginOAuth2Schema = (body: any): { success: boolean, msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

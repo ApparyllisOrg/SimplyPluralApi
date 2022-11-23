@@ -177,15 +177,11 @@ export const setupV1routes = (app: core.Express) => {
 
 	// OAuth2 providers
 	{
-		app.post("/v1/auth/login/oauth/google", validateBody(auth.validateLoginGoogleSchema), auth.loginGoogle)
+		app.post("/v1/auth/login/oauth/google", validateBody(auth.validateLoginOAuth2Schema), auth.loginGoogle)
+		app.post("/v1/auth/login/oauth/apple", validateBody(auth.validateLoginOAuth2Schema), auth.loginApple)
 	}
 
 	app.post("/v1/auth/register", validateBody(auth.validateRegisterSchema), auth.register)
-
-	// OAuth2 providers
-	{
-		app.post("/v1/auth/register/oauth/google", validateBody(auth.validateLoginGoogleSchema), auth.registerGoogle)
-	}
 
 	app.post("/v1/auth/verification/request", isUserAppJwtAuthenticated, auth.requestConfirmationEmail)
 	app.get("/v1/auth/verification/confirm", validateQuery(auth.validateConfirmEmailSchema),  auth.confirmEmail)
