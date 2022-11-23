@@ -68,7 +68,7 @@ export const login = async (req: Request, res: Response) => {
 }
 
 export const loginGoogle = async (req: Request, res: Response) => {
-	const result = await loginWithApple(req.body.credential);
+	const result = await loginWithGoogle(req.body.credential);
 	if (result.success === true)
 	{
 		const isSuspended = await isUserSuspended(result.uid)
@@ -87,7 +87,7 @@ export const loginGoogle = async (req: Request, res: Response) => {
 }
 
 export const loginApple = async (req: Request, res: Response) => {
-	const result = await loginWithGoogle(req.body.credential);
+	const result = await loginWithApple(req.body.credential);
 	if (result.success === true)
 	{
 		const isSuspended = await isUserSuspended(result.uid)
