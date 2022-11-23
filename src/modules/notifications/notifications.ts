@@ -21,7 +21,7 @@ export interface Notification
 	title: string,
 
 	// When the notification expires
-	expireAt: number,
+	expireAt: Date,
 
 	// Unique Id of the notification
 	_id: ObjectId | undefined,
@@ -61,7 +61,7 @@ const sendNotification = async (notification: Notification) =>
 	
 	// Firebase backwards support
 	{
-		const sendPayload = { token: notification.token, notification: {title: notification.title, body: notification.message}, apns:  { headers: {	"apns-expiration": Math.round(notification.expireAt * .001).toString()}} }
+		const sendPayload = { token: notification.token, notification: {title: notification.title, body: notification.message}, apns:  { headers: {	"apns-expiration": Math.round(notification.expireAt.getUTCSeconds()).toString()}} }
 		messaging()
 		.send(sendPayload)
 		.catch(async (error) => {
@@ -117,7 +117,7 @@ export const notifyUser = async (instigator: string, target: string, title: stri
 		const token = privateData["notificationToken"];
 		if (Array.isArray(token)) {
 			token.forEach((element) => {
-				sendNotification({token: element, title, message, expireAt: moment.now().valueOf() + notificationLifetime, instigator, _id: undefined })
+				sendNotification({token: element, title, message, expireAt: new Date(moment.now().valueOf() + notificationLifetime), instigator, _id: undefined })
 			});
 		}
 	}
