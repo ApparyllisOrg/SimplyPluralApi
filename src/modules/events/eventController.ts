@@ -57,7 +57,7 @@ export const init = () => {
 	// getting queued events is atomic, so only one server handles the documents it got returned
 	// We don't want to run runEvents twice on two servers and have it return
 	// the same events on both. It needs to return atomically.
-	if (process.env.DEVELOPMENT === "false" && process.env.LOCALEVENTS === "true") {
+	if (process.env.DEVELOPMENT !== "true" && process.env.LOCALEVENTS === "true") {
 		bindEvents();
 		console.log("Bound to events, started event controller")
 	} 
