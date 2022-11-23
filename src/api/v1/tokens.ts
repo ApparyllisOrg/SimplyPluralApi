@@ -36,7 +36,7 @@ export const add = async (req: Request, res: Response) => {
 		res.status(400).send("You need to specify at least one permission");
 	}
 	else {
-		logSecurityUserEvent(res.locals.uid, "Added token with following permission " + req.body.permission.toString(), req.ip)
+		logSecurityUserEvent(res.locals.uid, "Added token with following permission " + req.body.permission.toString(), req)
 		res.status(200).send(token);
 	}
 }
@@ -45,7 +45,7 @@ export const del = async (req: Request, res: Response) => {
 	const toDeleteToken = await getCollection("tokens").findOne({uid: res.locals.uid, _id: req.params.id})
 	if (toDeleteToken)
 	{
-		logSecurityUserEvent(res.locals.uid, "Deleted token: " + toDeleteToken.token, req.ip)
+		logSecurityUserEvent(res.locals.uid, "Deleted token: " + toDeleteToken.token, req)
 	}
 	deleteSimpleDocument(req, res, "tokens");
 }

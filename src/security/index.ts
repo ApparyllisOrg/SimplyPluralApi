@@ -3,6 +3,8 @@ import LRU from "lru-cache";
 import { getCollection } from "../modules/mongo";
 import moment from "moment";
 import { auth } from "firebase-admin";
+import { Request } from "express";
+
 const users = "users";
 const groups = "groups";
 const members = "members";
@@ -97,9 +99,9 @@ export const canAccessDocument = async (requestor: string, owner: string, privat
 	return !!(friendLevel === FriendLevel.Friends) || !!(friendLevel === FriendLevel.Trusted);
 }
 
-export const logSecurityUserEvent = async (uid: string, action: string, ip: string) =>
+export const logSecurityUserEvent = async (uid: string, action: string, request: Request) =>
 {
-	await getCollection("securityLogs").insertOne({uid: uid, at: moment.now(), action, ip})
+	await getCollection("securityLogs").insertOne({uid: uid, at: moment.now(), action, ip: request.header("x-forwarded-for") ?? request.ip})
 }
 
 export const isUserSuspended = async (uid: string) => 

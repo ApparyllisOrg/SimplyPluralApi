@@ -61,7 +61,7 @@ export const login = async (req: Request, res: Response) => {
 
 		const jwt = await jwtForUser(user.uid, undefined, undefined);
 		res.status(200).send(jwt);
-		logSecurityUserEvent(user.uid, "Logged in ", req.ip)
+		logSecurityUserEvent(user.uid, "Logged in ", req)
 	} else {
 		res.status(401).send("Unknown user or password")
 	}
@@ -78,7 +78,7 @@ export const loginGoogle = async (req: Request, res: Response) => {
 			return;
 		}
 
-		logSecurityUserEvent(result.uid, "Logged in", req.ip)
+		logSecurityUserEvent(result.uid, "Logged in", req)
 		const jwt = await jwtForUser(result.uid, undefined, undefined);
 		return res.status(200).send(jwt);
 	}
@@ -97,7 +97,7 @@ export const loginApple = async (req: Request, res: Response) => {
 			return;
 		}
 
-		logSecurityUserEvent(result.uid, "Logged in", req.ip)
+		logSecurityUserEvent(result.uid, "Logged in", req)
 		const jwt = await jwtForUser(result.uid, undefined, undefined);
 		return res.status(200).send(jwt);
 	}
@@ -182,7 +182,7 @@ export const resetPasswordRequest = async (req: Request, res: Response) =>
 		// TODO: Phase this out whenever we lock out firebase-auth-dependent app client versions 
 		if (user)
 		{
-			logSecurityUserEvent(user.uid, "Requested a password reset", req.ip)
+			logSecurityUserEvent(user.uid, "Requested a password reset", req)
 		}
 	} 
 
@@ -204,7 +204,7 @@ export const resetPassword = async (req: Request, res: Response) =>
 	const result = await resetPassword_Exection(req.body.resetKey, req.body.newPassword)
 	if (result.success === true)
 	{
-		logSecurityUserEvent(result.uid, "Changed your password", req.ip)
+		logSecurityUserEvent(result.uid, "Changed your password", req)
     
 		const isSuspended = await isUserSuspended(result.uid)
 		if (isSuspended)
@@ -229,7 +229,7 @@ export const changeEmail = async (req: Request, res: Response) =>
 	const result = await changeEmail_Execution(req.body.oldEmail, req.body.password, req.body.newEmail)
 	if (result.success === true)
 	{
-		logSecurityUserEvent(result.uid, "Changed email from " + req.body.oldEmail + " to " + req.body.newEmail, req.ip)
+		logSecurityUserEvent(result.uid, "Changed email from " + req.body.oldEmail + " to " + req.body.newEmail, req)
     
 		const isSuspended = await isUserSuspended(result.uid)
 		if (isSuspended)
@@ -253,7 +253,7 @@ export const changePassword = async (req: Request, res: Response) =>
 	const result = await changePassword_Execution(req.body.uid, req.body.oldPassword, req.body.newPassword)
 	if (result.success === true)
 	{
-		logSecurityUserEvent(result.uid, "Changed password", req.ip)
+		logSecurityUserEvent(result.uid, "Changed password", req)
 
 		const isSuspended = await isUserSuspended(result.uid)
 		if (isSuspended)
@@ -306,7 +306,7 @@ export const register = async (req: Request, res: Response) => {
 	const jwt = await jwtForUser(newUserId, undefined, undefined);
 	res.status(200).send(jwt)
 
-	logSecurityUserEvent(newUserId, "Registerd your user account", req.ip)
+	logSecurityUserEvent(newUserId, "Registerd your user account", req)
 
 	sendConfirmationEmail(newUserId)
 }
@@ -315,7 +315,7 @@ export const requestConfirmationEmail = async (req: Request, res: Response) => {
 	const result : { success: boolean, msg: string }= await sendConfirmationEmail(res.locals.uid)
 	if (result.success === true)
 	{
-		logSecurityUserEvent(res.locals.uid, "Requested confirm email", req.ip)
+		logSecurityUserEvent(res.locals.uid, "Requested confirm email", req)
 		res.status(200).send()
 	} 
 	else 
@@ -330,7 +330,7 @@ export const confirmEmail = async (req: Request, res: Response) => {
 	// TODO: Send a html web page so this is prettier
 	if (result === true)
 	{
-		logSecurityUserEvent(req.query.uid?.toString() ?? "", "Confirmed your email", req.ip);
+		logSecurityUserEvent(req.query.uid?.toString() ?? "", "Confirmed your email", req);
 		res.status(200).send("Email confirmed")
 	}
 	else 

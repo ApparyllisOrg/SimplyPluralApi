@@ -321,7 +321,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 	const email = user.email ?? "";
 
 	await getCollection("private").updateOne({uid: res.locals.uid, _id: parseId(res.locals.uid)}, {$set: {lastExport : moment.now()}})
-	logSecurityUserEvent(res.locals.uid, "Exported user account", _req.ip)
+	logSecurityUserEvent(res.locals.uid, "Exported user account", _req)
 
 	res.status(200).send({success:true});
 	userLog(res.locals.uid, `Exported user data and sent to ${email}.`);
@@ -344,7 +344,7 @@ export const exportAvatars = async (req: Request, res: Response) => {
 		zip.file(result.name + ".png", Buffer.concat(result.data));
 	})
 
-	logSecurityUserEvent(res.locals.uid, "Exported user avatars", req.ip)
+	logSecurityUserEvent(res.locals.uid, "Exported user avatars", req)
 
 	res.status(200)
 
