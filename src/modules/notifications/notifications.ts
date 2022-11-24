@@ -99,7 +99,7 @@ export const notifyUser = async (instigator: string, target: string, title: stri
 
 		const notificationLifetime = lifetime ?? 1000 * 60 * 60 * 6
 		
-		privateCollection.updateOne({ target, _id: target }, {
+		privateCollection.updateOne({ uid: target, _id: target }, {
 			$push: {
 				notificationHistory: {
 					$each: [
