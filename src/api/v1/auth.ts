@@ -41,6 +41,12 @@ export const login = async (req: Request, res: Response) => {
 		}
 	}
 
+	if (user.oAuth2 === true)
+	{
+		res.status(401).send("You cannot login with password for an account with oAuth2 (Google Sign-in, Apple Sign-in) enabled")
+		return;
+	}
+
 	const hashedPasswd = await hash(req.body.password, user.salt)
 
 	const knownHash = base64decodeJwt(user.password)
