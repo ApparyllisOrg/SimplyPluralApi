@@ -144,8 +144,9 @@ export const refreshToken = async (req: Request, res: Response) => {
 			}
 
 			const newToken = await jwtForUser(validResult.decoded.sub, email, true)
+
 			// Invalidate used refresh token
-			getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization})
+			getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization, exp: new Date(validResult.decoded.exp * 1000)})
 
 			res.status(200).send(newToken)
 			return;

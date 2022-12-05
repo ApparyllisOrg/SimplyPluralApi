@@ -52,7 +52,7 @@ export const validateEventSchema = (body: any): { success: boolean, msg: string 
 				type: "array", 
 				items: { type: "object", 
 				properties: {
-					event: { type: "string", pattern: "^[a-zA-Z-_/#]{1,}$"  }, 
+					event: { type: "string", pattern: "^[a-zA-Z-_/# ]{1,}$"  }, 
 					time: { type : "number", minimum: 0 },
 			 	},
 				nullable: false,
