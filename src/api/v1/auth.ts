@@ -203,6 +203,10 @@ export const resetPasswordPage = async (req: Request, res: Response) =>
 	
 	htmlTemplate = htmlTemplate.replace("{{url}}", getAPIUrl(`v1/auth/password/reset/change`))
 
+	res.set("Access-Control-Allow-Origin", "*")
+	res.set("Access-Control-Allow-Headers", "Authorization,Accept,Origin, DNT, X-CustomHeader, Keep-Alive, User-Agent, operation-time,X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Content-Range, Range")
+	res.set("Access-Control-Allow-Methods", "POST, GET, HEAD, DELETE, UPDATE, OPTIONS, PATCH")
+
 	res.status(200).send(htmlTemplate)
 }
 
