@@ -94,7 +94,7 @@ export const loginWithGoogle = async (credential : string) : Promise<{ success: 
 
 const registerSub = async (payload: TokenPayload) : Promise<boolean> => 
 {
-	const firebaseUser = await auth().getUserByEmail(payload.email ?? "")
+	const firebaseUser = await auth().getUserByEmail(payload.email ?? "").catch((e) => undefined)
 	if (!firebaseUser)
 	{
 		const newUserId = await getNewUid();
