@@ -33,8 +33,18 @@ export const resetPasswordRequest_Execution = async (email : string) : Promise<{
 				return {success: false, msg: "Request password links can only be requested once every minute", url: ""};
 			}
 		}
+
 		const resetKey = getResetPasswordKey();
-		resetUrl = getAPIUrl(`v1/auth/password/resetpassword?key=${resetKey}`);
+
+		if (process.env.PRETESTING === "true")
+		{
+			resetUrl = `https://dist.apparyllis.com/auth/dev/resetpassword.html?key=${resetKey}`
+		}
+		else 
+		{
+			resetUrl = `https://dist.apparyllis.com/auth/prod/resetpassword.html?key=${resetKey}`
+		}
+		
 		await getCollection("accounts").updateOne({email}, { $set: { lastResetPasswordEmailSent: moment.now(), passwordResetToken: resetKey}})
 	}
 	else 

@@ -196,20 +196,6 @@ export const resetPasswordRequest = async (req: Request, res: Response) =>
 	res.status(200).send("If an account exists under this email you will receive a reset password email shortly.")
 }
 
-export const resetPasswordPage = async (req: Request, res: Response) =>
-{
-	const getFile = promisify(readFile);
-	let htmlTemplate = await getFile("./templates/resetPassword.html", "utf-8");
-	
-	htmlTemplate = htmlTemplate.replace("{{url}}", getAPIUrl(`v1/auth/password/reset/change`))
-
-	res.set("Access-Control-Allow-Origin", "*")
-	res.set("Access-Control-Allow-Headers", "Authorization,Accept,Origin, DNT, X-CustomHeader, Keep-Alive, User-Agent, operation-time,X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Content-Range, Range")
-	res.set("Access-Control-Allow-Methods", "POST, GET, HEAD, DELETE, UPDATE, OPTIONS, PATCH")
-
-	res.status(200).send(htmlTemplate)
-}
-
 export const resetPassword = async (req: Request, res: Response) =>
 {
 	const result = await resetPassword_Exection(req.body.resetKey, req.body.newPassword)

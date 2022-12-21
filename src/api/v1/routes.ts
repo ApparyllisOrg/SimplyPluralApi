@@ -188,7 +188,6 @@ export const setupV1routes = (app: core.Express) => {
 
 	{
 		app.get("/v1/auth/password/reset", validateQuery(auth.validateResetPasswordRequestSchema), auth.resetPasswordRequest)
-		app.get("/v1/auth/password/resetpassword", validateQuery(auth.validateResetPasswordSchema), auth.resetPasswordPage)
 		app.post("/v1/auth/password/reset/change", validateBody(auth.validateResetPasswordExecutionSchema), auth.resetPassword)
 		app.post("/v1/auth/password/change", validateBody(auth.validateChangePasswordSchema), auth.changePassword)
 	}
