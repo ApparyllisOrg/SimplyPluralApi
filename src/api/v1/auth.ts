@@ -359,7 +359,10 @@ export const validateConfirmEmailSchema = (body: any): { success: boolean, msg: 
 	const schema = {
 		type: "object",
 		properties: {
-			uid: { type: "string", pattern: "^[a-zA-Z0-9]{64}$" },
+			// Users registering before 1.8 have a firebase user id (regex `^[A-Za-z0-9]{1,50}$`)
+			// Users registering on/after 1.8 have a new auth user id (regex `^[A-Za-z0-9]{64}$`) 
+			// At a later stage it's probably best to merge those two into an OR check rather than this broad condition
+			uid: { type: "string", pattern: "^[a-zA-Z0-9]{1,64}$" },
 			key: { type: "string", pattern: "^[a-zA-Z0-9]{128}$" }
 		},
 		nullable: false,

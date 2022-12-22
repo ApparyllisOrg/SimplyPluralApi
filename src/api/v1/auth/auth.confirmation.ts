@@ -41,7 +41,20 @@ export const sendConfirmationEmail = async (uid : string) : Promise<{success: bo
 	const getFile = promisify(readFile);
 	let emailTemplate = await getFile("./templates/verifyEmail.html", "utf-8");
 
-	const verificationUrl = getAPIUrl(`v1/auth/verification/confirm?key=${user.verificationCode}&uid=${uid}`)
+	// Email confirmation mail can be sent in different situations
+	// 1) The user has registered through the new auth code, the confirmation code is set in the `register` function to `user.verificationCode`, and the usual URL should be okay.
+	// 2) The user has registered before 1.8 through Firebase but never confirmed their account. The confirmation code was never set.
+	// 3) The user has registered before 1.8 through Firebase, previously verified their account, but changed their email. `user.verified` has been set as false, and no new confirmation key was set.
+
+	let verificationUrl; 
+	if (user.verificationCode === undefined) {
+		const verificationCode = getConfirmationKey();
+		await getCollection("accounts").updateOne({uid}, {$set: { verificationCode: verificationCode}});
+		verificationUrl = getAPIUrl(`v1/auth/verification/confirm?key=${verificationCode}&uid=${uid}`)
+	}
+	else {
+		verificationUrl = getAPIUrl(`v1/auth/verification/confirm?key=${user.verificationCode}&uid=${uid}`)
+	}
 
 	// This template has the url twice
 	emailTemplate = emailTemplate.replace("{{verificationUrl}}", verificationUrl)
