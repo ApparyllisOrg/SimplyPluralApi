@@ -12,8 +12,6 @@ on:
         default: 'warning'
   push:
     branches: [ release ]
-  pull_request:
-    branches: [ release ]
 
 jobs:
   build:
