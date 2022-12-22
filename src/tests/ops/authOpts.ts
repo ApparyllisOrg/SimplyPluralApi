@@ -28,7 +28,7 @@ describe("validate authentication flow", () => {
 
 		const firstAcc = await getCollection("accounts").findOne({email: {$ne: null}})
 		assert(firstAcc)
-	});
+	}).timeout(4000);
 
 	mocha.test("Login new user", async () => {
 		const result = await axios.post(getTestAxiosUrl("v1/auth/login"), {email, password})
@@ -53,7 +53,7 @@ describe("validate authentication flow", () => {
 
 		const secondResult = await axios.get(getTestAxiosUrl(`v1/auth/verification/confirm?uid=${firstAcc.uid}&key=${firstAcc.verificationCode}`)).catch((reason) => { return reason.response })
 		assert(secondResult.status == 401, "Verifying twice should not be possible")
-	});
+	}).timeout(4000);
 
 	mocha.test("Refresh JWT tokens", async () => {
 		const failResult = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: accessToken} }).catch((reason) => { return reason.response })
@@ -96,7 +96,7 @@ describe("validate authentication flow", () => {
 
 			assert(result.status == 200, "Password reset")
 			const updatedUser = await getCollection("accounts").findOne({email})
-			assert(updatedUser.passwordResetToken, "Password reset token invalid")
+			assert(!updatedUser.passwordResetToken, "Password reset token invalid")
 		}
 	}).timeout(4000);
 

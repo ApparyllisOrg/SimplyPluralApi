@@ -19,6 +19,7 @@ import { promisify } from "node:util";
 import { readFile } from "fs";
 import { getAPIUrl, getAPIUrlBase } from "../../util";
 import { loginWithApple } from "./auth/auth.apple";
+import { namedArguments } from "../../util/args";
 
 initializeApp({projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY})
 
@@ -278,16 +279,19 @@ export const register = async (req: Request, res: Response) => {
 		return;
 	}
 
-	const firebaseUser = await auth().getUserByEmail(req.body.email).catch((err) => {
-		return undefined
-	})
-
-	if (firebaseUser)
+	if (namedArguments.without_google === false)
 	{
-		res.status(403).send("User already exists")
-		return;
-	}
+		const firebaseUser = await auth().getUserByEmail(req.body.email).catch((err) => {
+			return undefined
+		})
 
+		if (firebaseUser)
+		{
+			res.status(403).send("User already exists")
+			return;
+		}
+	}
+	
 	const regexp = new RegExp(getPasswordRegex())
 	if (!regexp.test(req.body.password))
 	{
