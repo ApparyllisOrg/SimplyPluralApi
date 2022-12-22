@@ -183,6 +183,8 @@ export const setupV1routes = (app: core.Express) => {
 
 	app.post("/v1/auth/register", validateBody(auth.validateRegisterSchema), auth.register)
 
+	app.post("/v1/auth/forgotemail", validateBody(auth.validateForgotEmailSchema), auth.requestEmailFromUsername)
+
 	app.post("/v1/auth/verification/request", isUserAppJwtAuthenticated, auth.requestConfirmationEmail)
 	app.get("/v1/auth/verification/confirm", validateQuery(auth.validateConfirmEmailSchema),  auth.confirmEmail)
 
