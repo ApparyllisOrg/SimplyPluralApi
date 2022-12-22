@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
 import { getCollection } from "../../modules/mongo";
+import { notifyUser } from "../../modules/notifications/notifications";
 import { FriendLevel, getFriendLevel } from "../../security";
-import { notifyUser } from "../../util";
+
 import { validateBody, validateSchema } from "../../util/validation";
 
 // Todo: Add schema
@@ -59,7 +60,7 @@ export const AddFriend = async (req: Request, res: Response) => {
 	const selfDoc = await getCollection("users").findOne({ uid: res.locals.uid });
 
 	if (selfDoc) {
-		notifyUser(targtUid, "Friend request received", selfDoc.username);
+		notifyUser(userDoc["uid"], targtUid, "Friend request received", selfDoc.username)
 	}
 
 	res.status(200).send({ success: true, msg: "Friend request sent" });
@@ -206,7 +207,7 @@ export const AcceptFriendRequest = async (_sender: string, _receiver: string, ac
 
 		if (accepted) {
 			const selfDoc = await getCollection("users").findOne({ uid: _receiver });
-			notifyUser(_sender, "Friend request accepted", selfDoc.username);
+			notifyUser(_receiver, _sender, "Friend request accepted", selfDoc.username)
 			{
 				const { seeMembers, seeFront, getFrontNotif, trusted } = settings;
 				await getCollection("friends").insertOne({

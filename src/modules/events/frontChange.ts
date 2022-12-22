@@ -1,6 +1,6 @@
-import { notifyUser } from "../../util";
 import { logger } from "../logger";
 import { getCollection, parseId } from "../mongo";
+import { notifyUser } from "../notifications/notifications";
 import { notifyOfFrontChange } from "./automatedReminder";
 import { performEvent } from "./eventController";
 
@@ -214,7 +214,7 @@ const notifyFront = async (
 			const selfFriendSettings = await friendCollection.findOne({ frienduid: doc["frienduid"], uid: uid, $or: trustedQuery });
 			const friendSettings = await friendCollection.findOne({ frienduid: uid, uid: doc["frienduid"] });
 			if (friendSettings && selfFriendSettings && friendSettings["getTheirFrontNotif"]) {
-				notifyUser(doc["frienduid"], userDoc["username"], message);
+				notifyUser(userDoc["uid"], doc["frienduid"], userDoc["username"], message);
 			}
 		}
 	});

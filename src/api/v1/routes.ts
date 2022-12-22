@@ -21,6 +21,9 @@ import * as pk from './pk';
 import * as token from './tokens';
 import * as analytics from './analytics';
 import * as messages from './messages';
+import * as chats from './chats';
+import * as auth from './auth';
+import * as event from './events';
 
 // Todo: Verify all access types are setup correctly before moving to production
 export const setupV1routes = (app: core.Express) => {
@@ -96,10 +99,12 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/user/analytics", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(analytics.validatGetAnalyticsSchema), analytics.get)
 
 	// User
+	app.get("/v1/me", isUserAuthenticated(ApiKeyAccessType.Read), user.getMe)
 	app.get("/v1/user/:id", isUserAuthenticated(ApiKeyAccessType.Read), user.get)
 	app.get("/v1/user/:id/reports", isUserAuthenticated(ApiKeyAccessType.Read), user.getReports)
 	app.delete("/v1/user/:id/report/:reportid", isUserAppJwtAuthenticated, user.deleteReport)
-	app.post("/v1/user/:id/export", isUserAuthenticated(ApiKeyAccessType.Read), user.exportUserData)
+	app.post("/v1/user/:id/export", isUserAuthenticated(ApiKeyAccessType.Read, true), user.exportUserData)
+	app.get("/v1/user/export/avatars", validateQuery(user.validateExportAvatarsSchema), user.exportAvatars)
 	app.post("/v1/user/generateReport", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(user.validateUserReportSchema), user.generateReport)
 	app.patch("/v1/user/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(user.validateUserSchema), user.update)
 	app.patch("/v1/user/username/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(user.validateUsernameSchema), user.SetUsername)
@@ -108,6 +113,27 @@ export const setupV1routes = (app: core.Express) => {
 	// Messages
 	app.get("/v1/messages", isUserAppJwtAuthenticated, messages.get)
 	app.post("/v1/messages/read", isUserAppJwtAuthenticated, validateBody(messages.validateMarkReadSchema), messages.maskAsRead)
+
+	// Chat channels
+	app.get("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannel)
+	app.get("/v1/chat/channels", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannels)
+	app.post("/v1/chat/channel/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateAddChannelschema), chats.addChannel)
+	app.patch("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateUpdateChannelschema), chats.updateChannel)
+	app.delete("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteChannel)
+
+	// Chat categories
+	app.get("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannelCategory)
+	app.get("/v1/chat/categories", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannelCategories)
+	app.post("/v1/chat/category/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateChatCategorySchema), chats.addChannelCategory)
+	app.patch("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateChatCategorySchema), chats.updateChannelCategory)
+	app.delete("/v1/chat/category/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteChannelCategory)
+
+	// Chat messages
+	app.get("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getMessage)
+	app.get("/v1/chat/messages/:id", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(chats.validateGetChannelHistorySchema), chats.getChannelHistory)
+	app.post("/v1/chat/message/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateWriteMessageSchema), chats.writeMessage)
+	app.patch("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateUpdateMessageSchema), chats.updateMessage)
+	app.delete("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteMessage)
 
 	// Private
 	app.get("/v1/user/private/:id", isUserAppJwtAuthenticated, priv.get)
@@ -141,7 +167,43 @@ export const setupV1routes = (app: core.Express) => {
 
 	// Tokens
 	app.get("/v1/tokens", isUserAppJwtAuthenticated, token.getAll)
+	app.get("/v1/token/permissions", isUserAuthenticated(ApiKeyAccessType.Read | ApiKeyAccessType.Write | ApiKeyAccessType.Delete), token.getPermission)
 	app.get("/v1/token/:id", isUserAppJwtAuthenticated, token.get)
 	app.post("/v1/token/:id", isUserAppJwtAuthenticated, validateBody(token.validateApiKeySchema), validateId, token.add)
 	app.delete("/v1/token/:id", isUserAppJwtAuthenticated, token.del)
+
+	// Auth
+	app.post("/v1/auth/login", validateBody(auth.validateRegisterSchema), auth.login)
+
+	// OAuth2 providers
+	{
+		app.post("/v1/auth/login/oauth/google", validateBody(auth.validateLoginOAuth2Schema), auth.loginGoogle)
+		app.post("/v1/auth/login/oauth/apple", validateBody(auth.validateLoginOAuth2Schema), auth.loginApple)
+	}
+
+	app.post("/v1/auth/register", validateBody(auth.validateRegisterSchema), auth.register)
+
+	app.post("/v1/auth/verification/request", isUserAppJwtAuthenticated, auth.requestConfirmationEmail)
+	app.get("/v1/auth/verification/confirm", validateQuery(auth.validateConfirmEmailSchema),  auth.confirmEmail)
+
+	{
+		app.get("/v1/auth/password/reset", validateQuery(auth.validateResetPasswordRequestSchema), auth.resetPasswordRequest)
+		app.post("/v1/auth/password/reset/change", validateBody(auth.validateResetPasswordExecutionSchema), auth.resetPassword)
+		app.post("/v1/auth/password/change", validateBody(auth.validateChangePasswordSchema), auth.changePassword)
+	}
+
+	{
+		app.post("/v1/auth/email/change", validateBody(auth.validateChangeEmailSchema), auth.changeEmail)
+	}
+	
+	app.get("/v1/auth/refresh", auth.refreshToken)
+	app.get("/v1/auth/refresh/valid", auth.checkRefreshTokenValidity)
+
+	// Events
+	app.post("/v1/event", isUserAppJwtAuthenticated, validateBody(event.validateEventSchema), event.event)
+
+	// Specific events with per-event code
+	{
+		app.post("/v1/event/open", isUserAppJwtAuthenticated, event.openEvent)
+	}
 }

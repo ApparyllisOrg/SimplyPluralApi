@@ -1,4 +1,5 @@
 import { randomBytes } from "crypto";
+import { isUserSuspended } from "../../security";
 import { getCollection } from "../mongo";
 
 export enum ApiKeyAccessType {
@@ -52,7 +53,15 @@ export const revokeAllUserApiKeys = async (uid: string) => {
 export const validateApiKey = async (token: string): Promise<{ valid: boolean, accessType: number, uid: string }> => {
 	const doc = await getCollection("tokens").findOne({ "token": token });
 	if (doc && doc.token) {
-		return { valid: false, accessType: doc.permission, uid: doc.uid };
+
+		// This may cause overhead, TODO: Implement lru-cache for this
+		const isSuspended = await isUserSuspended(doc.uid)
+		if (isSuspended)
+		{
+			return { valid: false, accessType: 0x00, uid: "" };
+		}
+
+		return { valid: true, accessType: doc.permission, uid: doc.uid };
 	}
 
 	return { valid: false, accessType: 0x00, uid: "" };

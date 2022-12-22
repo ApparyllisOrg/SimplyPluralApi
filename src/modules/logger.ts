@@ -1,11 +1,12 @@
 import winston, { format } from "winston";
 import dotenv from "dotenv";
 import "winston-daily-rotate-file"
+import { namedArguments } from "../util/args";
 
 dotenv.config();
 const logPrefix = process.env.LOGPREFIX ?? (process.env.DBNAME ?? "")
 
-const useCustomLogFilenames = !process.argv.includes("--nologs")
+const useCustomLogFilenames = namedArguments.nologs !== true
 if (!useCustomLogFilenames)
 {
 	console.log("Running without custom log file names")

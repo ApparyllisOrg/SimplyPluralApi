@@ -13,7 +13,10 @@ export const startCollectingUsage = () => {
 }
 
 const collectUsage = () => {
-	const expirationDate = moment().add(14, "days").startOf("day").toDate().toISOString();
+	const expirationMoment = moment().add(14, "days").startOf("day").toDate().toISOString();
+
+	const expirationDate : Date = new Date(expirationMoment);
+	
 	collectedUsage.forEach((value, key) => {
 		const updateObj: { [key: string]: any } = {}
 

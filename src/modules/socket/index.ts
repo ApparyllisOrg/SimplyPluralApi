@@ -11,6 +11,7 @@ import crypto from "crypto";
 import { ChangeStream } from "mongodb";
 
 import promclient from "prom-client"
+import { decryptMessage } from "../../api/v1/chat/chat.core";
 
 export enum OperationType {
 	Read,
@@ -26,7 +27,7 @@ export interface ChangeEventNative {
 	operationType: OperationType
 }
 
-const listenCollections = ["members", "frontStatuses", "notes", "polls", "automatedReminders", "repeatedReminders", "frontHistory", "comments", "groups",]
+const listenCollections = ["members", "frontStatuses", "notes", "polls", "automatedReminders", "repeatedReminders", "frontHistory", "comments", "groups", "channels", "channelCategories", "chatMessages"]
 
 let _wss: WebSocket.Server | null = null;
 const connections = new Map<string, Connection>();
@@ -176,12 +177,19 @@ export const dispatchDelete = async (event: ChangeEventNative) => {
 
 async function dispatchInner(uid: any, event: ChangeEventNative) {
 
-	let result = {};
+	let result : {operationType: string, content: any, id: any} = {operationType: "", content: undefined, id: ""};
 	if (event.operationType === OperationType.Delete) {
-		result = { operationType: "delete", id: event.documentId };
+		result = { operationType: "delete", id: event.documentId, content: {} };
 	} else {
 		const document = await Mongo.getCollection(event.collection).findOne({ _id: Mongo.parseId(event.documentId) });
 		result = { operationType: operationTypeToString(event.operationType), ...transformResultForClientRead(document, event.uid) };
+	}
+
+	// TODO: Make this more modular for like a type handler.. we don't want to hardcode all manual changes to returned content
+	if (event.collection == "chatMessages" && result.operationType != "delete" )
+	{
+		result.content.message = decryptMessage(result.content.message, result.content.iv)
+		delete result.content.iv
 	}
 
 	const payload = { msg: "update", target: event.collection, results: [result] };

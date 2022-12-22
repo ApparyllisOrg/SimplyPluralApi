@@ -40,12 +40,6 @@ export const update = async (req: Request, res: Response) => {
 }
 
 export const del = async (req: Request, res: Response) => {
-	if (!validateCollection(req.body.collection))
-	{
-		res.status(400).send("Collection is not comment-supported")
-		return;
-	}
-
 	const originalComment = await getCollection("comments").findOne({ _id: parseId(req.params.id), uid: res.locals.uid });
 	if (!originalComment) {
 		res.status(404).send("Cannot find the comment you wish to delete")

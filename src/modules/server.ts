@@ -11,9 +11,10 @@ import http from "http";
 import prom from "express-prom-bundle"
 import promclient from "prom-client"
 import express from "express";
-import { validateOperationTime } from "../util/validation";
+import { validateOperationTime, validatePostId } from "../util/validation";
 import { NextFunction, Request, Response } from "express-serve-static-core";
 import cors from "cors";
+import cluster from "cluster";
 
 export const initializeServer = async () => {
 	const app = express();
@@ -60,6 +61,8 @@ export const initializeServer = async () => {
 
 	// Has to be *after* all controllers
 	app.use(Sentry.Handlers.errorHandler());
+
+	console.log(`Starting server as ${cluster.isPrimary ? "Primary" : "Worker"}`)
 
 	return app;
 }
