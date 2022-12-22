@@ -1,9 +1,10 @@
 import { createCipheriv, scrypt } from "crypto";
 import { base64decodeJwt } from "./auth.jwt";
 import * as Sentry from "@sentry/node";
+import { namedArguments } from "../../../util/args";
 
-const PASSWORD_KEY = process.env.PASSWORD_KEY ?? ""
-const PASSWORD_SEPERATOR = process.env.PASSWORD_SEPERATOR ?? ""
+const PASSWORD_KEY = process.env.PASSWORD_KEY ?? (namedArguments.password_key ?? "")
+const PASSWORD_SEPERATOR = process.env.PASSWORD_SEPERATOR ?? (namedArguments.password_seperator ?? "")
 
 if (PASSWORD_KEY.length === 0) throw new Error("PASSWORD_KEY needs to be defined!")
 if (PASSWORD_SEPERATOR.length === 0) throw new Error("PASSWORD_SEPERATOR needs to be defined!")

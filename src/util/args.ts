@@ -7,4 +7,6 @@ export const namedArguments = yargs(process.argv.slice(2)).options({
   nologs: { type: 'boolean',  default: false  },
   without_google: { type: 'boolean',  default: false  },
   messages_key: { type: 'string',  default: undefined  },
+  password_key: { type: 'string',  default: undefined  },
+  password_seperator: { type: 'string',  default: undefined  },
 }).parseSync();
