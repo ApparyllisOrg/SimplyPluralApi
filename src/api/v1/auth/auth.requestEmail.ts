@@ -56,10 +56,10 @@ export const requestEmail_Execution = async (username: string) : Promise<{succes
 			subject: "Your Simply Plural Account",
 		}).catch((reason) => {err: reason.toString() as string})
 			
-		return { success:true, msg: "If a user exists for that username you will receive an email under the account it is registered under" }
+		return { success:true, msg: "If a user exists for that username, you will receive an email under the account it is registered under" }
 	}
 	else 
 	{
-		return { success:true, msg: "If a user exists for that username you will receive an email under the account it is registered under" }
+		return { success:true, msg: "If a user exists for that username, you will receive an email under the account it is registered under" }
 	}
 }
