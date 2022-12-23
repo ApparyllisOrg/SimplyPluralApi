@@ -16,7 +16,7 @@ import { ERR_AUTH_USER_NOT_FOUND } from "../../../modules/errors";
 // Request email
 //-------------------------------//
 export const requestEmail_Execution = async (username: string) : Promise<{success: boolean, msg: string}> => {
-	const user = await getCollection("users").findOne({username})
+	const user = await getCollection("users").findOne({ username: { $regex: "^" + username + "$", $options: "i" }})
 	if (user)
 	{
 		let userEmail = "";
