@@ -112,7 +112,7 @@ export const update = async (req: Request, res: Response) => {
 		await getCollection("frontHistory").updateOne({ _id: parseId(req.params.id) }, { $set: { custom: isCustom } })
 
 		if (frontingDoc.live === true && req.body.live === false) {
-			frontChange(res.locals.uid, false, req.body.member ?? frontingDoc.member, true)
+			frontChange(res.locals.uid, true, req.body.member ?? frontingDoc.member, true)
 		}
 	}
 	else {
