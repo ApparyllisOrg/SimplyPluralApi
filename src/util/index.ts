@@ -1,6 +1,7 @@
 import * as Sentry from "@sentry/node";
 import { Request, Response } from "express";
 import { messaging } from "firebase-admin";
+import moment, { Moment } from "moment";
 import { ObjectID } from "mongodb";
 import * as Mongo from "../modules/mongo";
 import { parseId } from "../modules/mongo";
@@ -221,4 +222,11 @@ export const getAPIUrlBase = () =>
 	{
 		return "api.apparyllis.com"
 	}
+}
+
+export const getStartOfDay = () : Moment =>
+{
+	const today = moment()
+	const startOfDay = today.startOf("day")
+	return startOfDay;
 }

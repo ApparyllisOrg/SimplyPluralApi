@@ -4,6 +4,7 @@ export const ERR_BASE = 0
 
 // Errors for auth related issues
 export const ERR_AUTH = 1000
+export const ERR_AUTH_USER_NOT_FOUND = 1001
 
 
 // Errors for security released issues

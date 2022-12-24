@@ -4,6 +4,9 @@ import { getCollection } from "../mongo";
 import { automatedRemindersDueEvent, removeDeletedReminders } from "./automatedReminder";
 import { notifyPrivateFrontDue, notifySharedFrontDue } from "./frontChange";
 import { repeatRemindersDueEvent, repeatRemindersEvent } from "./repeatReminders";
+import promclient from "prom-client"
+import { getStartOfDay } from "../../util";
+
 type bindFunc = (uid: string, event: any) => void;
 const _boundEvents = new Map<string, bindFunc>();
 
@@ -15,6 +18,20 @@ const bindEvents = async () => {
 	_boundEvents.set("frontChangeShared", notifySharedFrontDue);
 	_boundEvents.set("frontChangePrivate", notifyPrivateFrontDue);
 };
+
+const counter  = new promclient.Gauge({
+	name: 'apparyllis_api_daily_users',
+	help: 'Counter for the amount of daily users, resets daily and counts up until the end of the day'
+});
+
+const runDailyUserCounter = async () =>
+{
+	const event = await getCollection("events").findOne({date: getStartOfDay(), event: "dailyUsage"})
+	if (event)
+	{
+		counter.set(event.count)
+	}
+}
 
 const runEvents = async () => {
 	const now = Date.now();
@@ -30,6 +47,8 @@ const runEvents = async () => {
 		}
 	});
 	queuedEvents.deleteMany({ due: { $lte: now } });
+
+	runDailyUserCounter();
 
 	// Re-run after 300ms
 	setTimeout(runEvents, 300);
@@ -50,6 +69,7 @@ const enqueueEvent = (event: string, uid: string, delay: number) => {
 	const queuedEvents = getCollection("queuedEvents");
 	queuedEvents.updateOne({ uid: uid, event: event }, { $set: { event: event, uid: uid, due: future } }, { upsert: true });
 };
+
 
 export const init = () => {
 	runEvents();

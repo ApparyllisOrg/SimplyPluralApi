@@ -20,6 +20,7 @@ import { readFile } from "fs";
 import { getAPIUrl, getAPIUrlBase } from "../../util";
 import { loginWithApple } from "./auth/auth.apple";
 import { namedArguments } from "../../util/args";
+import { requestEmail_Execution } from "./auth/auth.requestEmail";
 
 initializeApp({projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY})
 
@@ -271,6 +272,18 @@ export const changePassword = async (req: Request, res: Response) =>
 	res.status(401).send("Failed to change password")
 }
 
+export const requestEmailFromUsername = async (req: Request, res: Response) =>
+{
+	const result = await requestEmail_Execution(req.body.username)
+	if (result.success === true)
+	{
+		res.status(200).send(result.msg)
+		return
+	} 
+
+	res.status(500).send("Error")
+}
+
 export const register = async (req: Request, res: Response) => {
 	const existingUser = await getCollection("accounts").findOne({email: req.body.email})
 	if (existingUser)
@@ -350,6 +363,20 @@ export const validateRegisterSchema = (body: any): { success: boolean, msg: stri
 		nullable: false,
 		additionalProperties: false,
 		required: ["email", "password"]
+	};
+
+	return validateSchema(schema, body);
+}
+
+export const validateForgotEmailSchema = (body: any): { success: boolean, msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			username: { type: "string", pattern: "^[a-zA-Z0-9-_]{1,35}$" },
+		},
+		nullable: false,
+		additionalProperties: false,
+		required: ["username"]
 	};
 
 	return validateSchema(schema, body);
