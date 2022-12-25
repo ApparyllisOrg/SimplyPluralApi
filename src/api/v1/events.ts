@@ -3,6 +3,7 @@ import moment from "moment";
 import { getCollection } from "../../modules/mongo";
 import { getStartOfDay } from "../../util";
 import { validateSchema } from "../../util/validation";
+import { logOpenUsage } from "./events/open";
 
 export const event = async (req: Request, res: Response) => {
 
@@ -31,14 +32,7 @@ export const openEvent = async (req: Request, res: Response) => {
 		return
 	}
 
-	let lastOpen = privateUser.lastOpen ?? 0;
-
-
-	if (lastOpen < getStartOfDay().valueOf())
-	{
-		await getCollection("private").updateOne({uid: res.locals.uid}, {$set: { lastOpen }})
-		await getCollection("events").updateOne({date: getStartOfDay(), event: "dailyUsage"}, {$inc: {count : 1}}, { upsert: true })
-	}
+	logOpenUsage(res.locals.uid);
 
 	res.status(200).send()
 }

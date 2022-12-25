@@ -21,6 +21,7 @@ import { getAPIUrl, getAPIUrlBase } from "../../util";
 import { loginWithApple } from "./auth/auth.apple";
 import { namedArguments } from "../../util/args";
 import { requestEmail_Execution } from "./auth/auth.requestEmail";
+import { logOpenUsage as logDailyUsage } from "./events/open";
 
 initializeApp({projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY})
 
@@ -151,6 +152,10 @@ export const refreshToken = async (req: Request, res: Response) => {
 			getCollection("invalidJwtTokens").insertOne({jwt: req.headers.authorization, exp: new Date(validResult.decoded.exp * 1000)})
 
 			res.status(200).send(newToken)
+
+			// Infer daily usage from a token refresh
+			logDailyUsage(validResult.decoded.sub);
+
 			return;
 		} 
 		else if (validResult.google === true)
@@ -158,6 +163,10 @@ export const refreshToken = async (req: Request, res: Response) => {
 			const user = await getCollection("accounts").findOne({uid: validResult.decoded})
 			const newToken = await jwtForUser(validResult.decoded, validResult.email, true)
 			res.status(200).send(newToken)
+
+			// Infer daily usage from a token refresh
+			logDailyUsage(validResult.decoded);
+
 			return;
 		}
 	} 
