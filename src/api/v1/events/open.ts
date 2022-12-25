@@ -19,7 +19,7 @@ export const logOpenUsage = async (uid: string | undefined) =>
 
 	if (lastRefresh < getStartOfDay().valueOf())
 	{
-		await getCollection("private").updateOne({uid: uid}, {$set: { lastRefresh }})
-		await getCollection("events").updateOne({date: getStartOfDay(), event: "dailyUsage"}, {$inc: {count : 1}}, { upsert: true })
+		await getCollection("private").updateOne({uid: uid}, {$set: { lastRefresh: getStartOfDay().valueOf() }})
+		await getCollection("events").updateOne({date: getStartOfDay().toDate(), event: "dailyUsage"}, {$inc: {count : 1}}, { upsert: true })
 	}
 }
