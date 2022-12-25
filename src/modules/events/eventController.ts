@@ -26,7 +26,7 @@ const counter  = new promclient.Gauge({
 
 const runDailyUserCounter = async () =>
 {
-	const event = await getCollection("events").findOne({date: getStartOfDay(), event: "dailyUsage"})
+	const event = await getCollection("events").findOne({date: getStartOfDay().toDate(), event: "dailyUsage"})
 	if (event)
 	{
 		counter.set(event.count)
