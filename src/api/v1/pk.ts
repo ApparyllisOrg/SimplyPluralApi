@@ -31,22 +31,7 @@ export const performSyncMemberFromPk = async (req: Request, res: Response) => {
 	}
 }
 
-export const performSyncAllMembers = async (req: Request, res: Response) => {
-	const options = req.body.options
-
-	let selectedAnyOption = false;
-	selectedAnyOption = selectedAnyOption || options.name === true;
-	selectedAnyOption = selectedAnyOption || options.avatar === true;
-	selectedAnyOption = selectedAnyOption || options.pronouns === true;
-	selectedAnyOption = selectedAnyOption || options.description === true;
-	selectedAnyOption = selectedAnyOption || options.color === true;
-
-	if (!selectedAnyOption)
-	{
-		res.status(400).send("You need to select at least one data option to sync")
-		return
-	}
-	
+export const performSyncAllMembers = async (req: Request, res: Response) => {	
 	if (req.query.direction === "push") {
 		performSyncAllMemberToPk(req, res);
 	}
