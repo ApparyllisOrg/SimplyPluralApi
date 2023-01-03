@@ -12,27 +12,35 @@ import moment from "moment";
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? ""
 const GOOGLE_CLIENT_AUD = process.env.GOOGLE_CLIENT_AUD ?? ""
+
+const GOOGLE_CLIENT_IOS_ID = process.env.GOOGLE_CLIENT_IOS_ID ?? ""
+
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? ""
 
-let client : OAuth2Client | undefined = undefined;
+let android_client : OAuth2Client | undefined = undefined;
+let iOS_client : OAuth2Client | undefined = undefined;
 
 if (namedArguments.without_google !== true) {
 	if (GOOGLE_CLIENT_ID.length === 0) throw new Error("GOOGLE_CLIENT_ID needs to be defined!")
 	if (GOOGLE_CLIENT_AUD.length === 0) throw new Error("GOOGLE_CLIENT_AUD needs to be defined!")
+
+	if (GOOGLE_CLIENT_IOS_ID.length === 0) throw new Error("GOOGLE_CLIENT_IOS_ID needs to be defined!")
+
 	if (GOOGLE_CLIENT_SECRET.length === 0) throw new Error("GOOGLE_CLIENT_SECRET needs to be defined!")
 
-	client = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
+	android_client = new OAuth2Client(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET);
+	iOS_client = new OAuth2Client(GOOGLE_CLIENT_IOS_ID, GOOGLE_CLIENT_SECRET);
 } else {
 	console.log("Running without google")
 } 
 
 export const loginWithGoogle = async (credential : string) : Promise<{ success: boolean, uid: string, email: string }> => {
-	if (!client)
+	if (!android_client || !iOS_client)
 	{
 		return {success: false, uid: "", email: ""};
 	}
 
-	const ticket = await client.verifyIdToken({
+	let ticket = await android_client.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_AUD,
   	}).catch((reason) => 
@@ -47,7 +55,23 @@ export const loginWithGoogle = async (credential : string) : Promise<{ success: 
 
 	if (!ticket)
 	{
-		return {success: false, uid: "", email: ""}
+		ticket = await iOS_client.verifyIdToken({
+			idToken: credential,
+			audience: process.env.GOOGLE_CLIENT_IOS_ID,
+		}).catch((reason) => 
+		{
+			if (process.env.DEVELOPMENT )
+			{
+				console.log(`Failed to verify id token => ${reason}`)
+			}
+
+			return undefined;
+		});
+
+		if (!ticket)
+		{
+			return {success: false, uid: "", email: ""}
+		}
 	}
 
   	const payload = ticket.getPayload();
@@ -57,7 +81,7 @@ export const loginWithGoogle = async (credential : string) : Promise<{ success: 
 		return {success: false, uid: "", email: ""}
 	}
 
-	if (payload.aud !== GOOGLE_CLIENT_AUD)
+	if (payload.aud !== GOOGLE_CLIENT_AUD && payload.aud !== GOOGLE_CLIENT_IOS_ID)
 	{
 		return {success: false, uid: "", email: ""}
 	}
