@@ -126,15 +126,22 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 				}
 
 				if (status == 200) {
-					const patchRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${spMemberResult.pkId}`, token, response: null, data: memberDataToSync, type: PkRequestType.Patch, id: "" }
-					const patchResult = await addPendingRequest(patchRequest)
-					if (patchResult) {
-						if (patchResult.status === 200) {
-							return { success: true, msg: `${name} updated on PluralKit` }
+					if (Object.keys(memberDataToSync).length > 0)
+					{
+						const patchRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${spMemberResult.pkId}`, token, response: null, data: memberDataToSync, type: PkRequestType.Patch, id: "" }
+						const patchResult = await addPendingRequest(patchRequest)
+						if (patchResult) {
+							if (patchResult.status === 200) {
+								return { success: true, msg: `${name} updated on PluralKit` }
+							}
+							else {
+								return handlePkResponse(patchResult);
+							}
 						}
-						else {
-							return handlePkResponse(patchResult);
-						}
+					}
+					else 
+					{
+						return { success: true, msg: `${name} not updated. No data to sync was selected` }
 					}
 				}
 				else if (status === 404 || status === 403) {
