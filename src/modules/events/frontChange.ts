@@ -146,7 +146,7 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 		privateCollection
 			.updateOne(
 				{ uid: uid, _id: uid },
-				{ $set: { beforeFrontNotificationString: frontNotificationString, beforeCustomFrontString: customFrontString } },
+				{ $set: { beforeFrontNotificationString: privateFrontNotificationString, beforeCustomFrontString: priavteCustomFrontString } },
 				{ upsert: true }
 			)
 			.catch(logger.error);
