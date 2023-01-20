@@ -49,7 +49,7 @@ const isJwtValidIssueTime = async (uid: string, time: number) : Promise<boolean>
 	// No first valid jwt means means all jwts issues from apparyllis are valid, as long as they're not expired
 	if (user && user.firstValidJWtTime && time <= user.firstValidJWtTime)
 	{
-		return true;
+		return false;
 	}
 
 	return true;
@@ -91,17 +91,11 @@ export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean) : Promis
 
 				if (wantsRefresh === true)
 				{		
-					const invalidatedToken = await getCollection("invalidJwtTokens").findOne({jwt: jwtStr})
-					if (invalidatedToken) {
+					const result = await isJwtValidIssueTime(payload.sub!, payload.iat!)
+					if (!result)
+					{
 						resolve({valid: false, decoded: "", google: false, email: ""});
-						return
-					} else {
-						const result = await isJwtValidIssueTime(payload.sub!, payload.iat!)
-						if (!result)
-						{
-							resolve({valid: false, decoded: "", google: false, email: ""});
-							return;
-						}
+						return;
 					}
 
 					if (payload["refresh"] === true)

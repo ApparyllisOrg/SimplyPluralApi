@@ -22,7 +22,7 @@ export const getResetPasswordKey = () => randomBytes(64).toString("hex")
 export const resetPasswordRequest_Execution = async (email : string) : Promise<{success: boolean, msg: string, url: string}> => {
 	let resetUrl = "";
 
-	const user = await getCollection("accounts").findOne({email})
+	const user = await getCollection("accounts").findOne({email, oAuth2: { $ne: true }})
 	if (user)
 	{
 		if (user.lastResetPasswordEmailSent)

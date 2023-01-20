@@ -24,7 +24,7 @@ export const getNewUid = async () => {
 export const revokeAllUserAccess = async (uid: string) => 
 {
 	// Division by 1000 because iat is in seconds, not milliseconds
-	await getCollection("accounts").updateOne({uid}, {$set: { firstValidJWtTime: moment.now() / 1000 }})
+	await getCollection("accounts").updateOne({uid}, {$set: { firstValidJWtTime: Math.round(moment.now() / 1000) }})
 
 	getUserConnections(uid).forEach((connection) => connection.send("Session invalidated", true))
 }
