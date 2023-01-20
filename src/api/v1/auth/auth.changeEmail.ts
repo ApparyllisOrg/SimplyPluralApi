@@ -13,7 +13,7 @@ import { revokeAllUserAccess } from "./auth.core";
 // Change password
 //-------------------------------//
 export const changeEmail_Execution = async (oldEmail: string, password: string, newEmail: string) : Promise<{success: boolean, msg: string, uid: string}> => {
-	const user = await getCollection("accounts").findOne({email: oldEmail})
+	const user = await getCollection("accounts").findOne({email: oldEmail, oAuth2: { $ne: true }})
 	if (user)
 	{
 		const hashedPasswd = await hash(password, user.salt)

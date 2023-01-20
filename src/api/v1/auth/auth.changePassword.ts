@@ -13,7 +13,7 @@ import { base64decodeJwt } from "./auth.jwt";
 // Change password
 //-------------------------------//
 export const changePassword_Execution = async (uid: string, oldPassword: string, newPassword: string) : Promise<{success: boolean, msg: string, uid: string}> => {
-	const user = await getCollection("accounts").findOne({uid})
+	const user = await getCollection("accounts").findOne({uid, oAuth2: { $ne: true }})
 	if (user)
 	{
 		if (user.oAuth2 === true)
