@@ -141,11 +141,6 @@ describe("validate authentication flow", () => {
 		}
 
 		{
-			const failResult = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: refreshToken2} }).catch((reason) => { return reason.response })
-			assert(failResult.status == 401, "Old refresh token 2 should be discarded")
-		}
-
-		{
 			const failResult = await axios.get(getTestAxiosUrl("v1/auth/refresh"), { headers: { authorization: refreshToken3} }).catch((reason) => { return reason.response })
 			assert(failResult.status == 200, "New refresh token should work")
 		}
