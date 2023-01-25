@@ -76,7 +76,7 @@ export const loginWithApple = async (credential : string) : Promise<{ success: b
 
 const registerSub = async (payload: JwtPayload) : Promise<boolean> => 
 {
-	const firebaseUser = await auth().getUserByEmail(payload.email ?? "")
+	const firebaseUser = await auth().getUserByEmail(payload.email ?? "").catch((e) => undefined)
 	if (!firebaseUser)
 	{
 		const newUserId = await getNewUid();

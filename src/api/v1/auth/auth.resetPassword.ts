@@ -49,7 +49,7 @@ export const resetPasswordRequest_Execution = async (email : string) : Promise<{
 	}
 	else 
 	{
-		const firebaseUser = await auth().getUserByEmail(email)
+		const firebaseUser = await auth().getUserByEmail(email).catch((e) => undefined)
 		if (firebaseUser)
 		{
 			resetUrl = await auth().generatePasswordResetLink(email);	
