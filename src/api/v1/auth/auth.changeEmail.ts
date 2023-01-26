@@ -14,6 +14,13 @@ import { revokeAllUserAccess } from "./auth.core";
 //-------------------------------//
 export const changeEmail_Execution = async (oldEmail: string, password: string, newEmail: string) : Promise<{success: boolean, msg: string, uid: string}> => {
 	const user = await getCollection("accounts").findOne({email: oldEmail, oAuth2: { $ne: true }})
+
+	const existingUser = await getCollection("accounts").findOne({email: newEmail})
+	if (existingUser)
+	{
+		return { success: false, msg: "A user with that email already exists", uid: ""} ;
+	}
+
 	if (user)
 	{
 		const hashedPasswd = await hash(password, user.salt)
