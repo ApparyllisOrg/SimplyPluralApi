@@ -36,6 +36,7 @@ export const login = async (req: Request, res: Response) => {
 			const hashedPasswd = await hash(req.body.password, salt)
 			await getCollection("accounts").insertOne({uid: result.user.uid, email: req.body.email, verified: result.user.emailVerified, salt, password: hashedPasswd.hashed, registeredAt: result.user.metadata.creationTime ?? moment.now()})
 			user = await getCollection("accounts").findOne({email: req.body.email})
+			getCollection("migration").insertOne({email: req.body.email})
 		}
 		else 
 		{
