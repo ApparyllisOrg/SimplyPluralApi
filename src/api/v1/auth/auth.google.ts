@@ -133,7 +133,6 @@ const registerSub = async (payload: TokenPayload) : Promise<boolean> =>
 	else
 	{
 		await getCollection("accounts").insertOne({uid: firebaseUser.uid, sub: payload.sub, email: firebaseUser.email, verified: true , oAuth2: true, registeredAt: firebaseUser.metadata.creationTime ?? new Date()})
-		getCollection("migration").insertOne({email: firebaseUser.email})
 	}
 
 	return true;
