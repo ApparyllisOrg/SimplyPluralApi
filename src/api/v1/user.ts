@@ -171,15 +171,18 @@ export const get = async (req: Request, res: Response) => {
 		const isATrustedFriends = isTrustedFriend(friendLevel)
 		const newFields: any = {}
 
-		Object.keys(document.fields).forEach((key: string) => {
-			const field = document.fields[key]
-			if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
-				newFields[key] = field;
-			}
-			if (field.private === false && field.preventTrusted === false) {
-				newFields[key] = field;
-			}
-		});
+		if (document.fields)
+		{
+			Object.keys(document.fields).forEach((key: string) => {
+				const field = document.fields[key]
+				if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
+					newFields[key] = field;
+				}
+				if (field.private === false && field.preventTrusted === false) {
+					newFields[key] = field;
+				}
+			});
+		}
 
 		document.fields = newFields;
 	}

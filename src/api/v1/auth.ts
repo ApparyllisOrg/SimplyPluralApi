@@ -314,7 +314,7 @@ export const register = async (req: Request, res: Response) => {
 	const regexp = new RegExp(getPasswordRegex())
 	if (!regexp.test(req.body.password))
 	{
-		res.status(401).send("Unknown user or password")
+		res.status(400).send("Your password must be between 12 and 100 characters, have a capital and lower case letter, a number and a symbol (#?!@$%^&*-)")
 		return
 	}
 

@@ -49,7 +49,7 @@ export const scheduleAutomatedReminder = async (uid: string, data: any) => {
 export const automatedRemindersDueEvent = async (uid: string, event: any) => {
 	const automatedReminders = getCollection("automatedReminders");
 	const foundReminder = await automatedReminders.findOne({ uid: uid, _id: event.reminderId });
-	if (foundReminder) { // We can delete the timer
+	if (foundReminder && foundReminder.message) { // We can delete the timer
 		notifyUser(uid, uid, "Reminder", foundReminder.message);
 	}
 };

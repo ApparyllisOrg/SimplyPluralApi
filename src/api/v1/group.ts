@@ -19,13 +19,20 @@ export const add = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
 	const group = await getCollection("groups").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) })
 
-	if (req.body.private === true && req.body.preventTrusted !== null && req.body.preventTrusted !== null) {
-		if (group.private !== req.body.private || req.body.preventTrusted != group.preventTrusted) {
-			privateGroupRecursive(req.params.id, res.locals.uid, req.body.private, req.body.preventTrusted)
+	if (group)
+	{
+		if (req.body.private === true && req.body.preventTrusted !== null && req.body.preventTrusted !== null) {
+			if (group.private !== req.body.private || req.body.preventTrusted != group.preventTrusted) {
+				privateGroupRecursive(req.params.id, res.locals.uid, req.body.private, req.body.preventTrusted)
+			}
 		}
-	}
 
-	updateSimpleDocument(req, res, "groups")
+		updateSimpleDocument(req, res, "groups")
+	}
+	else 
+	{
+		res.status(404).send("Cannot find specified group")
+	}
 }
 
 export const del = async (req: Request, res: Response) => {
