@@ -13,9 +13,14 @@ import { revokeAllUserAccess } from "./auth.core";
 // Change password
 //-------------------------------//
 export const changeEmail_Execution = async (oldEmail: string, password: string, newEmail: string) : Promise<{success: boolean, msg: string, uid: string}> => {
-	const user = await getCollection("accounts").findOne({email: oldEmail, oAuth2: { $ne: true }})
+	const user = await getCollection("accounts").findOne({email: { $regex: "^" + oldEmail + "$", $options: "i" }})
 
-	const existingUser = await getCollection("accounts").findOne({email: newEmail})
+	if (user.oAuth2 === true)
+	{
+		return { success: false, msg: "You cannot change the email of an account when you use Sign in with Apple or Sign in with Google", uid: ""} ;
+	}
+
+	const existingUser = await getCollection("accounts").findOne({email: { $regex: "^" + newEmail + "$", $options: "i" }})
 	if (existingUser)
 	{
 		return { success: false, msg: "A user with that email already exists", uid: ""} ;

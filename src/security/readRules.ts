@@ -16,7 +16,7 @@ export interface UserItem {
 }
 
 export const parseForAllowedReadValues = async (data: documentObject, requestorUid: string) => {
-	if (data.uid !== requestorUid) {
+	if (data && data.uid !== requestorUid) {
 		delete data["comments"];
 	}
 };

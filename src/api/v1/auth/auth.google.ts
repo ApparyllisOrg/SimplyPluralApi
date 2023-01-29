@@ -86,7 +86,7 @@ export const loginWithGoogle = async (credential : string) : Promise<{ success: 
 		return {success: false, uid: "", email: ""}
 	}
 
-	const account = await getCollection("accounts").findOne({email: payload.email})
+	const account = await getCollection("accounts").findOne({email: { $regex: "^" + payload.email + "$", $options: "i" }})
 
 	if (!account)
 	{
@@ -97,7 +97,7 @@ export const loginWithGoogle = async (credential : string) : Promise<{ success: 
 			return {success: false, uid: "", email: ""}
 		}
 
-		const registeredAccount = await getCollection("accounts").findOne({email: payload.email})
+		const registeredAccount = await getCollection("accounts").findOne({email: { $regex: "^" + payload.email + "$", $options: "i" }})
 
 		if (!registeredAccount)
 		{
