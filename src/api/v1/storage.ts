@@ -28,10 +28,14 @@ export const Store = async (req: Request, res: Response) => {
 
 	minioClient.putObject("spaces", path, buffer).catch((e) => {
 		logger.error(e)
-		res.status(500).send("Error uploading avatar");
-	}).then(() =>{
-		res.status(200).send({ success: true, msg: { url: "https://serve.apparyllis.com/avatars/" + path }})
-		userLog(res.locals.uid, "Stored avatar with size: " + buffer.length);
+		
+	}).then((onfullfilled : void | minio.UploadedObjectInfo) =>{
+		if (onfullfilled) {
+			res.status(200).send({ success: true, msg: { url: "https://serve.apparyllis.com/avatars/" + path }})
+			userLog(res.locals.uid, "Stored avatar with size: " + buffer.length);
+		} else {
+			res.status(500).send("Error uploading avatar");
+		}
 	})
 }
 

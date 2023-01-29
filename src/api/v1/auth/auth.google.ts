@@ -86,8 +86,7 @@ export const loginWithGoogle = async (credential : string) : Promise<{ success: 
 		return {success: false, uid: "", email: ""}
 	}
 
-	const googleUserId = payload['sub'];
-	const account = await getCollection("accounts").findOne({sub: googleUserId})
+	const account = await getCollection("accounts").findOne({email: { $regex: "^" + payload.email + "$", $options: "i" }})
 
 	if (!account)
 	{
@@ -98,11 +97,11 @@ export const loginWithGoogle = async (credential : string) : Promise<{ success: 
 			return {success: false, uid: "", email: ""}
 		}
 
-		const registeredAccount = await getCollection("accounts").findOne({sub: googleUserId})
+		const registeredAccount = await getCollection("accounts").findOne({email: { $regex: "^" + payload.email + "$", $options: "i" }})
 
 		if (!registeredAccount)
 		{
-			Sentry.captureMessage("Unable to register account of sub " + googleUserId)
+			Sentry.captureMessage("Unable to register account of email " + payload.email)
 			return {success: false, uid: "",  email:  ""}
 		}
 
