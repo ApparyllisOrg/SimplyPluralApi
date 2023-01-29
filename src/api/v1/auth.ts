@@ -26,7 +26,7 @@ import { logOpenUsage as logDailyUsage } from "./events/open";
 initializeApp({projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY})
 
 export const login = async (req: Request, res: Response) => {
-	let user = await getCollection("accounts").findOne({email: req.body.email})
+	let user = await getCollection("accounts").findOne({email: { $regex: "^" + req.body.email + "$", $options: "i" }})
 	if (!user)
 	{	
 		const result = await signInWithEmailAndPassword(getAuth(), req.body.email, req.body.password).catch((e) => undefined)
@@ -35,7 +35,7 @@ export const login = async (req: Request, res: Response) => {
 			const salt = randomBytes(16).toString("hex")
 			const hashedPasswd = await hash(req.body.password, salt)
 			await getCollection("accounts").insertOne({uid: result.user.uid, email: req.body.email, verified: result.user.emailVerified, salt, password: hashedPasswd.hashed, registeredAt: result.user.metadata.creationTime ?? moment.now()})
-			user = await getCollection("accounts").findOne({email: req.body.email})
+			user = await getCollection("accounts").findOne({email: { $regex: "^" + req.body.email + "$", $options: "i" }})
 		}
 		else 
 		{
@@ -192,7 +192,7 @@ export const resetPasswordRequest = async (req: Request, res: Response) =>
 	const result = await resetPasswordRequest_Execution(email)
 	if (result.success === true)
 	{
-		const user = await getCollection("accounts").findOne({email})
+		const user = await getCollection("accounts").findOne({email:{ $regex: "^" + email + "$", $options: "i" }})
 		// User may not exist if they haven't migrated from firebase to native-auth yet
 		// TODO: Phase this out whenever we lock out firebase-auth-dependent app client versions 
 		if (user)
@@ -291,7 +291,7 @@ export const requestEmailFromUsername = async (req: Request, res: Response) =>
 }
 
 export const register = async (req: Request, res: Response) => {
-	const existingUser = await getCollection("accounts").findOne({email: req.body.email})
+	const existingUser = await getCollection("accounts").findOne({email: { $regex: "^" + req.body.email + "$", $options: "i" }})
 	if (existingUser)
 	{
 		res.status(409).send("User already exists")

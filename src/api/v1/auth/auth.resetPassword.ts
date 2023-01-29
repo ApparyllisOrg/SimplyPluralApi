@@ -22,7 +22,7 @@ export const getResetPasswordKey = () => randomBytes(64).toString("hex")
 export const resetPasswordRequest_Execution = async (email : string) : Promise<{success: boolean, msg: string, url: string}> => {
 	let resetUrl = "";
 
-	const user = await getCollection("accounts").findOne({email, oAuth2: { $ne: true }})
+	const user = await getCollection("accounts").findOne({email:{ $regex: "^" + email + "$", $options: "i" }, oAuth2: { $ne: true }})
 	if (user)
 	{
 		if (user.lastResetPasswordEmailSent)
@@ -45,7 +45,7 @@ export const resetPasswordRequest_Execution = async (email : string) : Promise<{
 			resetUrl = `https://dist.apparyllis.com/auth/prod/resetpassword.html?key=${resetKey}`
 		}
 		
-		await getCollection("accounts").updateOne({email}, { $set: { lastResetPasswordEmailSent: moment.now(), passwordResetToken: resetKey}})
+		await getCollection("accounts").updateOne({email:{ $regex: "^" + email + "$", $options: "i" }}, { $set: { lastResetPasswordEmailSent: moment.now(), passwordResetToken: resetKey}})
 	}
 	else 
 	{

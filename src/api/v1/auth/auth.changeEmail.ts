@@ -13,9 +13,9 @@ import { revokeAllUserAccess } from "./auth.core";
 // Change password
 //-------------------------------//
 export const changeEmail_Execution = async (oldEmail: string, password: string, newEmail: string) : Promise<{success: boolean, msg: string, uid: string}> => {
-	const user = await getCollection("accounts").findOne({email: oldEmail, oAuth2: { $ne: true }})
+	const user = await getCollection("accounts").findOne({email: { $regex: "^" + oldEmail + "$", $options: "i" }, oAuth2: { $ne: true }})
 
-	const existingUser = await getCollection("accounts").findOne({email: newEmail})
+	const existingUser = await getCollection("accounts").findOne({email: { $regex: "^" + newEmail + "$", $options: "i" }})
 	if (existingUser)
 	{
 		return { success: false, msg: "A user with that email already exists", uid: ""} ;
