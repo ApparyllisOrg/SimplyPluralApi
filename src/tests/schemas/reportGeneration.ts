@@ -1,8 +1,6 @@
 import * as assert from "assert";
-import { writeFile } from "fs";
-import * as mocha from "mocha"
+import * as mocha from "mocha";
 import { validateUserReportSchema } from "../../api/v1/user";
-import { generateUserReport } from "../../api/v1/user/generateReport";
 
 describe("validate generate report schemas", () => {
 	mocha.test("Test valid generate report schema", () => {
@@ -17,11 +15,11 @@ describe("validate generate report schemas", () => {
 			},
 			members: {
 				privacyLevel: 2,
-				includeCustomFields: true
+				includeCustomFields: true,
 			},
 			customFronts: {
 				privacyLevel: 2,
-			}
+			},
 		});
 
 		assert.strictEqual(result.success, true, result.msg);
@@ -32,7 +30,7 @@ describe("validate generate report schemas", () => {
 			sendTo: "celeste@saltypandastudios.com",
 			frontHistory: null,
 			members: null,
-			customFronts: null
+			customFronts: null,
 		});
 
 		assert.strictEqual(result.success, true, result.msg);
@@ -43,7 +41,7 @@ describe("validate generate report schemas", () => {
 			sendTo: null,
 			frontHistory: {},
 			members: {},
-			customFronts: {}
+			customFronts: {},
 		});
 
 		assert.strictEqual(result.success, false, result.msg);

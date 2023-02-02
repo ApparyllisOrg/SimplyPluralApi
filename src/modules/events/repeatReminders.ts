@@ -11,22 +11,24 @@ const scheduleReminder = async (uid: string, data: any, userData: any) => {
 	const minute: number = data.time.minute;
 
 	const timzone: string = userData.location;
-	const formattedTime = data.startTime.year + "-" + ("00" + data.startTime.month).slice(-2)
-		+ "-" + ("00" + data.startTime.day).slice(-2) + " " + ("00" + hour).slice(-2) + ":" + ("00" + minute).slice(-2);
+	const formattedTime = data.startTime.year + "-" + ("00" + data.startTime.month).slice(-2) + "-" + ("00" + data.startTime.day).slice(-2) + " " + ("00" + hour).slice(-2) + ":" + ("00" + minute).slice(-2);
 
 	const initialTime = moment.tz(formattedTime, "YYYY-MM-DD HH:mm", true, timzone);
 
 	if (initialTime.valueOf() > now.valueOf()) {
 		queuedEvents.insertOne({
-			uid: uid, event: "scheduledRepeatReminder", due:
-				initialTime.valueOf(), message: data.message, reminderId: data._id
+			uid: uid,
+			event: "scheduledRepeatReminder",
+			due: initialTime.valueOf(),
+			message: data.message,
+			reminderId: data._id,
 		});
 		return;
 	}
 
-	const intervalInDays : number = data.dayInterval;
-	const differenceInDays = now.diff(initialTime, "days")
-	const nextDue = initialTime.add(differenceInDays + intervalInDays, "days").valueOf()
+	const intervalInDays: number = data.dayInterval;
+	const differenceInDays = now.diff(initialTime, "days");
+	const nextDue = initialTime.add(differenceInDays + intervalInDays, "days").valueOf();
 
 	queuedEvents.insertOne({ uid: uid, event: "scheduledRepeatReminder", due: nextDue, message: data.message, reminderId: data._id });
 };
@@ -42,7 +44,7 @@ export const repeatRemindersEvent = async (uid: string) => {
 	await queuedEvents.deleteMany({ uid: uid, event: "scheduledRepeatReminder" });
 
 	// Re-add all repeat reminders
-	foundReminders.forEach((value,) => scheduleReminder(uid, value, privateUserData));
+	foundReminders.forEach((value) => scheduleReminder(uid, value, privateUserData));
 };
 
 export const repeatRemindersDueEvent = async (uid: string, event: any) => {
@@ -51,7 +53,8 @@ export const repeatRemindersDueEvent = async (uid: string, event: any) => {
 		notifyUser(uid, uid, "Reminder", event.message);
 		const repeatReminders = getCollection("repeatedReminders");
 		const foundReminder = await repeatReminders.findOne({ uid: uid, _id: event.reminderId });
-		if (foundReminder) { // We can delete the timer
+		if (foundReminder) {
+			// We can delete the timer
 			scheduleReminder(uid, foundReminder, privateUserData);
 		}
 	}

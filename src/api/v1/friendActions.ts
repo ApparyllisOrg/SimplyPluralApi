@@ -3,7 +3,7 @@ import { getCollection } from "../../modules/mongo";
 import { notifyUser } from "../../modules/notifications/notifications";
 import { FriendLevel, getFriendLevel } from "../../security";
 
-import { validateBody, validateSchema } from "../../util/validation";
+import { validateSchema } from "../../util/validation";
 
 // Todo: Add schema
 export const AddFriend = async (req: Request, res: Response) => {
@@ -54,19 +54,19 @@ export const AddFriend = async (req: Request, res: Response) => {
 		seeFront: seeFront,
 		getFrontNotif: getFrontNotif,
 		trusted: trusted,
-		message: message
+		message: message,
 	});
 
 	const selfDoc = await getCollection("users").findOne({ uid: res.locals.uid });
 
 	if (selfDoc) {
-		notifyUser(userDoc["uid"], targtUid, "Friend request received", selfDoc.username)
+		notifyUser(userDoc["uid"], targtUid, "Friend request received", selfDoc.username);
 	}
 
 	res.status(200).send({ success: true, msg: "Friend request sent" });
 };
 
-export const validateRequestFrienqRequestSchema = (body: any): { success: boolean, msg: string } => {
+export const validateRequestFrienqRequestSchema = (body: any): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -80,18 +80,18 @@ export const validateRequestFrienqRequestSchema = (body: any): { success: boolea
 				},
 				nullable: false,
 				additionalProperties: false,
-				required: ['seeMembers', 'seeFront', 'getFrontNotif', 'trusted']
+				required: ["seeMembers", "seeFront", "getFrontNotif", "trusted"],
 			},
 		},
 		nullable: false,
 		additionalProperties: false,
-		required: ['settings']
+		required: ["settings"],
 	};
 
 	return validateSchema(schema, body);
-}
+};
 
-export const validatAddFrienqRequestSchema = (body: any): { success: boolean, msg: string } => {
+export const validatAddFrienqRequestSchema = (body: any): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -102,38 +102,38 @@ export const validatAddFrienqRequestSchema = (body: any): { success: boolean, ms
 					seeFront: { type: "boolean" },
 					getFrontNotif: { type: "boolean" },
 					trusted: { type: "boolean" },
-					message: { type: "string" }
+					message: { type: "string" },
 				},
 				nullable: false,
 				additionalProperties: false,
-				required: ['seeMembers', 'seeFront', 'getFrontNotif', 'trusted']
+				required: ["seeMembers", "seeFront", "getFrontNotif", "trusted"],
 			},
 		},
 		nullable: false,
 		additionalProperties: false,
-		required: ['settings']
+		required: ["settings"],
 	};
 
 	return validateSchema(schema, body);
-}
+};
 
-export const validateRespondToFrienqRequestQuerySchema = (body: any): { success: boolean, msg: string } => {
+export const validateRespondToFrienqRequestQuerySchema = (body: any): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
 			accepted: {
 				type: "string",
-				pattern: "^(true|false)$"
-			}
+				pattern: "^(true|false)$",
+			},
 		},
 		nullable: false,
-		additionalProperties: false
+		additionalProperties: false,
 	};
 
 	return validateSchema(schema, body);
-}
+};
 
-export const validateRespondToFrienqRequestSchema = (body: any): { success: boolean, msg: string } => {
+export const validateRespondToFrienqRequestSchema = (body: any): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -143,32 +143,30 @@ export const validateRespondToFrienqRequestSchema = (body: any): { success: bool
 					seeMembers: { type: "boolean" },
 					seeFront: { type: "boolean" },
 					getFrontNotif: { type: "boolean" },
-					trusted: { type: "boolean" }
+					trusted: { type: "boolean" },
 				},
 				nullable: false,
 				additionalProperties: false,
-				required: ['seeMembers', 'seeFront', 'getFrontNotif', 'trusted']
+				required: ["seeMembers", "seeFront", "getFrontNotif", "trusted"],
 			},
 		},
 		nullable: false,
 		additionalProperties: false,
-		required: ['settings']
+		required: ["settings"],
 	};
 
 	return validateSchema(schema, body);
-}
+};
 
 export const RespondToFriendRequest = async (req: Request, res: Response) => {
 	const accept = req.query.accepted === "true";
 
-	if (accept)
-	{
-		 const validation = validateRespondToFrienqRequestSchema(req.body);
-		 if (!validation.success)
-		 {
-			res.status(400).send(validation.msg)
+	if (accept) {
+		const validation = validateRespondToFrienqRequestSchema(req.body);
+		if (!validation.success) {
+			res.status(400).send(validation.msg);
 			return;
-		 }
+		}
 	}
 
 	const target = req.params.usernameOrId;
@@ -207,7 +205,7 @@ export const AcceptFriendRequest = async (_sender: string, _receiver: string, ac
 
 		if (accepted) {
 			const selfDoc = await getCollection("users").findOne({ uid: _receiver });
-			notifyUser(_receiver, _sender, "Friend request accepted", selfDoc.username)
+			notifyUser(_receiver, _sender, "Friend request accepted", selfDoc.username);
 			{
 				const { seeMembers, seeFront, getFrontNotif, trusted } = settings;
 				await getCollection("friends").insertOne({
@@ -243,10 +241,9 @@ export const AcceptFriendRequest = async (_sender: string, _receiver: string, ac
 export const CancelFriendRequest = async (req: Request, res: Response) => {
 	const target = req.params.id;
 
-	const userDoc = await getCollection("users")
-		.findOne({
-			$or: [{ username: `^${target}$` }, { uid: target }],
-		});
+	const userDoc = await getCollection("users").findOne({
+		$or: [{ username: `^${target}$` }, { uid: target }],
+	});
 
 	if (userDoc === null) {
 		res.status(404).send({ success: false, msg: "User not found" });
@@ -255,16 +252,14 @@ export const CancelFriendRequest = async (req: Request, res: Response) => {
 
 	const targtUid = userDoc.uid;
 
-	const pendingDoc = await getCollection("pendingFriendRequests")
-		.findOne({
-			$or: [{ sender: res.locals.uid, receiver: targtUid }],
-		});
+	const pendingDoc = await getCollection("pendingFriendRequests").findOne({
+		$or: [{ sender: res.locals.uid, receiver: targtUid }],
+	});
 
 	if (pendingDoc !== null) {
-		getCollection("pendingFriendRequests")
-			.deleteOne({
-				$or: [{ sender: res.locals.uid, receiver: targtUid }],
-			});
+		getCollection("pendingFriendRequests").deleteOne({
+			$or: [{ sender: res.locals.uid, receiver: targtUid }],
+		});
 		res.status(200).send({ success: true, msg: "Friend request cancelled" });
 		return;
 	}
@@ -275,10 +270,9 @@ export const CancelFriendRequest = async (req: Request, res: Response) => {
 export const RemoveFriend = async (req: Request, res: Response) => {
 	const target = req.params.id;
 
-	const userDoc = await getCollection("users")
-		.findOne({
-			$or: [{ username: `^${target}$` }, { uid: target }],
-		});
+	const userDoc = await getCollection("users").findOne({
+		$or: [{ username: `^${target}$` }, { uid: target }],
+	});
 
 	if (userDoc === null) {
 		res.status(404).send({ success: false, msg: "User not found" });
@@ -287,13 +281,12 @@ export const RemoveFriend = async (req: Request, res: Response) => {
 
 	const targtUid = userDoc.uid;
 
-	await getCollection("friends")
-		.deleteMany({
-			$or: [
-				{ uid: res.locals.uid, frienduid: targtUid },
-				{ uid: targtUid, frienduid: res.locals.uid },
-			],
-		});
+	await getCollection("friends").deleteMany({
+		$or: [
+			{ uid: res.locals.uid, frienduid: targtUid },
+			{ uid: targtUid, frienduid: res.locals.uid },
+		],
+	});
 
 	res.status(200).send({ success: true, msg: "Friend removed" });
 };

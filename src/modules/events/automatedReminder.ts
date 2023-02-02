@@ -2,16 +2,14 @@ import { getCollection, parseId } from "../mongo";
 import { notifyUser } from "../notifications/notifications";
 
 export const notifyOfFrontChange = async (uid: string, removed: boolean, memberId: string) => {
-
 	// Removed doesn't do anything for now, this is placeholder code to add support for reacting to removal of front changes
-	if (removed === true)
-		return;
+	if (removed === true) return;
 
 	const automatedReminders = getCollection("automatedReminders");
 	const foundReminders = await automatedReminders.find({ uid: uid }).toArray();
 
-	const foundMember = await getCollection("members").findOne({ _id: parseId(memberId) })
-	const custom = !foundMember
+	const foundMember = await getCollection("members").findOne({ _id: parseId(memberId) });
+	const custom = !foundMember;
 
 	// enum ESelectedAction { MemberFront, Customfront, AnyFront } <= Dart code
 	foundReminders.forEach((reminder: any) => {
@@ -37,11 +35,17 @@ export const scheduleAutomatedReminder = async (uid: string, data: any) => {
 	const queuedEvents = getCollection("queuedEvents");
 
 	const now = Date.now();
-	const due = now + (data.delayInHours * 60 * 60 * 1000);
+	const due = now + data.delayInHours * 60 * 60 * 1000;
 
-	queuedEvents.updateOne({
-		uid: uid, event: "scheduledAutomatedReminder", reminderId: data._id
-	}, { $set: { uid: uid, event: "scheduledAutomatedReminder", reminderId: data._id, due: due } }, { upsert: true });
+	queuedEvents.updateOne(
+		{
+			uid: uid,
+			event: "scheduledAutomatedReminder",
+			reminderId: data._id,
+		},
+		{ $set: { uid: uid, event: "scheduledAutomatedReminder", reminderId: data._id, due: due } },
+		{ upsert: true }
+	);
 
 	return;
 };
@@ -49,7 +53,8 @@ export const scheduleAutomatedReminder = async (uid: string, data: any) => {
 export const automatedRemindersDueEvent = async (uid: string, event: any) => {
 	const automatedReminders = getCollection("automatedReminders");
 	const foundReminder = await automatedReminders.findOne({ uid: uid, _id: event.reminderId });
-	if (foundReminder && foundReminder.message) { // We can delete the timer
+	if (foundReminder && foundReminder.message) {
+		// We can delete the timer
 		notifyUser(uid, uid, "Reminder", foundReminder.message);
 	}
 };

@@ -1,4 +1,3 @@
-import { randomBytes } from "crypto";
 import { auth } from "firebase-admin";
 import * as jwt from "jsonwebtoken";
 import { getCollection } from "../../../modules/mongo"
@@ -59,11 +58,11 @@ const isJwtValidIssueTime = async (uid: string, time: number) : Promise<boolean>
 //  Validate JWT
 //-------------------------------//
 export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean) : Promise<{valid : boolean, decoded: any, google: boolean, email: string}> => {
-	return new Promise<{valid : boolean, decoded: any, google: boolean, email: string}>((resolve, reject) => { 
+	return new Promise<{valid : boolean, decoded: any, google: boolean, email: string}>((resolve) => { 
 		jwt.verify(jwtStr, jwtKey, async function(err, decoded) {
-			let payload = decoded as jwt.JwtPayload
+			const payload = decoded as jwt.JwtPayload
 			if (err || !decoded) {
-				const result = await auth().verifyIdToken(jwtStr, true).catch((e) => null)
+				const result = await auth().verifyIdToken(jwtStr, true).catch(() => null)
 				if (result && result.aud === GOOGLE_CLIENT_JWT_AUD)
 				{
 					// Authing with a firebase token is only allowed when our account has not yet merged
