@@ -47,7 +47,7 @@ export const del = async (req: Request, res: Response) => {
 	}
 };
 
-export const validateCommentSchema = (body: any): { success: boolean; msg: string } => {
+export const validateCommentSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -65,7 +65,7 @@ export const validateCommentSchema = (body: any): { success: boolean; msg: strin
 	return validateSchema(schema, body);
 };
 
-export const validateCommentPatchSchema = (body: any): { success: boolean; msg: string } => {
+export const validateCommentPatchSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

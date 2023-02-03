@@ -20,10 +20,8 @@ export const update = async (req: Request, res: Response) => {
 	const group = await getCollection("groups").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) });
 
 	if (group) {
-		if (req.body.private === true && req.body.preventTrusted !== null && req.body.preventTrusted !== null) {
-			if (group.private !== req.body.private || req.body.preventTrusted != group.preventTrusted) {
-				privateGroupRecursive(req.params.id, res.locals.uid, req.body.private, req.body.preventTrusted);
-			}
+		if ((req.body.private === true && req.body.preventTrusted !== null && req.body.preventTrusted !== null && group.private !== req.body.private) || req.body.preventTrusted != group.preventTrusted) {
+			privateGroupRecursive(req.params.id, res.locals.uid, req.body.private, req.body.preventTrusted);
 		}
 
 		updateSimpleDocument(req, res, "groups");
@@ -60,7 +58,7 @@ const privateGroupRecursive = async (groupId: string, uid: string, priv: boolean
 	await getCollection("groups").updateOne({ uid, _id: parseId(groupId) }, { $set: { private: priv, preventTrusted } });
 };
 
-export const validateGroupSchema = (body: any): { success: boolean; msg: string } => {
+export const validateGroupSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -82,7 +80,7 @@ export const validateGroupSchema = (body: any): { success: boolean; msg: string 
 	return validateSchema(schema, body);
 };
 
-export const validatePostGroupSchema = (body: any): { success: boolean; msg: string } => {
+export const validatePostGroupSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

@@ -9,6 +9,7 @@ import { auth } from "firebase-admin";
 import { assert } from "console";
 import { hash } from "./auth.hash";
 import { revokeAllUserAccess } from "./auth.core";
+import { userNotFound } from "../../../modules/messages";
 
 //-------------------------------//
 // Generate a new random reset password key
@@ -46,7 +47,7 @@ export const resetPasswordRequest_Execution = async (email: string): Promise<{ s
 		if (firebaseUser) {
 			resetUrl = await auth().generatePasswordResetLink(email);
 		} else {
-			return { success: false, msg: "User not found", url: "" };
+			return { success: false, msg: userNotFound(), url: "" };
 		}
 	}
 

@@ -125,16 +125,14 @@ export const del = async (req: Request, res: Response) => {
 	await getCollection("comments").deleteMany({ documentId: req.params.id, uid: res.locals.uid, collection: "frontHistory" });
 
 	// If a fronting document is deleted, and it's a live one, notify front change
-	if (frontingDoc) {
-		if (frontingDoc.live === true) {
-			frontChange(res.locals.uid, true, frontingDoc.member, true);
-		}
+	if (frontingDoc && frontingDoc.live === true) {
+		frontChange(res.locals.uid, true, frontingDoc.member, true);
 	}
 
 	deleteSimpleDocument(req, res, "frontHistory");
 };
 
-export const validatefrontHistoryPostSchema = (body: any): { success: boolean; msg: string } => {
+export const validatefrontHistoryPostSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -153,7 +151,7 @@ export const validatefrontHistoryPostSchema = (body: any): { success: boolean; m
 	return validateSchema(schema, body);
 };
 
-export const validatefrontHistoryPatchSchema = (body: any): { success: boolean; msg: string } => {
+export const validatefrontHistoryPatchSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -173,7 +171,7 @@ export const validatefrontHistoryPatchSchema = (body: any): { success: boolean; 
 
 // Query params so we have to use string pattern comparison
 // Query proeprties are always strings
-export const validateGetfrontHistorychema = (body: any): { success: boolean; msg: string } => {
+export const validateGetfrontHistorychema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

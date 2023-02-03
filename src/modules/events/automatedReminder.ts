@@ -26,7 +26,6 @@ export const notifyOfFrontChange = async (uid: string, removed: boolean, memberI
 
 		if (selectedAction == 0 && !custom) {
 			scheduleAutomatedReminder(uid, reminder);
-			return;
 		}
 	});
 };
@@ -46,8 +45,6 @@ export const scheduleAutomatedReminder = async (uid: string, data: any) => {
 		{ $set: { uid: uid, event: "scheduledAutomatedReminder", reminderId: data._id, due: due } },
 		{ upsert: true }
 	);
-
-	return;
 };
 
 export const automatedRemindersDueEvent = async (uid: string, event: any) => {

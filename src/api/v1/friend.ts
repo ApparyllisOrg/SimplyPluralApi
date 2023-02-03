@@ -164,7 +164,7 @@ export const getFriendFront = async (req: Request, res: Response) => {
 	res.status(200).send({ fronters: frontingList, statuses: frontingStatuses });
 };
 
-export const validatePatchFriendSchema = (body: any): { success: boolean; msg: string } => {
+export const validatePatchFriendSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

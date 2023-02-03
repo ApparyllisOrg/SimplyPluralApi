@@ -46,7 +46,7 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "tokens");
 };
 
-export const validateApiKeySchema = (body: any): { success: boolean; msg: string } => {
+export const validateApiKeySchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

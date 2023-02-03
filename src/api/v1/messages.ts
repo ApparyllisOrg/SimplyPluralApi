@@ -59,7 +59,7 @@ export const createServerDataForMessages = async (uid: string, _time: number) =>
 	await getCollection("serverData").updateOne({ uid: uid, _id: uid }, { $set: { lastReadMessage: oldestMessage } }, { upsert: true });
 };
 
-export const validateMarkReadSchema = (body: any): { success: boolean; msg: string } => {
+export const validateMarkReadSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

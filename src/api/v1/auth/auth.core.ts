@@ -30,4 +30,4 @@ export const revokeAllUserAccess = async (uid: string) => {
 //-------------------------------//
 // Get Password Regex for the API
 //-------------------------------//
-export const getPasswordRegex = () => "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{12,100}$";
+export const getPasswordRegex = (): RegExp => /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{12,100}$/;

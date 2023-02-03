@@ -16,7 +16,7 @@ interface frontAnalyticValueType {
 	value: number;
 }
 
-export const validatGetAnalyticsSchema = (body: any): { success: boolean; msg: string } => {
+export const validatGetAnalyticsSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

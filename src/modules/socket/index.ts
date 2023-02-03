@@ -8,7 +8,6 @@ import { transformResultForClientRead } from "../../util";
 
 import Connection from "./connection";
 import crypto from "crypto";
-import { ChangeStream } from "mongodb";
 
 import promclient from "prom-client";
 import { decryptMessage } from "../../api/v1/chat/chat.core";
@@ -31,7 +30,6 @@ const listenCollections = ["members", "frontStatuses", "notes", "polls", "automa
 
 let _wss: WebSocket.Server | null = null;
 const connections = new Map<string, Connection>();
-const listenStreams: ChangeStream[] = [];
 
 export const onConnectionDestroyed = (uniqueId: string) => connections.delete(uniqueId);
 
@@ -78,7 +76,6 @@ export const init = (server: http.Server) => {
 			changeStream.on("change", (next) => {
 				dispatch(next);
 			});
-			listenStreams.push();
 		});
 	}
 };

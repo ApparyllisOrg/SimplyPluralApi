@@ -33,7 +33,7 @@ export const openEvent = async (_req: Request, res: Response) => {
 	res.status(200).send();
 };
 
-export const validateEventSchema = (body: any): { success: boolean; msg: string } => {
+export const validateEventSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

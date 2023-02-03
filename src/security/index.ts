@@ -85,6 +85,7 @@ export const canAccessDocument = async (requestor: string, owner: string, privat
 		const trustedFriend: boolean = isTrustedFriend(friendLevel);
 
 		// Trusted and not prevent trusted.. give access
+		// eslint-disable-next-line sonarjs/prefer-single-boolean-return
 		if (trustedFriend && !preventTrusted) {
 			return true;
 		}

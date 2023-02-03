@@ -33,7 +33,7 @@ const voteType = {
 	additionalProperties: false,
 };
 
-export const validatePollSchema = (body: any): { success: boolean; msg: string } => {
+export const validatePollSchema = (body: unknown): { success: boolean; msg: string } => {
 	const normalVote = {
 		type: "object",
 		properties: {
@@ -100,7 +100,7 @@ export const validatePollSchema = (body: any): { success: boolean; msg: string }
 	return result;
 };
 
-export const validatePostPollSchema = (body: any): { success: boolean; msg: string } => {
+export const validatePostPollSchema = (body: unknown): { success: boolean; msg: string } => {
 	const normalVote = {
 		type: "object",
 		properties: {

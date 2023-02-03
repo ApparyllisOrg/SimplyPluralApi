@@ -23,7 +23,7 @@ export function validateObj(obj: any) {
 	if (obj.prototype.hasOwnProperty.call("ttl")) return "Object contains illegal field ttl";
 }
 
-type schemavalidation = (body: any) => { success: boolean; msg: string };
+type schemavalidation = (body: unknown) => { success: boolean; msg: string };
 
 export const validateQuery = (func: schemavalidation) => {
 	return async (req: Request, res: Response, next: any) => {
@@ -51,7 +51,7 @@ export const validateBody = (func: schemavalidation) => {
 	};
 };
 
-export const validateSchema = (schema: any, body: any): { success: boolean; msg: string } => {
+export const validateSchema = (schema: any, body: unknown): { success: boolean; msg: string } => {
 	const validate = ajv.compile(schema);
 
 	const valid = validate(body);

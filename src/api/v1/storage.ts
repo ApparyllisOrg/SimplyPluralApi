@@ -38,7 +38,7 @@ export const Store = async (req: Request, res: Response) => {
 		});
 };
 
-export const validateStoreAvatarSchema = (body: any): { success: boolean; msg: string } => {
+export const validateStoreAvatarSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

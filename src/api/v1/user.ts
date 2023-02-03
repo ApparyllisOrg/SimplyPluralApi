@@ -33,10 +33,8 @@ export const generateReport = async (req: Request, res: Response) => {
 	if (canGenerate) {
 		performReportGeneration(req, res);
 		decrementGenerationsLeft(res.locals.uid);
-		return;
 	} else {
 		res.status(403).send("You do not have enough generations left in order to generate a new report");
-		return;
 	}
 };
 
@@ -55,9 +53,7 @@ const decrementGenerationsLeft = async (uid: string) => {
 const canGenerateReport = async (res: Response): Promise<boolean> => {
 	const privateDoc = await getCollection("private").findOne({ uid: res.locals.uid, _id: res.locals.uid });
 	if (privateDoc) {
-		if (privateDoc.generationsLeft && privateDoc.generationsLeft > 0) {
-			return true;
-		} else if (!privateDoc.generationsLeft) {
+		if ((privateDoc.generationsLeft && privateDoc.generationsLeft > 0) || !privateDoc.generationsLeft) {
 			return true;
 		}
 		return privateDoc.bypassGenerationLimit === true;
@@ -214,10 +210,8 @@ export const SetUsername = async (req: Request, res: Response) => {
 		getCollection("users").updateOne({ uid: res.locals.uid }, { $set: { username: newUsername } });
 		res.status(200).send({ success: true });
 		userLog(res.locals.uid, "Updated username to: " + newUsername + ", changed from " + user.username);
-		return;
 	} else {
 		res.status(200).send({ success: false, msg: "This username is already taken" });
-		return;
 	}
 };
 
@@ -386,7 +380,7 @@ export const initializeCustomFields = async (uid: string) => {
 	}
 };
 
-export const validateUserSchema = (body: any): { success: boolean; msg: string } => {
+export const validateUserSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -424,7 +418,7 @@ export const validateUserSchema = (body: any): { success: boolean; msg: string }
 	return validateSchema(schema, body);
 };
 
-export const validateUsernameSchema = (body: any): { success: boolean; msg: string } => {
+export const validateUsernameSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -438,7 +432,7 @@ export const validateUsernameSchema = (body: any): { success: boolean; msg: stri
 	return validateSchema(schema, body);
 };
 
-export const validateExportAvatarsSchema = (body: any): { success: boolean; msg: string } => {
+export const validateExportAvatarsSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -453,7 +447,7 @@ export const validateExportAvatarsSchema = (body: any): { success: boolean; msg:
 	return validateSchema(schema, body);
 };
 
-export const validateUserReportSchema = (body: any): { success: boolean; msg: string } => {
+export const validateUserReportSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

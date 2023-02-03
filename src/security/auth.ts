@@ -65,7 +65,7 @@ export const isUserAuthenticated = function (accessRequested: number, skipPostId
 			return;
 		}
 
-		if (skipPostIdCheck != true && !validatePostId(req, res)) {
+		if (skipPostIdCheck !== true && !validatePostId(req, res)) {
 			return;
 		}
 

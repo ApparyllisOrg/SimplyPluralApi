@@ -24,7 +24,7 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "notes");
 };
 
-export const validateNoteSchema = (body: any): { success: boolean; msg: string } => {
+export const validateNoteSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -40,7 +40,7 @@ export const validateNoteSchema = (body: any): { success: boolean; msg: string }
 	return validateSchema(schema, body);
 };
 
-export const validatePostNoteSchema = (body: any): { success: boolean; msg: string } => {
+export const validatePostNoteSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

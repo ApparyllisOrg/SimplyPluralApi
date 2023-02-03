@@ -56,7 +56,7 @@ export const update = async (req: Request, res: Response) => {
 	}
 };
 
-export const validatePrivateSchema = (body: any): { success: boolean; msg: string } => {
+export const validatePrivateSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

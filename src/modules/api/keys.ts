@@ -70,6 +70,5 @@ export const hasAccess = (access: number, accessToCheck: ApiKeyAccessType) => {
 };
 
 export const getUserApiKeys = async (uid: string): Promise<{ uid: string; token: string; permission: number }[]> => {
-	const doc = await getCollection("tokens").find({ uid: uid }).toArray();
-	return doc;
+	return await getCollection("tokens").find({ uid: uid }).toArray();
 };

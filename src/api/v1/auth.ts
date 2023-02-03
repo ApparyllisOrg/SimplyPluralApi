@@ -265,7 +265,7 @@ export const register = async (req: Request, res: Response) => {
 		}
 	}
 
-	const regexp = new RegExp(getPasswordRegex());
+	const regexp = getPasswordRegex();
 	if (!regexp.test(req.body.password)) {
 		res.status(400).send("Your password must be between 12 and 100 characters, have a capital and lower case letter, a number and a symbol (#?!@$%^&*-)");
 		return;
@@ -306,7 +306,7 @@ export const confirmEmail = async (req: Request, res: Response) => {
 	}
 };
 
-export const validateRegisterSchema = (body: any): { success: boolean; msg: string } => {
+export const validateRegisterSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -321,7 +321,7 @@ export const validateRegisterSchema = (body: any): { success: boolean; msg: stri
 	return validateSchema(schema, body);
 };
 
-export const validateForgotEmailSchema = (body: any): { success: boolean; msg: string } => {
+export const validateForgotEmailSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -335,7 +335,7 @@ export const validateForgotEmailSchema = (body: any): { success: boolean; msg: s
 	return validateSchema(schema, body);
 };
 
-export const validateConfirmEmailSchema = (body: any): { success: boolean; msg: string } => {
+export const validateConfirmEmailSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -353,7 +353,7 @@ export const validateConfirmEmailSchema = (body: any): { success: boolean; msg: 
 	return validateSchema(schema, body);
 };
 
-export const validateLoginOAuth2Schema = (body: any): { success: boolean; msg: string } => {
+export const validateLoginOAuth2Schema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -367,7 +367,7 @@ export const validateLoginOAuth2Schema = (body: any): { success: boolean; msg: s
 	return validateSchema(schema, body);
 };
 
-export const validateResetPasswordRequestSchema = (body: any): { success: boolean; msg: string } => {
+export const validateResetPasswordRequestSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -381,7 +381,7 @@ export const validateResetPasswordRequestSchema = (body: any): { success: boolea
 	return validateSchema(schema, body);
 };
 
-export const validateResetPasswordSchema = (body: any): { success: boolean; msg: string } => {
+export const validateResetPasswordSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -395,7 +395,7 @@ export const validateResetPasswordSchema = (body: any): { success: boolean; msg:
 	return validateSchema(schema, body);
 };
 
-export const validateResetPasswordExecutionSchema = (body: any): { success: boolean; msg: string } => {
+export const validateResetPasswordExecutionSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -410,7 +410,7 @@ export const validateResetPasswordExecutionSchema = (body: any): { success: bool
 	return validateSchema(schema, body);
 };
 
-export const validateChangePasswordSchema = (body: any): { success: boolean; msg: string } => {
+export const validateChangePasswordSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -426,7 +426,7 @@ export const validateChangePasswordSchema = (body: any): { success: boolean; msg
 	return validateSchema(schema, body);
 };
 
-export const validateChangeEmailSchema = (body: any): { success: boolean; msg: string } => {
+export const validateChangeEmailSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

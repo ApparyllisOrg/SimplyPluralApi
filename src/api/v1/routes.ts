@@ -1,3 +1,4 @@
+/* eslint-disable sonarjs/no-duplicate-string */
 import * as core from "express-serve-static-core";
 import { ApiKeyAccessType } from "../../modules/api/keys";
 import { isUserAuthenticated, isUserAppJwtAuthenticated } from "../../security/auth";
@@ -24,7 +25,6 @@ import * as chats from "./chats";
 import * as auth from "./auth";
 import * as event from "./events";
 
-// Todo: Verify all access types are setup correctly before moving to production
 export const setupV1routes = (app: core.Express) => {
 	// Members
 	app.get("/v1/member/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), member.get);
@@ -116,8 +116,8 @@ export const setupV1routes = (app: core.Express) => {
 	// Chat channels
 	app.get("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannel);
 	app.get("/v1/chat/channels", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannels);
-	app.post("/v1/chat/channel/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateAddChannelschema), chats.addChannel);
-	app.patch("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateUpdateChannelschema), chats.updateChannel);
+	app.post("/v1/chat/channel/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateWriteChannelschema), chats.addChannel);
+	app.patch("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateWriteChannelschema), chats.updateChannel);
 	app.delete("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteChannel);
 
 	// Chat categories

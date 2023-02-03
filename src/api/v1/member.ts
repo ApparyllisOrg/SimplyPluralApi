@@ -98,7 +98,7 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "members");
 };
 
-export const validateMemberSchema = (body: any): { success: boolean; msg: string } => {
+export const validateMemberSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -128,7 +128,7 @@ export const validateMemberSchema = (body: any): { success: boolean; msg: string
 	return validateSchema(schema, body);
 };
 
-export const validatePostMemberSchema = (body: any): { success: boolean; msg: string } => {
+export const validatePostMemberSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

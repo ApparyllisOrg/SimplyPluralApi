@@ -6,6 +6,7 @@ import { mailerTransport } from "../../../modules/mail";
 import { getCollection } from "../../../modules/mongo";
 import * as Sentry from "@sentry/node";
 import { getAPIUrl } from "../../../util";
+import { userNotFound } from "../../../modules/messages";
 
 //-------------------------------//
 // Generate a new random confirmation key
@@ -18,7 +19,7 @@ export const getConfirmationKey = () => randomBytes(64).toString("hex");
 export const sendConfirmationEmail = async (uid: string): Promise<{ success: boolean; msg: string }> => {
 	const user = await getCollection("accounts").findOne({ uid });
 	if (!user) {
-		return { success: false, msg: "User not found" };
+		return { success: false, msg: userNotFound() };
 	}
 
 	if (user.verified === true) {

@@ -2,6 +2,7 @@ import { timingSafeEqual } from "crypto";
 import { readFile } from "fs";
 import { promisify } from "util";
 import { mailerTransport } from "../../../modules/mail";
+import { userNotFound } from "../../../modules/messages";
 import { getCollection } from "../../../modules/mongo";
 import { getAPIUrl } from "../../../util";
 import { revokeAllUserAccess } from "./auth.core";
@@ -56,6 +57,6 @@ export const changePassword_Execution = async (uid: string, oldPassword: string,
 
 		return { success: true, msg: "", uid: user.uid };
 	} else {
-		return { success: false, msg: "User not found", uid: "" };
+		return { success: false, msg: userNotFound(), uid: "" };
 	}
 };

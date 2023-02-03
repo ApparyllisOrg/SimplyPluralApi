@@ -177,7 +177,7 @@ export const deleteMessage = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "chatMessages");
 };
 
-export const validateWriteMessageSchema = (body: any): { success: boolean; msg: string } => {
+export const validateWriteMessageSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -195,7 +195,7 @@ export const validateWriteMessageSchema = (body: any): { success: boolean; msg: 
 	return validateSchema(schema, body);
 };
 
-export const validateUpdateMessageSchema = (body: any): { success: boolean; msg: string } => {
+export const validateUpdateMessageSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -210,7 +210,7 @@ export const validateUpdateMessageSchema = (body: any): { success: boolean; msg:
 	return validateSchema(schema, body);
 };
 
-export const validateAddChannelschema = (body: any): { success: boolean; msg: string } => {
+export const validateWriteChannelschema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -226,23 +226,7 @@ export const validateAddChannelschema = (body: any): { success: boolean; msg: st
 	return validateSchema(schema, body);
 };
 
-export const validateUpdateChannelschema = (body: any): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			name: { type: "string", maxLength: 100, minLength: 1 },
-			desc: { type: "string", maxLength: 2000 },
-			// color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"} Color is currently not supported
-		},
-		required: ["name", "desc"],
-		nullable: false,
-		additionalProperties: false,
-	};
-
-	return validateSchema(schema, body);
-};
-
-export const validateChatCategorySchema = (body: any): { success: boolean; msg: string } => {
+export const validateChatCategorySchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -258,7 +242,7 @@ export const validateChatCategorySchema = (body: any): { success: boolean; msg: 
 	return validateSchema(schema, body);
 };
 
-export const validateGetChannelHistorySchema = (body: any): { success: boolean; msg: string } => {
+export const validateGetChannelHistorySchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

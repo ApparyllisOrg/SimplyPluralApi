@@ -100,10 +100,8 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 		}
 	}
 
-	if (memberDataToSync.avatar_url) {
-		if (!validUrl.isUri(memberDataToSync.avatar_url)) {
-			delete memberDataToSync["avatar_url"];
-		}
+	if (memberDataToSync.avatar_url && !validUrl.isUri(memberDataToSync.avatar_url)) {
+		delete memberDataToSync["avatar_url"];
 	}
 
 	if (spMemberResult) {

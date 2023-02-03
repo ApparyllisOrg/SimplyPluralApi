@@ -50,7 +50,7 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "repeatedReminders");
 };
 
-export const validateRepeatedTimerSchema = (body: any): { success: boolean; msg: string } => {
+export const validateRepeatedTimerSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

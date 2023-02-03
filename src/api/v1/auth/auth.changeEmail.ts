@@ -6,6 +6,7 @@ import { getCollection } from "../../../modules/mongo";
 import { hash } from "./auth.hash";
 import { base64decodeJwt } from "./auth.jwt";
 import { revokeAllUserAccess } from "./auth.core";
+import { userNotFound } from "../../../modules/messages";
 
 //-------------------------------//
 // Change password
@@ -82,6 +83,6 @@ export const changeEmail_Execution = async (oldEmail: string, password: string, 
 
 		return { success: false, msg: "Password invalid", uid: "" };
 	} else {
-		return { success: false, msg: "User not found", uid: "" };
+		return { success: false, msg: userNotFound(), uid: "" };
 	}
 };

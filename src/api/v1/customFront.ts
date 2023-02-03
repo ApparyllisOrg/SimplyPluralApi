@@ -48,7 +48,7 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "frontStatuses");
 };
 
-export const validateCustomFrontSchema = (body: any): { success: boolean; msg: string } => {
+export const validateCustomFrontSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -69,7 +69,7 @@ export const validateCustomFrontSchema = (body: any): { success: boolean; msg: s
 	return validateSchema(schema, body);
 };
 
-export const validatePostCustomFrontSchema = (body: any): { success: boolean; msg: string } => {
+export const validatePostCustomFrontSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

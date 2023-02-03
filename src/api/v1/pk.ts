@@ -54,7 +54,7 @@ const performSyncAllMemberFromPk = async (req: Request, res: Response) => {
 	}
 };
 
-export const validateSyncDirectionSchema = (body: any): { success: boolean; msg: string } => {
+export const validateSyncDirectionSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -73,7 +73,7 @@ export const validateSyncDirectionSchema = (body: any): { success: boolean; msg:
 	return validateSchema(schema, body);
 };
 
-export const validateSyncMemberSchema = (body: any): { success: boolean; msg: string } => {
+export const validateSyncMemberSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -102,7 +102,7 @@ export const validateSyncMemberSchema = (body: any): { success: boolean; msg: st
 	return validateSchema(schema, body);
 };
 
-export const validateSyncMembersSchema = (body: any): { success: boolean; msg: string } => {
+export const validateSyncMembersSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

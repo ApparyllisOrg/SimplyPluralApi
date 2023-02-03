@@ -28,8 +28,7 @@ export default class Connection {
 
 		if (json.op == null) return this.send(JSON.stringify({ msg: "Missing 'op' in message." }));
 
-		switch (json.op as string) {
-		case "authenticate":
+		if ((json.op as string) == "authenticate") {
 			return this.handleAuth(json.token);
 		}
 	};

@@ -212,6 +212,5 @@ export const getAPIUrlBase = () => {
 
 export const getStartOfDay = (): Moment => {
 	const today = moment();
-	const startOfDay = today.startOf("day");
-	return startOfDay;
+	return today.startOf("day");
 };

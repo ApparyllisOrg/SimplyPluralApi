@@ -79,8 +79,7 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 	privateFronterNotificationNames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
 	const getFronterString = (entries: Array<string>) => {
-		const value = entries.join(", ");
-		return value;
+		return entries.join(", ");
 	};
 
 	sharedCollection.updateOne(
