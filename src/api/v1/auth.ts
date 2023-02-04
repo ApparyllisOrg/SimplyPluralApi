@@ -175,7 +175,7 @@ export const resetPasswordRequest = async (req: Request, res: Response) => {
 		}
 	}
 
-	res.status(200).send("If an account exists under this email you will receive a reset password email shortly.");
+	res.status(200).send("If an account exists under this email, you will receive a reset password email shortly.");
 };
 
 export const resetPassword = async (req: Request, res: Response) => {
