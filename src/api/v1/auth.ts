@@ -19,6 +19,7 @@ import { loginWithApple } from "./auth/auth.apple";
 import { namedArguments } from "../../util/args";
 import { requestEmail_Execution } from "./auth/auth.requestEmail";
 import { logOpenUsage as logDailyUsage } from "./events/open";
+import { migrateAccountFromFirebase } from "./auth/auth.migrate";
 
 initializeApp({ projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY });
 
@@ -31,6 +32,7 @@ export const login = async (req: Request, res: Response) => {
 			const hashedPasswd = await hash(req.body.password, salt);
 			await getCollection("accounts").insertOne({ uid: result.user.uid, email: req.body.email, verified: result.user.emailVerified, salt, password: hashedPasswd.hashed, registeredAt: result.user.metadata.creationTime ?? moment.now() });
 			user = await getCollection("accounts").findOne({ email: { $regex: "^" + req.body.email + "$", $options: "i" } });
+			migrateAccountFromFirebase(user.uid);
 		} else {
 			res.status(401).send("Unknown user or password");
 			return;

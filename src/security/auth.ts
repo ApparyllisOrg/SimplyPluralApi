@@ -6,12 +6,19 @@ import { logSecurity } from "../modules/logger";
 import { logUserUsage } from "../modules/usage";
 import { validateParams, validatePostId } from "../util/validation";
 import { isJwtValid } from "../api/v1/auth/auth.jwt";
+import { getCollection } from "../modules/mongo";
 
 export const validateToken = async (tokenStr: string): Promise<{ uid: string | undefined; accessType: number; jwt: boolean }> => {
 	if (tokenStr == null) return { uid: undefined, accessType: 0, jwt: false };
 
 	try {
 		const token = await auth().verifyIdToken(tokenStr);
+
+		const existingUser = await getCollection("accounts").findOne({ uid: token.uid });
+		if (existingUser) {
+			return { uid: undefined, accessType: 0x00, jwt: false };
+		}
+
 		return { uid: token.uid, accessType: FullApiAccess, jwt: true };
 	} catch (e) {
 		const result = await validateApiKey(tokenStr);
