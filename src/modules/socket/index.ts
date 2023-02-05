@@ -6,79 +6,78 @@ import * as DatabaseAccess from "../../security";
 
 import { transformResultForClientRead } from "../../util";
 
-import Connection from './connection';
+import Connection from "./connection";
 import crypto from "crypto";
-import { ChangeStream } from "mongodb";
 
-import promclient from "prom-client"
+import promclient from "prom-client";
+import { decryptMessage } from "../../api/v1/chat/chat.core";
 
 export enum OperationType {
 	Read,
 	Add,
 	Update,
-	Delete
+	Delete,
 }
 
 export interface ChangeEventNative {
-	uid: string,
-	documentId: string,
-	collection: string,
-	operationType: OperationType
+	uid: string;
+	documentId: string;
+	collection: string;
+	operationType: OperationType;
 }
 
-const listenCollections = ["members", "frontStatuses", "notes", "polls", "automatedReminders", "repeatedReminders", "frontHistory", "comments", "groups", "channels", "channelCategories", "chatMessages"]
+const listenCollections = ["members", "frontStatuses", "notes", "polls", "automatedReminders", "repeatedReminders", "frontHistory", "comments", "groups", "channels", "channelCategories", "chatMessages"];
 
 let _wss: WebSocket.Server | null = null;
 const connections = new Map<string, Connection>();
-const listenStreams: ChangeStream[] = []
 
-export const onConnectionDestroyed = (uniqueId: string) => connections.delete(uniqueId)
+export const onConnectionDestroyed = (uniqueId: string) => connections.delete(uniqueId);
 
 export const init = (server: http.Server) => {
 	_wss = new WebSocket.Server({
-		server, path: '/v1/socket', perMessageDeflate: {
+		server,
+		path: "/v1/socket",
+		perMessageDeflate: {
 			zlibDeflateOptions: {
 				chunkSize: 1024,
 				memLevel: 7,
-				level: 3
+				level: 3,
 			},
 			zlibInflateOptions: {
-				chunkSize: 10 * 1024
+				chunkSize: 10 * 1024,
 			},
 			clientNoContextTakeover: true,
 			serverNoContextTakeover: true,
 			serverMaxWindowBits: 15,
 			concurrencyLimit: 10,
-			threshold: 100
-		}
+			threshold: 100,
+		},
 	});
 
-	const gauge = new promclient.Gauge({
-		name: 'apparyllis_api_sockets',
-		help: 'Amount of sockets currently connected to the server',
+	new promclient.Gauge({
+		name: "apparyllis_api_sockets",
+		help: "Amount of sockets currently connected to the server",
 		collect() {
 			this.set(_wss?.clients.size ?? 0);
-		}
+		},
 	});
 
 	_wss.on("connection", (ws) => {
-		const uniqueId = crypto.randomBytes(64).toString("base64")
-		ws?.on('close', () => connections.delete(uniqueId));
+		const uniqueId = crypto.randomBytes(64).toString("base64");
+		ws?.on("close", () => connections.delete(uniqueId));
 
-		ws.send("{}")
+		ws.send("{}");
 		connections.set(uniqueId, new Connection(ws, ""));
 	});
 
 	if (process.env.SOCKETEMIT === "true") {
 		listenCollections.forEach((collection) => {
 			const changeStream = Mongo.getCollection(collection).watch([], { fullDocument: "updateLookup" });
-			changeStream.on("change", next => {
-				dispatch(next)
+			changeStream.on("change", (next) => {
+				dispatch(next);
 			});
-			listenStreams.push()
-		})
+		});
 	}
-
 };
 
 const stringToOperationType = (type: string): OperationType => {
@@ -95,7 +94,7 @@ const stringToOperationType = (type: string): OperationType => {
 	}
 
 	return OperationType.Add;
-}
+};
 
 const operationTypeToString = (type: OperationType): string => {
 	if (type === OperationType.Add) {
@@ -111,10 +110,9 @@ const operationTypeToString = (type: OperationType): string => {
 	}
 
 	return "insert";
-}
+};
 
-export const getUserConnections = (uid: string) =>
-	[...connections.values()].filter(conn => conn.uid === uid);
+export const getUserConnections = (uid: string) => [...connections.values()].filter((conn) => conn.uid === uid);
 
 export async function notify(uid: string, title: string, message: string) {
 	const payload = { msg: "notification", title, message };
@@ -132,14 +130,14 @@ export async function dispatch(event: any) {
 	}
 
 	const innerEventData: ChangeEventNative = {
-		documentId: event.fullDocument._id, operationType: stringToOperationType(event.operationType),
+		documentId: event.fullDocument._id,
+		operationType: stringToOperationType(event.operationType),
 		uid: event.fullDocument.uid,
-		collection: event.ns.coll
-	}
+		collection: event.ns.coll,
+	};
 
 	const owner = document.uid;
-	if (!DatabaseAccess.friendReadCollections.includes(event.ns.coll))
-		return dispatchInner(owner, innerEventData);
+	if (!DatabaseAccess.friendReadCollections.includes(event.ns.coll)) return dispatchInner(owner, innerEventData);
 
 	// Disabled for now, we would need to handle things differently on the SDK side, right now updates
 	// Are expected self-owned and we don't send uid alongside it. It would show friend members
@@ -161,7 +159,6 @@ export async function dispatch(event: any) {
 		friends.forEach(f => dispatchInner(f, innerEventData));
 		*/
 
-
 	dispatchInner(owner, innerEventData);
 }
 
@@ -172,32 +169,36 @@ export const dispatchDelete = async (event: ChangeEventNative) => {
 	for (const conn of getUserConnections(event.uid)) {
 		conn.send(payload);
 	}
-}
+};
 
 async function dispatchInner(uid: any, event: ChangeEventNative) {
-
-	let result = {};
+	let result: { operationType: string; content: any; id: any } = { operationType: "", content: undefined, id: "" };
 	if (event.operationType === OperationType.Delete) {
-		result = { operationType: "delete", id: event.documentId };
+		result = { operationType: "delete", id: event.documentId, content: {} };
 	} else {
 		const document = await Mongo.getCollection(event.collection).findOne({ _id: Mongo.parseId(event.documentId) });
 		result = { operationType: operationTypeToString(event.operationType), ...transformResultForClientRead(document, event.uid) };
 	}
 
-	const payload = { msg: "update", target: event.collection, results: [result] };
+	// TODO: Make this more modular for like a type handler.. we don't want to hardcode all manual changes to returned content
+	if (event.collection == "chatMessages" && result.operationType != "delete") {
+		result.content.message = decryptMessage(result.content.message, result.content.iv);
+		delete result.content.iv;
+	}
 
+	const payload = { msg: "update", target: event.collection, results: [result] };
 
 	for (const conn of getUserConnections(uid)) {
 		conn.send(payload);
 	}
 }
 
-export async function dispatchCustomEvent(data: {uid: string, type: string, data: string}) {
-    const payload = { msg: data.type,  data: data.data };
+export async function dispatchCustomEvent(data: { uid: string; type: string; data: string }) {
+	const payload = { msg: data.type, data: data.data };
 
-    for (const conn of getUserConnections(data.uid)) {
-        conn.send(payload);
-    }
+	for (const conn of getUserConnections(data.uid)) {
+		conn.send(payload);
+	}
 }
 
 const logCurrentConnection = () => {

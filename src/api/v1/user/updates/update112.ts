@@ -2,13 +2,12 @@ import shortUUID from "short-uuid";
 import { userLog } from "../../../../modules/logger";
 import { getCollection } from "../../../../modules/mongo";
 
-
 export const update122 = async (uid: string) => {
 	const membersCollection = getCollection("members");
 	const users = getCollection("users");
 	const members = membersCollection.find({ uid: uid });
 
-	const user = await users.findOne({ uid })
+	const user = await users.findOne({ uid });
 
 	// Don't run update if we already have fields...
 	if (user.fields) {

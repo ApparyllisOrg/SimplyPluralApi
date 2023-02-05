@@ -3,6 +3,8 @@ import LRU from "lru-cache";
 import { getCollection } from "../modules/mongo";
 import moment from "moment";
 import { auth } from "firebase-admin";
+import { Request } from "express";
+
 const users = "users";
 const groups = "groups";
 const members = "members";
@@ -18,14 +20,13 @@ export enum FriendLevel {
 	None = 0,
 	Pending = 1,
 	Friends = 2,
-	Trusted = 3
+	Trusted = 3,
 }
 
 const friendLevelLRU = new LRU<string, FriendLevel>({ max: 10000, ttl: 1000 * 5 });
 const seeMembersLRU = new LRU<string, boolean>({ max: 10000, ttl: 1000 * 5 });
 
 export const getFriendLevel = async (owner: string, requestor: string): Promise<FriendLevel> => {
-
 	const cacheLevel = friendLevelLRU.get(owner + requestor);
 	if (cacheLevel) {
 		return cacheLevel;
@@ -33,7 +34,6 @@ export const getFriendLevel = async (owner: string, requestor: string): Promise<
 
 	const friendDoc = await Mongo.getCollection("friends").findOne({ uid: owner, frienduid: requestor });
 	if (!friendDoc) {
-
 		const pendingDoc = await Mongo.getCollection("pendingFriendRequests").findOne({
 			$or: [
 				{ sender: owner, receiver: requestor },
@@ -60,7 +60,6 @@ export const getFriendLevel = async (owner: string, requestor: string): Promise<
 };
 
 export const canSeeMembers = async (owner: string, requestor: string): Promise<boolean> => {
-
 	const seeMembers = seeMembersLRU.get(owner + requestor);
 	if (seeMembers) {
 		return seeMembers;
@@ -69,7 +68,7 @@ export const canSeeMembers = async (owner: string, requestor: string): Promise<b
 	const friendDoc = await Mongo.getCollection("friends").findOne({ uid: owner, frienduid: requestor });
 	if (!friendDoc) {
 		seeMembersLRU.set(owner + requestor, false);
-		return false
+		return false;
 	}
 
 	seeMembersLRU.set(owner + requestor, friendDoc.seeMembers);
@@ -86,6 +85,7 @@ export const canAccessDocument = async (requestor: string, owner: string, privat
 		const trustedFriend: boolean = isTrustedFriend(friendLevel);
 
 		// Trusted and not prevent trusted.. give access
+		// eslint-disable-next-line sonarjs/prefer-single-boolean-return
 		if (trustedFriend && !preventTrusted) {
 			return true;
 		}
@@ -95,36 +95,29 @@ export const canAccessDocument = async (requestor: string, owner: string, privat
 		return false;
 	}
 	return !!(friendLevel === FriendLevel.Friends) || !!(friendLevel === FriendLevel.Trusted);
-}
+};
 
-export const logSecurityUserEvent = async (uid: string, action: string, ip: string) =>
-{
-	await getCollection("securityLogs").insertOne({uid: uid, at: moment.now(), action, ip})
-}
+export const logSecurityUserEvent = async (uid: string, action: string, request: Request) => {
+	await getCollection("securityLogs").insertOne({ uid: uid, at: moment.now(), action, ip: request.header("x-forwarded-for") ?? request.ip });
+};
 
-export const isUserSuspended = async (uid: string) => 
-{
-	const result = await getCollection("accounts").findOne({uid})
+export const isUserSuspended = async (uid: string) => {
+	const result = await getCollection("accounts").findOne({ uid });
 	return result && result.suspended === true;
-}
+};
 
-export const isUserVerified = async (uid: string) => 
-{
-	const result = await getCollection("accounts").findOne({uid})
-	if (result && (result.verified === true || result.oAuth2 === true))
-	{
+export const isUserVerified = async (uid: string) => {
+	const result = await getCollection("accounts").findOne({ uid });
+	if (result && (result.verified === true || result.oAuth2 === true)) {
 		return true;
-	} 
-	else 
-	{
-		const firebaseUser = await auth().getUser(uid)
+	} else {
+		const firebaseUser = await auth().getUser(uid);
 
 		// oAuth2 is always verified
-		if (firebaseUser && firebaseUser.emailVerified === true || firebaseUser.providerData.length > 0)
-		{
+		if ((firebaseUser && firebaseUser.emailVerified === true) || firebaseUser.providerData.length > 0) {
 			return true;
 		}
 	}
 
 	return false;
-}
+};

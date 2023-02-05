@@ -1,9 +1,8 @@
 import * as assert from "assert";
-import * as mocha from "mocha"
 import { assignApiKey, generateNewApiKey } from "../../modules/api/keys";
 
-describe("validate token system",  async () =>  {
-	describe("Test valid token generation",  async () => {
+describe("validate token system", async () => {
+	describe("Test valid token generation", async () => {
 		const token = await generateNewApiKey();
 		assert.strictEqual(token.length == 64, true, "Token is of invalid length");
 	});

@@ -17,10 +17,8 @@ export const parseForAllowedSetValues = (data: any, target: string) => {
 		}
 	}
 
-	if (target === "friends") {
-		if (data.prototype.hasOwnProperty.call("frienduid")) {
-			delete data["frienduid"];
-		}
+	if (target === "friends" && data.prototype.hasOwnProperty.call("frienduid")) {
+		delete data["frienduid"];
 	}
 
 	return null;

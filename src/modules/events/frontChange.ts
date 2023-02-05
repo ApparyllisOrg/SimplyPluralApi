@@ -5,10 +5,8 @@ import { notifyOfFrontChange } from "./automatedReminder";
 import { performEvent } from "./eventController";
 
 export const frontChange = async (uid: string, removed: boolean, memberId: string, notifyReminders: boolean) => {
-
-	if (notifyReminders === true)
-	{
-		notifyOfFrontChange(uid, removed, memberId)
+	if (notifyReminders === true) {
+		notifyOfFrontChange(uid, removed, memberId);
 	}
 
 	const sharedCollection = getCollection("sharedFront");
@@ -60,7 +58,6 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 					}
 					fronterNames.push(doc.name);
 					privateFronterNames.push(doc.name);
-
 				} else if (doc.preventTrusted !== true) {
 					if (doc.preventsFrontNotifs !== true) {
 						privateFronterNotificationNames.push(doc.name);
@@ -82,8 +79,7 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 	privateFronterNotificationNames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
 	const getFronterString = (entries: Array<string>) => {
-		const value = entries.join(", ");
-		return value;
+		return entries.join(", ");
 	};
 
 	sharedCollection.updateOne(
@@ -126,13 +122,7 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 
 	if (beforeFrontString !== frontNotificationString || beforeCustomFrontString !== customFrontString) {
 		performEvent("frontChangeShared", uid, 10 * 1000);
-		sharedCollection
-			.updateOne(
-				{ uid: uid, _id: uid },
-				{ $set: { beforeFrontNotificationString: frontNotificationString, beforeCustomFrontString: customFrontString } },
-				{ upsert: true }
-			)
-			.catch(logger.error);
+		sharedCollection.updateOne({ uid: uid, _id: uid }, { $set: { beforeFrontNotificationString: frontNotificationString, beforeCustomFrontString: customFrontString } }, { upsert: true }).catch(logger.error);
 	}
 
 	const privateBeforeFrontString = privateData.beforeFrontNotificationString;
@@ -143,40 +133,27 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 
 	if (privateBeforeFrontString !== privateFrontNotificationString || privateBeforeCustomFrontString !== priavteCustomFrontString) {
 		performEvent("frontChangePrivate", uid, 10 * 1000);
-		privateCollection
-			.updateOne(
-				{ uid: uid, _id: uid },
-				{ $set: { beforeFrontNotificationString: frontNotificationString, beforeCustomFrontString: customFrontString } },
-				{ upsert: true }
-			)
-			.catch(logger.error);
-
+		privateCollection.updateOne({ uid: uid, _id: uid }, { $set: { beforeFrontNotificationString: privateFrontNotificationString, beforeCustomFrontString: priavteCustomFrontString } }, { upsert: true }).catch(logger.error);
 	}
 
 	if (foundFriends.length <= 0) {
 		return;
 	}
-
 };
 
 export const notifySharedFrontDue = async (uid: string, _event: any) => {
 	const sharedCollection = getCollection("sharedFront");
 	const sharedData = await sharedCollection.findOne({ uid: uid, _id: uid });
 	notifyFront(sharedData.frontNotificationString, sharedData.customFrontString, uid, false);
-}
+};
 
 export const notifyPrivateFrontDue = async (uid: string, _event: any) => {
 	const privateCollection = getCollection("privateFront");
 	const privateData = await privateCollection.findOne({ uid: uid, _id: uid });
 	notifyFront(privateData.frontNotificationString, privateData.customFrontString, uid, true);
-}
+};
 
-const notifyFront = async (
-	frontNotificationString: string,
-	customFrontString: string,
-	uid: string,
-	trusted: boolean
-) => {
+const notifyFront = async (frontNotificationString: string, customFrontString: string, uid: string, trusted: boolean) => {
 	let message = "";
 
 	if (frontNotificationString.length > 0) {
@@ -198,14 +175,13 @@ const notifyFront = async (
 
 	const trustedQuery: any[] = [];
 	if (trusted === false) {
-		trustedQuery.push({ "trusted": false });
-		trustedQuery.push({ "trusted": null });
-	}
-	else {
-		trustedQuery.push({ "trusted": true });
+		trustedQuery.push({ trusted: false });
+		trustedQuery.push({ trusted: null });
+	} else {
+		trustedQuery.push({ trusted: true });
 	}
 
-	const friendCollection = getCollection("friends")
+	const friendCollection = getCollection("friends");
 	const foundFriends = await friendCollection.find({ uid: uid }).toArray();
 	foundFriends.forEach(async (doc) => {
 		const getFrontNotif = doc["getFrontNotif"];

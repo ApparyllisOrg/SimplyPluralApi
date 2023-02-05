@@ -1,9 +1,11 @@
-import cluster from "cluster";
 import { logger } from "../logger";
 import { getCollection } from "../mongo";
 import { automatedRemindersDueEvent, removeDeletedReminders } from "./automatedReminder";
 import { notifyPrivateFrontDue, notifySharedFrontDue } from "./frontChange";
 import { repeatRemindersDueEvent, repeatRemindersEvent } from "./repeatReminders";
+import promclient from "prom-client";
+import { getStartOfDay } from "../../util";
+
 type bindFunc = (uid: string, event: any) => void;
 const _boundEvents = new Map<string, bindFunc>();
 
@@ -14,6 +16,18 @@ const bindEvents = async () => {
 	_boundEvents.set("scheduledAutomatedReminder", automatedRemindersDueEvent);
 	_boundEvents.set("frontChangeShared", notifySharedFrontDue);
 	_boundEvents.set("frontChangePrivate", notifyPrivateFrontDue);
+};
+
+const counter = new promclient.Gauge({
+	name: "apparyllis_api_daily_users",
+	help: "Counter for the amount of daily users, resets daily and counts up until the end of the day",
+});
+
+const runDailyUserCounter = async () => {
+	const event = await getCollection("events").findOne({ date: getStartOfDay().toDate(), event: "dailyUsage" });
+	if (event) {
+		counter.set(event.count);
+	}
 };
 
 const runEvents = async () => {
@@ -31,13 +45,14 @@ const runEvents = async () => {
 	});
 	queuedEvents.deleteMany({ due: { $lte: now } });
 
+	runDailyUserCounter();
+
 	// Re-run after 300ms
 	setTimeout(runEvents, 300);
 };
 
 export const performDelete = (target: string, uid: any, delay: number) => {
-	if (_boundEvents.has(target))
-		enqueueEvent(target, uid, delay);
+	if (_boundEvents.has(target)) enqueueEvent(target, uid, delay);
 };
 
 export const performEvent = (target: string, uid: string, delay: number) => {
@@ -57,8 +72,8 @@ export const init = () => {
 	// getting queued events is atomic, so only one server handles the documents it got returned
 	// We don't want to run runEvents twice on two servers and have it return
 	// the same events on both. It needs to return atomically.
-	if (process.env.DEVELOPMENT === "false" && process.env.LOCALEVENTS === "true") {
+	if (process.env.DEVELOPMENT !== "true" && process.env.LOCALEVENTS === "true") {
 		bindEvents();
-		console.log("Bound to events, started event controller")
-	} 
+		console.log("Bound to events, started event controller");
+	}
 };

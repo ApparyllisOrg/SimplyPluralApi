@@ -8,10 +8,10 @@ import { setupV1routes } from "../api/v1/routes";
 import setupBaseRoutes from "../api/routes";
 import helmet from "helmet";
 import http from "http";
-import prom from "express-prom-bundle"
-import promclient from "prom-client"
+import prom from "express-prom-bundle";
+import promclient from "prom-client";
 import express from "express";
-import { validateOperationTime, validatePostId } from "../util/validation";
+import { validateOperationTime } from "../util/validation";
 import { NextFunction, Request, Response } from "express-serve-static-core";
 import cors from "cors";
 import cluster from "cluster";
@@ -20,7 +20,7 @@ export const initializeServer = async () => {
 	const app = express();
 
 	if (process.env.DEVELOPMENT) {
-		app.use(cors())
+		app.use(cors());
 	}
 
 	if (!process.env.DEVELOPMENT) {
@@ -35,21 +35,26 @@ export const initializeServer = async () => {
 
 	if (process.env.DEVELOPMENT && process.env.UNITTEST !== "true") {
 		const logRequest = async (req: Request, _res: Response, next: NextFunction) => {
-			console.log(`${req.method} => ${req.url}`)
-			next()
-		}
+			console.log(`${req.method} => ${req.url}`);
+			next();
+		};
 
-		app.use(logRequest)
-	} 
+		app.use(logRequest);
+	}
 
 	const collectDefaultMetrics = promclient.collectDefaultMetrics;
 	const Registry = promclient.Registry;
 	const register = new Registry();
 	collectDefaultMetrics({ register });
 
-	const metricsMiddleware = prom({includeMethod: true, includePath: true, includeStatusCode: true, normalizePath: (req, opts) => {
-		return req.route?.path ?? "NULL";
-	}});
+	const metricsMiddleware = prom({
+		includeMethod: true,
+		includePath: true,
+		includeStatusCode: true,
+		normalizePath: (req, _opts) => {
+			return req.route?.path ?? "NULL";
+		},
+	});
 
 	app.use(metricsMiddleware);
 
@@ -62,30 +67,29 @@ export const initializeServer = async () => {
 	// Has to be *after* all controllers
 	app.use(Sentry.Handlers.errorHandler());
 
-	console.log(`Starting server as ${cluster.isPrimary ? "Primary" : "Worker"}`)
+	console.log(`Starting server as ${cluster.isPrimary ? "Primary" : "Worker"}`);
 
 	return app;
-}
+};
 
-export const startServer = async (app : any, mongourl: string) => {
+export const startServer = async (app: any, mongourl: string) => {
 	const server = http.createServer({}, app);
 
 	// make sure MongoDB is initialized before anything else runs
-	await Mongo.init(true,mongourl);
+	await Mongo.init(true, mongourl);
 
 	socket.init(server);
 
 	const port = process.env.PORT ?? 3000;
 	server.listen(port, () => logger.info(`Initiating Apparyllis API at :${port}`));
-	console.log(`Started server on port ${port.toString()}`)
+	console.log(`Started server on port ${port.toString()}`);
 
 	startPkController();
 	startMailTransport();
 
 	return server;
-}
+};
 
-export const stopServer = async (server: http.Server) => 
-{
+export const stopServer = async (server: http.Server) => {
 	server.close();
-}
+};

@@ -8,7 +8,7 @@
 		"start:watch": "ts-node-dev --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config --inspect",
 		"build": "tsc",
 		"lint": "eslint src/**/**/*",
-		"test": "mocha --require ts-node/register 'src/tests/**/*.ts' --delay -r dotenv/config --exit --nologs=true --verbose --development=false --jwt_key=J2JaTklLcjhOQykhdCM9YG9LUU8ycHlLL0soOX0xeSN2RTUgNHU1SDYsZ19vTQ==, --without_google=true",
+		"test": "mocha --require ts-node/register 'src/tests/**/*.ts' --delay -r dotenv/config --exit --nologs=true --verbose --development=false --jwt_key=J2JaTklLcjhOQykhdCM9YG9LUU8ycHlLL0soOX0xeSN2RTUgNHU1SDYsZ19vTQ==, --without_google=true --messages_key=f9CYjd2dDE?UbH4tjRS2Ji_!SgA2!+Ky --password_key=jegjQ9HT9f3H3_r=2NM_zRKhqZEKLY?rjyawtKL5LpQsvput7vz4Fcj!wZvR  --password_seperator=_rxCcfxpFd=Jx9xiRu9FPTh2erP!bc4JTxgCYKewcT_zMMJwSZgd2FS94a5w",
 		"test:watch": "mocha --require ts-node/register 'src/tests/**/*.ts' --watch --watch-files 'src/tests/**/*.ts' --delay -r dotenv/config --exit --nologs=true --verbose --development=false --without_google=true"
 	},
 	"dependencies": {
@@ -51,11 +51,12 @@
 		"express-rate-limit": "^6.4.0",
 		"express-validator": "^6.14.0",
 		"firebase": "^9.8.3",
-		"firebase-admin": "^10.3.0",
+		"firebase-admin": "^11.5.0",
 		"google-auth-library": "^8.5.1",
 		"helmet": "^5.1.0",
-		"jsonwebtoken": "^8.5.1",
+		"jsonwebtoken": "^9.0.0",
 		"jszip": "^3.10.1",
+		"jwks-rsa": "^3.0.0",
 		"lru-cache": "^7.10.1",
 		"markdown-it": "^13.0.1",
 		"minio": "^7.0.28",
@@ -77,10 +78,12 @@
 	},
 	"devDependencies": {
 		"chai": "^4.3.6",
-		"eslint": "^7.32.0",
 		"eslint-plugin-import": "^2.26.0",
+		"eslint-plugin-security": "^1.7.1",
+		"eslint-plugin-sonarjs": "^0.18.0",
 		"mocha": "^9.2.1",
 		"nodemon": "^2.0.19",
+		"prettier": "^2.8.3",
 		"ts-node": "^10.8.1",
 		"ts-node-dev": "^2.0.0",
 		"typescript": "^4.5.5"

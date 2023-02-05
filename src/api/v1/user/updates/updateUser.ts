@@ -2,15 +2,13 @@ import { update122 } from "./update112";
 import { update150 } from "./update150";
 import { update151 } from "./update151";
 
-const versionList = [111, 149, 150]
+const versionList = [111, 149, 150];
 
 export const updateUser = async (lastVersion: number, newVersion: number, uid: string) => {
-	if (lastVersion >= newVersion)
-		return;
+	if (lastVersion >= newVersion) return;
 
-	for (let i = 0; i < versionList.length; ++i)
-	{
-		const version = versionList[i]
+	for (let i = 0; i < versionList.length; ++i) {
+		const version = versionList[i];
 
 		if (lastVersion >= version) continue;
 
@@ -29,4 +27,4 @@ export const updateUser = async (lastVersion: number, newVersion: number, uid: s
 			await update151(uid);
 		}
 	}
-}
+};

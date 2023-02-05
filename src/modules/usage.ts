@@ -10,15 +10,18 @@ let collectedUsageCount = 0;
 
 export const startCollectingUsage = () => {
 	collectUsage();
-}
+};
 
 const collectUsage = () => {
-	const expirationDate = moment().add(14, "days").startOf("day").toDate().toISOString();
+	const expirationMoment = moment().add(14, "days").startOf("day").toDate().toISOString();
+
+	const expirationDate: Date = new Date(expirationMoment);
+
 	collectedUsage.forEach((value, key) => {
-		const updateObj: { [key: string]: any } = {}
+		const updateObj: { [key: string]: any } = {};
 
 		value.forEach((count, method) => {
-			updateObj[method] = count
+			updateObj[method] = count;
 		});
 
 		Mongo.getCollection("usage").updateOne({ uid: key, expireAt: expirationDate }, { $inc: updateObj }, { upsert: true });
@@ -26,12 +29,12 @@ const collectUsage = () => {
 
 	collectedUsage.clear();
 
-	console.log(`Dumped ${collectedUsageCount} actions to the usage logs`)
+	console.log(`Dumped ${collectedUsageCount} actions to the usage logs`);
 
 	collectedUsageCount = 0;
 
 	setTimeout(collectUsage, 1000 * 10);
-}
+};
 
 export const logUserUsage = (uid: string, action: string) => {
 	if (!collectedUsage.has(uid)) {
@@ -41,7 +44,6 @@ export const logUserUsage = (uid: string, action: string) => {
 	const userUsage = collectedUsage.get(uid);
 	if (userUsage) {
 		if (userUsage.has(action)) {
-
 			let previousCount = userUsage.get(action);
 			if (!previousCount) {
 				previousCount = 0;
@@ -49,10 +51,9 @@ export const logUserUsage = (uid: string, action: string) => {
 
 			userUsage.set(action, previousCount + 1);
 			collectedUsageCount++;
-		}
-		else {
+		} else {
 			userUsage.set(action, 1);
 			collectedUsageCount++;
 		}
 	}
-}
+};

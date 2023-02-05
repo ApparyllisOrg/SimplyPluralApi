@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import * as mocha from "mocha"
+import * as mocha from "mocha";
 import { validateUserSchema } from "../../api/v1/user";
 
 describe("validate user schemas", () => {
@@ -17,16 +17,16 @@ describe("validate user schemas", () => {
 					order: 0,
 					private: true,
 					preventTrusted: true,
-					type: 0
+					type: 0,
 				},
 				dN7wKZFFNErEyRDkTurdg6: {
 					name: "c",
 					order: 2,
 					private: true,
 					preventTrusted: true,
-					type: 0
-				}
-			}
+					type: 0,
+				},
+			},
 		});
 
 		assert.strictEqual(result.success, true, result.msg);
@@ -46,19 +46,18 @@ describe("validate user schemas", () => {
 					order: 0,
 					private: true,
 					preventTrusted: true,
-					type: 0
+					type: 0,
 				},
 				dN7wKZFFNErEyRDkTurdg6: {
 					name: 0,
 					order: 2,
 					private: true,
 					preventTrusted: true,
-					type: 0
-				}
-			}
+					type: 0,
+				},
+			},
 		});
 
 		assert.strictEqual(result.success, false, result.msg);
 	});
 });
-

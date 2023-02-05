@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import * as mocha from "mocha"
+import * as mocha from "mocha";
 import { validateNoteSchema, validatePostNoteSchema } from "../../api/v1/note";
 
 describe("validate note schemas", () => {
@@ -10,7 +10,7 @@ describe("validate note schemas", () => {
 			color: "foo",
 			date: 0,
 			member: "foo",
-			supportMarkdown: true
+			supportMarkdown: true,
 		});
 
 		assert.strictEqual(result.success, true, result.msg);
@@ -23,7 +23,7 @@ describe("validate note schemas", () => {
 			color: null,
 			date: null,
 			member: null,
-			supportMarkdown: null
+			supportMarkdown: null,
 		});
 
 		assert.strictEqual(result.success, false, result.msg);
@@ -34,7 +34,7 @@ describe("validate note schemas", () => {
 			title: "foo",
 			note: "foo",
 			color: "foo",
-			supportMarkdown: true
+			supportMarkdown: true,
 		});
 
 		assert.strictEqual(result.success, true, result.msg);
@@ -45,7 +45,7 @@ describe("validate note schemas", () => {
 			title: null,
 			note: null,
 			color: null,
-			supportMarkdown: null
+			supportMarkdown: null,
 		});
 
 		assert.strictEqual(result.success, false, result.msg);

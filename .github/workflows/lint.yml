@@ -1,13 +1,13 @@
 name: Run lint
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
-    Lint:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v2
-            - name: Install modules
-              run: npm install
-            - name: Run ESLint
-              run: ./node_modules/.bin/eslint src/**/* --ext .js,.jsx,.ts,.tsx
+  Lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install modules
+        run: npm install
+      - name: Run ESLint
+        run: npm run lint
