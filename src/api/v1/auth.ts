@@ -5,7 +5,7 @@ import { randomBytes, timingSafeEqual } from "crypto";
 import { confirmUserEmail, getConfirmationKey, sendConfirmationEmail } from "./auth/auth.confirmation";
 import { base64decodeJwt, isJwtValid, jwtForUser } from "./auth/auth.jwt";
 import { hash } from "./auth/auth.hash";
-import { getNewUid, getPasswordRegex } from "./auth/auth.core";
+import { getNewUid, getPasswordRegex, passwordRegexError } from "./auth/auth.core";
 import moment from "moment";
 import { loginWithGoogle } from "./auth/auth.google";
 import { auth } from "firebase-admin";
@@ -267,8 +267,7 @@ export const register = async (req: Request, res: Response) => {
 		}
 	}
 
-	const regexp = getPasswordRegex();
-	if (!regexp.test(req.body.password)) {
+	if (!(req.body.password as string).match(getPasswordRegex())) {
 		res.status(400).send("Your password must be between 12 and 100 characters, have a capital and lower case letter, a number and a symbol (#?!@$%^&*-)");
 		return;
 	}
@@ -418,7 +417,7 @@ export const validateChangePasswordSchema = (body: unknown): { success: boolean;
 		properties: {
 			uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
 			oldPassword: { type: "string" },
-			newPassword: { type: "string", pattern: getPasswordRegex() },
+			newPassword: { type: "string" }
 		},
 		nullable: false,
 		additionalProperties: false,
