@@ -73,11 +73,7 @@ export const tick = async () => {
 	try {
 		if (remainingRequestsThisSecond > 0) {
 			for (let i = 0; i < remainingRequestsThisSecond && i < 2 && i < pendingRequests.length; ++i) {
-				const pendingRequest: PkRequest | undefined = pendingRequests.at(i);
-				if (pendingRequest) {
-					dispatchTickRequests(pendingRequest);
-				}
-
+				dispatchTickRequests(pendingRequests[i]);
 				pendingRequests.splice(i, 1);
 				remainingRequestsThisSecond--;
 			}
