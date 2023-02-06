@@ -8,7 +8,7 @@ import * as Sentry from "@sentry/node";
 import { auth } from "firebase-admin";
 import { assert } from "console";
 import { hash } from "./auth.hash";
-import { revokeAllUserAccess } from "./auth.core";
+import { getEmailRegex, revokeAllUserAccess } from "./auth.core";
 import { userNotFound } from "../../../modules/messages";
 
 //-------------------------------//
@@ -22,7 +22,7 @@ export const getResetPasswordKey = () => randomBytes(64).toString("hex");
 export const resetPasswordRequest_Execution = async (email: string): Promise<{ success: boolean; msg: string; url: string }> => {
 	let resetUrl = "";
 
-	const user = await getCollection("accounts").findOne({ email: { $regex: "^" + email + "$", $options: "i" }, oAuth2: { $ne: true } });
+	const user = await getCollection("accounts").findOne({ email: getEmailRegex(email), oAuth2: { $ne: true } });
 	if (user) {
 		if (user.lastResetPasswordEmailSent) {
 			const lastTimestamp = user.lastResetPasswordEmailSent;
@@ -39,7 +39,7 @@ export const resetPasswordRequest_Execution = async (email: string): Promise<{ s
 			resetUrl = `https://dist.apparyllis.com/auth/prod/resetpassword.html?key=${resetKey}`;
 		}
 
-		await getCollection("accounts").updateOne({ email: { $regex: "^" + email + "$", $options: "i" } }, { $set: { lastResetPasswordEmailSent: moment.now(), passwordResetToken: resetKey } });
+		await getCollection("accounts").updateOne({ email: getEmailRegex(email) }, { $set: { lastResetPasswordEmailSent: moment.now(), passwordResetToken: resetKey } });
 	} else {
 		const firebaseUser = await auth()
 			.getUserByEmail(email)

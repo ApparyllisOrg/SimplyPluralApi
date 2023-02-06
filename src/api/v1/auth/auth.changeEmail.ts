@@ -5,20 +5,20 @@ import { mailerTransport } from "../../../modules/mail";
 import { getCollection } from "../../../modules/mongo";
 import { hash } from "./auth.hash";
 import { base64decodeJwt } from "./auth.jwt";
-import { revokeAllUserAccess } from "./auth.core";
+import { getEmailRegex, revokeAllUserAccess } from "./auth.core";
 import { userNotFound } from "../../../modules/messages";
 
 //-------------------------------//
 // Change password
 //-------------------------------//
 export const changeEmail_Execution = async (oldEmail: string, password: string, newEmail: string): Promise<{ success: boolean; msg: string; uid: string }> => {
-	const user = await getCollection("accounts").findOne({ email: { $regex: "^" + oldEmail + "$", $options: "i" } });
+	const user = await getCollection("accounts").findOne({ email: getEmailRegex(oldEmail) });
 
 	if (user.oAuth2 === true) {
 		return { success: false, msg: "You cannot change the email of an account when you use Sign in with Apple or Sign in with Google", uid: "" };
 	}
 
-	const existingUser = await getCollection("accounts").findOne({ email: { $regex: "^" + newEmail + "$", $options: "i" } });
+	const existingUser = await getCollection("accounts").findOne({ email: getEmailRegex(newEmail) });
 	if (existingUser) {
 		return { success: false, msg: "A user with that email already exists", uid: "" };
 	}

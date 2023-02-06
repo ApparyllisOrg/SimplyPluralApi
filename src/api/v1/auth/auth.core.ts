@@ -31,3 +31,11 @@ export const revokeAllUserAccess = async (uid: string) => {
 // Get Password Regex for the API
 //-------------------------------//
 export const getPasswordRegex = (): RegExp => /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{12,100}$/;
+
+//-------------------------------//
+// Get Email Regex for the API
+//-------------------------------//
+export const getEmailRegex = (email: string) => {
+	email = email.replace(/[*+?^${}()|[\]\\]/g, "\\$&");
+	return { $regex: "^" + email + "$", $options: "i" };
+};
