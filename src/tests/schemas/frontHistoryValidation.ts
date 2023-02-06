@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import * as mocha from "mocha"
+import * as mocha from "mocha";
 import { validatefrontHistoryPostSchema, validateGetfrontHistorychema, validatefrontHistoryPatchSchema } from "../../api/v1/frontHistory";
 
 describe("validate front history schemas", () => {
@@ -10,7 +10,7 @@ describe("validate front history schemas", () => {
 			startTime: 0,
 			endTime: 0,
 			member: "foo",
-			customStatus: "Some Status"
+			customStatus: "Some Status",
 		});
 
 		assert.strictEqual(result.success, true, result.msg);
@@ -19,7 +19,7 @@ describe("validate front history schemas", () => {
 	mocha.test("Test invalid post front history schema", () => {
 		const result = validatefrontHistoryPostSchema({
 			endTime: null,
-			customStatus: null
+			customStatus: null,
 		});
 
 		assert.strictEqual(result.success, false, result.msg);
@@ -32,7 +32,7 @@ describe("validate front history schemas", () => {
 			startTime: 0,
 			endTime: 0,
 			member: "foo",
-			customStatus: "Some Status"
+			customStatus: "Some Status",
 		});
 
 		assert.strictEqual(result.success, true, result.msg);
@@ -45,7 +45,7 @@ describe("validate front history schemas", () => {
 			startTime: null,
 			endTime: null,
 			member: null,
-			customStatus: null
+			customStatus: null,
 		});
 
 		assert.strictEqual(result.success, false, result.msg);

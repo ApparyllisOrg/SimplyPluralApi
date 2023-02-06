@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import * as mocha from "mocha"
+import * as mocha from "mocha";
 import { validateMemberSchema } from "../../api/v1/member";
 
 describe("validate member schemas", () => {
@@ -17,7 +17,7 @@ describe("validate member schemas", () => {
 			preventsFrontNotifs: true,
 			info: {
 				a: "foo",
-				b: "foo"
+				b: "foo",
 			},
 		});
 
@@ -38,7 +38,7 @@ describe("validate member schemas", () => {
 			preventsFrontNotifs: null,
 			info: {
 				a: null,
-				b: null
+				b: null,
 			},
 		});
 
@@ -61,4 +61,3 @@ describe("validate member schemas", () => {
 		assert.strictEqual(result.success, false, result.msg);
 	});
 });
-
