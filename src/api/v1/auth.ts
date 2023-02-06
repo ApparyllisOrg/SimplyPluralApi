@@ -5,7 +5,7 @@ import { randomBytes, timingSafeEqual } from "crypto";
 import { confirmUserEmail, getConfirmationKey, sendConfirmationEmail } from "./auth/auth.confirmation";
 import { base64decodeJwt, isJwtValid, jwtForUser } from "./auth/auth.jwt";
 import { hash } from "./auth/auth.hash";
-import { getEmailRegex, getNewUid, getPasswordRegex } from "./auth/auth.core";
+import { getEmailRegex, getNewUid, getPasswordRegex, getPasswordRegexString } from "./auth/auth.core";
 import moment from "moment";
 import { loginWithGoogle } from "./auth/auth.google";
 import { auth } from "firebase-admin";
@@ -402,7 +402,7 @@ export const validateResetPasswordExecutionSchema = (body: unknown): { success: 
 		type: "object",
 		properties: {
 			resetKey: { type: "string", pattern: "^[a-zA-Z0-9]{128}$" },
-			newPassword: { type: "string", pattern: getPasswordRegex() },
+			newPassword: { type: "string", pattern: getPasswordRegexString() },
 		},
 		nullable: false,
 		additionalProperties: false,
@@ -418,7 +418,7 @@ export const validateChangePasswordSchema = (body: unknown): { success: boolean;
 		properties: {
 			uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
 			oldPassword: { type: "string" },
-			newPassword: { type: "string", pattern: getPasswordRegex() },
+			newPassword: { type: "string", pattern: getPasswordRegexString() },
 		},
 		nullable: false,
 		additionalProperties: false,
@@ -433,7 +433,7 @@ export const validateChangeEmailSchema = (body: unknown): { success: boolean; ms
 		type: "object",
 		properties: {
 			oldEmail: { type: "string", format: "email" },
-			password: { type: "string", pattern: getPasswordRegex() },
+			password: { type: "string", pattern: getPasswordRegexString() },
 			newEmail: { type: "string", format: "email" },
 		},
 		nullable: false,
