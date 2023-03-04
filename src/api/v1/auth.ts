@@ -5,7 +5,7 @@ import { randomBytes, timingSafeEqual } from "crypto";
 import { confirmUserEmail, getConfirmationKey, sendConfirmationEmail } from "./auth/auth.confirmation";
 import { base64decodeJwt, isJwtValid, jwtForUser } from "./auth/auth.jwt";
 import { hash } from "./auth/auth.hash";
-import { getEmailRegex, getNewUid, getPasswordRegex } from "./auth/auth.core";
+import { getEmailRegex, getNewUid, passwordRegex } from "./auth/auth.core";
 import moment from "moment";
 import { loginWithGoogle } from "./auth/auth.google";
 import { auth } from "firebase-admin";
@@ -267,7 +267,7 @@ export const register = async (req: Request, res: Response) => {
 		}
 	}
 
-	if (!(req.body.password as string).match(getPasswordRegex())) {
+	if (!(req.body.password as string).match(passwordRegex)) {
 		res.status(400).send("Your password must be between 12 and 100 characters, have a capital and lower case letter, a number and a symbol (#?!@$%^&*-)");
 		return;
 	}
