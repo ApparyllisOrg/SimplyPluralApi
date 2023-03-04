@@ -5,7 +5,7 @@ import { randomBytes, timingSafeEqual } from "crypto";
 import { confirmUserEmail, getConfirmationKey, sendConfirmationEmail } from "./auth/auth.confirmation";
 import { base64decodeJwt, isJwtValid, jwtForUser } from "./auth/auth.jwt";
 import { hash } from "./auth/auth.hash";
-import { getNewUid, getPasswordRegex, passwordRegexError } from "./auth/auth.core";
+import { getEmailRegex, getNewUid, getPasswordRegex } from "./auth/auth.core";
 import moment from "moment";
 import { loginWithGoogle } from "./auth/auth.google";
 import { auth } from "firebase-admin";
@@ -24,14 +24,14 @@ import { migrateAccountFromFirebase } from "./auth/auth.migrate";
 initializeApp({ projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY });
 
 export const login = async (req: Request, res: Response) => {
-	let user = await getCollection("accounts").findOne({ email: { $regex: "^" + req.body.email + "$", $options: "i" } });
+	let user = await getCollection("accounts").findOne({ email: getEmailRegex(req.body.email) });
 	if (!user) {
 		const result = await signInWithEmailAndPassword(getAuth(), req.body.email, req.body.password).catch(() => undefined);
 		if (result) {
 			const salt = randomBytes(16).toString("hex");
 			const hashedPasswd = await hash(req.body.password, salt);
 			await getCollection("accounts").insertOne({ uid: result.user.uid, email: req.body.email, verified: result.user.emailVerified, salt, password: hashedPasswd.hashed, registeredAt: result.user.metadata.creationTime ?? moment.now() });
-			user = await getCollection("accounts").findOne({ email: { $regex: "^" + req.body.email + "$", $options: "i" } });
+			user = await getCollection("accounts").findOne({ email: getEmailRegex(req.body.email) });
 			migrateAccountFromFirebase(user.uid);
 		} else {
 			res.status(401).send("Unknown user or password");
@@ -169,7 +169,7 @@ export const resetPasswordRequest = async (req: Request, res: Response) => {
 	const email = req.query.email?.toString() ?? "";
 	const result = await resetPasswordRequest_Execution(email);
 	if (result.success === true) {
-		const user = await getCollection("accounts").findOne({ email: { $regex: "^" + email + "$", $options: "i" } });
+		const user = await getCollection("accounts").findOne({ email: getEmailRegex(email) });
 		// User may not exist if they haven't migrated from firebase to native-auth yet
 		// TODO: Phase this out whenever we lock out firebase-auth-dependent app client versions
 		if (user) {
@@ -248,7 +248,7 @@ export const requestEmailFromUsername = async (req: Request, res: Response) => {
 };
 
 export const register = async (req: Request, res: Response) => {
-	const existingUser = await getCollection("accounts").findOne({ email: { $regex: "^" + req.body.email + "$", $options: "i" } });
+	const existingUser = await getCollection("accounts").findOne({ email: getEmailRegex(req.body.email) });
 	if (existingUser) {
 		res.status(409).send("User already exists");
 		return;
@@ -401,7 +401,7 @@ export const validateResetPasswordExecutionSchema = (body: unknown): { success: 
 		type: "object",
 		properties: {
 			resetKey: { type: "string", pattern: "^[a-zA-Z0-9]{128}$" },
-			newPassword: { type: "string", pattern: getPasswordRegex() },
+			newPassword: { type: "string" },
 		},
 		nullable: false,
 		additionalProperties: false,
@@ -432,7 +432,7 @@ export const validateChangeEmailSchema = (body: unknown): { success: boolean; ms
 		type: "object",
 		properties: {
 			oldEmail: { type: "string", format: "email" },
-			password: { type: "string", pattern: getPasswordRegex() },
+			password: { type: "string" },
 			newEmail: { type: "string", format: "email" },
 		},
 		nullable: false,

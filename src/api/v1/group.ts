@@ -20,8 +20,11 @@ export const update = async (req: Request, res: Response) => {
 	const group = await getCollection("groups").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) });
 
 	if (group) {
-		if ((req.body.private === true && req.body.preventTrusted !== null && req.body.preventTrusted !== null && group.private !== req.body.private) || req.body.preventTrusted != group.preventTrusted) {
-			privateGroupRecursive(req.params.id, res.locals.uid, req.body.private, req.body.preventTrusted);
+		// eslint-disable-next-line sonarjs/no-collapsible-if
+		if (req.body.private === true && req.body.preventTrusted !== null && req.body.preventTrusted !== null) {
+			if (group.private !== req.body.private || req.body.preventTrusted != group.preventTrusted) {
+				privateGroupRecursive(req.params.id, res.locals.uid, req.body.private, req.body.preventTrusted);
+			}
 		}
 
 		updateSimpleDocument(req, res, "groups");

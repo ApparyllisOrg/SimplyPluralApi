@@ -22,7 +22,7 @@ export const getNewUid = async () => {
 //-------------------------------//
 export const revokeAllUserAccess = async (uid: string) => {
 	// Division by 1000 because iat is in seconds, not milliseconds
-	await getCollection("accounts").updateOne({ uid }, { $set: { firstValidJWtTime: Math.round(moment.now() / 1000) } });
+	await getCollection("accounts").updateOne({ uid }, { $set: { firstValidJWtTime: Math.round(moment.now() / 1000) - 1 } });
 
 	getUserConnections(uid).forEach((connection) => connection.send("Session invalidated", true));
 };
@@ -30,5 +30,13 @@ export const revokeAllUserAccess = async (uid: string) => {
 //-------------------------------//
 // Get Password Regex for the API
 //-------------------------------//
-export  const getPasswordRegex = () => "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{12,100}$"
+export const getPasswordRegex = () => "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{12,100}$"
 export const passwordRegexError = "Your password must be between 12 and 100 characters, have a capital and lower case letter, a number and a symbol (#?!@$%^&*-)";
+
+//-------------------------------//
+// Get Email Regex for the API
+//-------------------------------//
+export const getEmailRegex = (email: string) => {
+	const sanitizedEmail = email.replace(/[*+?^${}()|[\]\\]/g, "\\$&");
+	return { $regex: "^" + sanitizedEmail + "$", $options: "i" };
+};

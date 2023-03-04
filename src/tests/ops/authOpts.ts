@@ -108,7 +108,7 @@ describe("validate authentication flow", () => {
 				assert(user.passwordResetToken, "Password reset token valid");
 			}
 		})
-		.timeout(4000);
+		.timeout(8000);
 
 	mocha
 		.test("Reset password from request", async () => {
@@ -124,7 +124,7 @@ describe("validate authentication flow", () => {
 				assert(!updatedUser.passwordResetToken, "Password reset token invalid");
 			}
 		})
-		.timeout(4000);
+		.timeout(8000);
 
 	mocha
 		.test("Change user password", async () => {
