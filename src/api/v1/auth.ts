@@ -401,7 +401,7 @@ export const validateResetPasswordExecutionSchema = (body: unknown): { success: 
 		type: "object",
 		properties: {
 			resetKey: { type: "string", pattern: "^[a-zA-Z0-9]{128}$" },
-			newPassword: { type: "string" },
+			newPassword: { type: "string", pattern: passwordRegex },
 		},
 		nullable: false,
 		additionalProperties: false,
@@ -417,7 +417,7 @@ export const validateChangePasswordSchema = (body: unknown): { success: boolean;
 		properties: {
 			uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
 			oldPassword: { type: "string" },
-			newPassword: { type: "string" }
+			newPassword: { type: "string" },
 		},
 		nullable: false,
 		additionalProperties: false,
