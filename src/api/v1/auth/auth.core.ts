@@ -30,8 +30,8 @@ export const revokeAllUserAccess = async (uid: string) => {
 //-------------------------------//
 // Get Password Regex for the API
 //-------------------------------//
-export const getPasswordRegex = (): RegExp => /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{12,100}$/;
-export const getPasswordRegexString = (): string => "^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{12,100}$";
+export const passwordRegex: RegExp = /^(?=.*?[A-Z])(?=.*?[a-z])(?=.*?[0-9])(?=.*?[#?!@$%^&*-]).{12,100}$/
+export const passwordRegexError = "Your password must be between 12 and 100 characters, have a capital and lower case letter, a number and a symbol (#?!@$%^&*-)";
 
 //-------------------------------//
 // Get Email Regex for the API
