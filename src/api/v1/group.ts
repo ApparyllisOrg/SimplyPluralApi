@@ -6,64 +6,62 @@ import { getPrivacyDependency, validateSchema } from "../../util/validation";
 
 export const getGroups = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "groups", {});
-}
+};
 
 export const get = async (req: Request, res: Response) => {
 	fetchSimpleDocument(req, res, "groups");
-}
+};
 
 export const add = async (req: Request, res: Response) => {
 	addSimpleDocument(req, res, "groups");
-}
+};
 
 export const update = async (req: Request, res: Response) => {
-	const group = await getCollection("groups").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) })
+	const group = await getCollection("groups").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) });
 
-	if (group)
-	{
+	if (group) {
+		// eslint-disable-next-line sonarjs/no-collapsible-if
 		if (req.body.private === true && req.body.preventTrusted !== null && req.body.preventTrusted !== null) {
 			if (group.private !== req.body.private || req.body.preventTrusted != group.preventTrusted) {
-				privateGroupRecursive(req.params.id, res.locals.uid, req.body.private, req.body.preventTrusted)
+				privateGroupRecursive(req.params.id, res.locals.uid, req.body.private, req.body.preventTrusted);
 			}
 		}
 
-		updateSimpleDocument(req, res, "groups")
+		updateSimpleDocument(req, res, "groups");
+	} else {
+		res.status(404).send("Cannot find specified group");
 	}
-	else 
-	{
-		res.status(404).send("Cannot find specified group")
-	}
-}
+};
 
 export const del = async (req: Request, res: Response) => {
-	await delGroupRecursive(req.params.id, res.locals.uid)
-	res.status(200).send()
-}
+	await delGroupRecursive(req.params.id, res.locals.uid);
+	res.status(200).send();
+};
 
 const delGroupRecursive = async (groupId: string, uid: string) => {
-	const groups = await getCollection("groups").find({ uid, parent: groupId }).toArray()
+	const groups = await getCollection("groups").find({ uid, parent: groupId }).toArray();
 	for (let i = 0; i < groups.length; i++) {
-		await delGroupRecursive(groups[i]._id.toString(), uid)
+		await delGroupRecursive(groups[i]._id.toString(), uid);
 	}
-	await getCollection("groups").deleteOne({ uid, _id: parseId(groupId) })
+	await getCollection("groups").deleteOne({ uid, _id: parseId(groupId) });
 	dispatchDelete({
 		operationType: OperationType.Delete,
 		uid,
 		documentId: groupId,
-		collection: "groups"
-	})
-}
+		collection: "groups",
+	});
+};
 
 const privateGroupRecursive = async (groupId: string, uid: string, priv: boolean, preventTrusted: boolean) => {
-	const groups = await getCollection("groups").find({ uid, parent: groupId }).toArray()
+	const groups = await getCollection("groups").find({ uid, parent: groupId }).toArray();
 	for (let i = 0; i < groups.length; i++) {
-		await privateGroupRecursive(groups[i]._id.toString(), uid, priv, preventTrusted)
+		await privateGroupRecursive(groups[i]._id.toString(), uid, priv, preventTrusted);
 	}
 
-	await getCollection("groups").updateOne({ uid, _id: parseId(groupId) }, { $set: { "private": priv, preventTrusted } })
-}
+	await getCollection("groups").updateOne({ uid, _id: parseId(groupId) }, { $set: { private: priv, preventTrusted } });
+};
 
-export const validateGroupSchema = (body: any): { success: boolean, msg: string } => {
+export const validateGroupSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -79,13 +77,13 @@ export const validateGroupSchema = (body: any): { success: boolean, msg: string 
 		},
 		nullable: false,
 		additionalProperties: false,
-		dependencies: getPrivacyDependency()
+		dependencies: getPrivacyDependency(),
 	};
 
 	return validateSchema(schema, body);
-}
+};
 
-export const validatePostGroupSchema = (body: any): { success: boolean, msg: string } => {
+export const validatePostGroupSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -102,8 +100,8 @@ export const validatePostGroupSchema = (body: any): { success: boolean, msg: str
 		required: ["parent", "color", "private", "preventTrusted", "name", "desc", "emoji", "members"],
 		nullable: false,
 		additionalProperties: false,
-		dependencies: getPrivacyDependency()
+		dependencies: getPrivacyDependency(),
 	};
 
 	return validateSchema(schema, body);
-}
+};

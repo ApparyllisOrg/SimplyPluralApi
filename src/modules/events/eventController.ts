@@ -1,10 +1,9 @@
-import cluster from "cluster";
 import { logger } from "../logger";
 import { getCollection } from "../mongo";
 import { automatedRemindersDueEvent, removeDeletedReminders } from "./automatedReminder";
 import { notifyPrivateFrontDue, notifySharedFrontDue } from "./frontChange";
 import { repeatRemindersDueEvent, repeatRemindersEvent } from "./repeatReminders";
-import promclient from "prom-client"
+import promclient from "prom-client";
 import { getStartOfDay } from "../../util";
 
 type bindFunc = (uid: string, event: any) => void;
@@ -19,19 +18,17 @@ const bindEvents = async () => {
 	_boundEvents.set("frontChangePrivate", notifyPrivateFrontDue);
 };
 
-const counter  = new promclient.Gauge({
-	name: 'apparyllis_api_daily_users',
-	help: 'Counter for the amount of daily users, resets daily and counts up until the end of the day'
+const counter = new promclient.Gauge({
+	name: "apparyllis_api_daily_users",
+	help: "Counter for the amount of daily users, resets daily and counts up until the end of the day",
 });
 
-const runDailyUserCounter = async () =>
-{
-	const event = await getCollection("events").findOne({date: getStartOfDay().toDate(), event: "dailyUsage"})
-	if (event)
-	{
-		counter.set(event.count)
+const runDailyUserCounter = async () => {
+	const event = await getCollection("events").findOne({ date: getStartOfDay().toDate(), event: "dailyUsage" });
+	if (event) {
+		counter.set(event.count);
 	}
-}
+};
 
 const runEvents = async () => {
 	const now = Date.now();
@@ -55,8 +52,7 @@ const runEvents = async () => {
 };
 
 export const performDelete = (target: string, uid: any, delay: number) => {
-	if (_boundEvents.has(target))
-		enqueueEvent(target, uid, delay);
+	if (_boundEvents.has(target)) enqueueEvent(target, uid, delay);
 };
 
 export const performEvent = (target: string, uid: string, delay: number) => {
@@ -70,7 +66,6 @@ const enqueueEvent = (event: string, uid: string, delay: number) => {
 	queuedEvents.updateOne({ uid: uid, event: event }, { $set: { event: event, uid: uid, due: future } }, { upsert: true });
 };
 
-
 export const init = () => {
 	runEvents();
 	// Todo: Edit this so that every server can run queued events and that
@@ -79,6 +74,6 @@ export const init = () => {
 	// the same events on both. It needs to return atomically.
 	if (process.env.DEVELOPMENT !== "true" && process.env.LOCALEVENTS === "true") {
 		bindEvents();
-		console.log("Bound to events, started event controller")
-	} 
+		console.log("Bound to events, started event controller");
+	}
 };

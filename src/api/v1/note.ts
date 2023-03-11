@@ -5,26 +5,26 @@ import { validateSchema } from "../../util/validation";
 
 export const getNotesForMember = async (req: Request, res: Response) => {
 	const documents = await getCollection("notes").find({ uid: req.params.system, member: req.params.member }).toArray();
-	sendDocuments(req, res, "notes", documents)
-}
+	sendDocuments(req, res, "notes", documents);
+};
 
 export const get = async (req: Request, res: Response) => {
 	fetchSimpleDocument(req, res, "notes");
-}
+};
 
 export const add = async (req: Request, res: Response) => {
 	addSimpleDocument(req, res, "notes");
-}
+};
 
 export const update = async (req: Request, res: Response) => {
-	updateSimpleDocument(req, res, "notes")
-}
+	updateSimpleDocument(req, res, "notes");
+};
 
 export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "notes");
-}
+};
 
-export const validateNoteSchema = (body: any): { success: boolean, msg: string } => {
+export const validateNoteSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -38,9 +38,9 @@ export const validateNoteSchema = (body: any): { success: boolean, msg: string }
 	};
 
 	return validateSchema(schema, body);
-}
+};
 
-export const validatePostNoteSchema = (body: any): { success: boolean, msg: string } => {
+export const validatePostNoteSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
@@ -57,4 +57,4 @@ export const validatePostNoteSchema = (body: any): { success: boolean, msg: stri
 	};
 
 	return validateSchema(schema, body);
-}
+};

@@ -1,5 +1,5 @@
 import * as assert from "assert";
-import * as mocha from "mocha"
+import * as mocha from "mocha";
 import { validateGroupSchema } from "../../api/v1/group";
 
 describe("validate group schemas", () => {
@@ -12,7 +12,7 @@ describe("validate group schemas", () => {
 			name: "foo",
 			desc: "foo",
 			emoji: "foo",
-			members: ["foo", "bar"]
+			members: ["foo", "bar"],
 		});
 
 		assert.strictEqual(result.success, true, result.msg);
@@ -52,7 +52,7 @@ describe("validate group schemas", () => {
 			name: null,
 			desc: null,
 			emoji: null,
-			members: [null, null]
+			members: [null, null],
 		});
 
 		assert.strictEqual(result.success, false, result.msg);
