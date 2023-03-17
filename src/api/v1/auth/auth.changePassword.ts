@@ -5,7 +5,7 @@ import { mailerTransport } from "../../../modules/mail";
 import { userNotFound } from "../../../modules/messages";
 import { getCollection } from "../../../modules/mongo";
 import { getAPIUrl } from "../../../util";
-import { passwordRegex, passwordRegexError, revokeAllUserAccess } from "./auth.core";
+import { getPasswordRegex, passwordRegexError, revokeAllUserAccess } from "./auth.core";
 import { hash } from "./auth.hash";
 import { base64decodeJwt } from "./auth.jwt";
 
@@ -34,8 +34,7 @@ export const changePassword_Execution = async (uid: string, oldPassword: string,
 
 		revokeAllUserAccess(user.uid);
 
-		if (!newPassword.match(passwordRegex))
-			return { success: false, msg: passwordRegexError, uid: '' };
+		if (!getPasswordRegex().test(newPassword)) return { success: false, msg: passwordRegexError, uid: "" };
 
 		const newHashedPasswd = await hash(newPassword, user.salt);
 
