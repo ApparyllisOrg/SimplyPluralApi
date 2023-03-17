@@ -26,13 +26,14 @@ export const jwtForUser = async (uid: string, fallbackEmail: string | undefined,
 
 	const verified = user ? user.verified : fallbackVerified;
 	const email = user ? user.email : fallbackEmail;
+	const oAuth2 = user ? user.oAuth2 : false;
 
 	if (verified === undefined) throw "Unable to fetch verified for jwt";
 
 	if (email === undefined) throw "Unable to fetch email for jwt";
 
-	const access = jwt.sign({ sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + 30 * 60, verified, email }, jwtKey);
-	const refresh = jwt.sign({ sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + thirtyDays, refresh: true, verified, email }, jwtKey);
+	const access = jwt.sign({ sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + 30 * 60, verified, email, oAuth2 }, jwtKey);
+	const refresh = jwt.sign({ sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + thirtyDays, refresh: true, verified, email, oAuth2 }, jwtKey);
 	return { access, refresh };
 };
 
