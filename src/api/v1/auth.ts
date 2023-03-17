@@ -40,7 +40,7 @@ export const login = async (req: Request, res: Response) => {
 	}
 
 	if (user.oAuth2 === true) {
-		res.status(401).send("You cannot login with password for an account with oAuth2 (Google Sign-in, Apple Sign-in) enabled");
+		res.status(401).send("You cannot login with password for an account with Google Sign-in or Apple Sign-in enabled");
 		return;
 	}
 
