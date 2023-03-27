@@ -28,6 +28,8 @@ admin.initializeApp({
 	databaseURL: `https://${accJson.project_id}.firebaseio.com`,
 });
 
+export const tracePerformance = process.env.TRACEPERFORMANCE == "true";
+
 startCollectingUsage();
 
 const start = async () => {

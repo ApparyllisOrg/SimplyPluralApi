@@ -3,6 +3,9 @@ import { logger, userLog } from "../../modules/logger";
 import { validateSchema } from "../../util/validation";
 import * as minio from "minio";
 import { isUserVerified } from "../../security";
+import { getCollection } from "../../modules/mongo";
+import moment from "moment";
+import { tracePerformance } from "../..";
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -22,6 +25,7 @@ export const Store = async (req: Request, res: Response) => {
 	const path = `avatars/${res.locals.uid}/${req.params.dashedid}`;
 
 	const buffer = Buffer.from(req.body["buffer"]);
+	const now = moment.now();
 
 	minioClient
 		.putObject("spaces", path, buffer)
@@ -30,6 +34,12 @@ export const Store = async (req: Request, res: Response) => {
 		})
 		.then((onfullfilled: void | minio.UploadedObjectInfo) => {
 			if (onfullfilled) {
+				const diff = (moment.now() - now) / 1000;
+
+				if (tracePerformance) {
+					getCollection("performanceTrace").insertOne({ type: "upload", bytes: buffer.byteLength, duration: diff });
+				}
+
 				res.status(200).send({ success: true, msg: { url: "https://serve.apparyllis.com/avatars/" + path } });
 				userLog(res.locals.uid, "Stored avatar with size: " + buffer.length);
 			} else {
