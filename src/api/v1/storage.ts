@@ -5,7 +5,8 @@ import * as minio from "minio";
 import { isUserVerified } from "../../security";
 import { getCollection } from "../../modules/mongo";
 import moment from "moment";
-import { tracePerformance } from "../..";
+
+const tracePerformance = process.env.TRACEPERFORMANCE == "true";
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
