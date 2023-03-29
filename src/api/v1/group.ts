@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
 import { dispatchDelete, OperationType } from "../../modules/socket";
-import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection } from "../../util";
+import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, isMemberOrCustomFront, isMember } from "../../util";
 import { getPrivacyDependency, validateSchema } from "../../util/validation";
 
 export const getGroups = async (req: Request, res: Response) => {
@@ -14,6 +14,51 @@ export const get = async (req: Request, res: Response) => {
 
 export const add = async (req: Request, res: Response) => {
 	addSimpleDocument(req, res, "groups");
+};
+
+export const setMemberInGroups = async (req: Request, res: Response) => {
+	const member = req.body.member;
+	const isAMember = await isMember(res.locals.uid, member);
+	if (!isAMember)
+	{
+		res.status(404).send("Member does not exist");
+		return;
+	}
+
+	const desiredGroups : string[] = req.body.groups;
+
+	const groups = await getCollection("groups").find({ uid: res.locals.uid });
+
+	await groups.forEach((document) => {
+		const members : string[] | undefined = document.members;
+		if (members)
+		{
+			const includesMember = members.includes(member)
+
+			let wantsToIncludeMember = false;
+			for (let i = 0; i < desiredGroups.length; ++i)
+			{
+				if (parseId(document._id) === parseId(desiredGroups[i]))
+				{
+					wantsToIncludeMember = true;
+				}
+			}
+
+			if (wantsToIncludeMember != includesMember)
+			{
+				if (wantsToIncludeMember)
+				{
+  					getCollection("groups").updateOne({ uid: res.locals.uid, _id: parseId(document._id) }, {$push: {members: member}});
+				}
+				else 
+				{
+					getCollection("groups").updateOne({ uid: res.locals.uid, _id: parseId(document._id) }, {$pull: {members: member}});
+				}
+			}
+		}
+	})
+
+	res.status(200).send();
 };
 
 export const update = async (req: Request, res: Response) => {
@@ -78,6 +123,20 @@ export const validateGroupSchema = (body: unknown): { success: boolean; msg: str
 		nullable: false,
 		additionalProperties: false,
 		dependencies: getPrivacyDependency(),
+	};
+
+	return validateSchema(schema, body);
+};
+
+export const validateSetMemberInGroupSchema = (body: unknown): { success: boolean; msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			member: { type: "string", pattern: "^[a-zA-Z0-9]{5,64}$" },
+			groups: { type: "array", items: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" }, uniqueItems: true },
+		},
+		nullable: false,
+		additionalProperties: false,
 	};
 
 	return validateSchema(schema, body);
