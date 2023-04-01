@@ -19,40 +19,33 @@ export const add = async (req: Request, res: Response) => {
 export const setMemberInGroups = async (req: Request, res: Response) => {
 	const member = req.body.member;
 	const isAMember = await isMember(res.locals.uid, member);
-	if (!isAMember)
-	{
+	if (!isAMember) {
 		res.status(404).send("Member does not exist");
 		return;
 	}
 
-	const desiredGroups : string[] = req.body.groups;
+	const desiredGroups: string[] = req.body.groups;
 
 	const groups = await getCollection("groups").find({ uid: res.locals.uid });
 
 	await groups.forEach((document) => {
-		const members : string[] | undefined = document.members;
-		if (members)
-		{
+		const members: string[] | undefined = document.members;
+		if (members) {
 			const includesMember = members.includes(member)
 
 			let wantsToIncludeMember = false;
-			for (let i = 0; i < desiredGroups.length; ++i)
-			{
-				if (parseId(document._id) === parseId(desiredGroups[i]))
-				{
+			for (let i = 0; i < desiredGroups.length; ++i) {
+				if (parseId(document._id) === parseId(desiredGroups[i])) {
 					wantsToIncludeMember = true;
 				}
 			}
 
-			if (wantsToIncludeMember != includesMember)
-			{
-				if (wantsToIncludeMember)
-				{
-  					getCollection("groups").updateOne({ uid: res.locals.uid, _id: parseId(document._id) }, {$push: {members: member}});
+			if (wantsToIncludeMember != includesMember) {
+				if (wantsToIncludeMember) {
+					getCollection("groups").updateOne({ uid: res.locals.uid, _id: parseId(document._id) }, { $push: { members: member } });
 				}
-				else 
-				{
-					getCollection("groups").updateOne({ uid: res.locals.uid, _id: parseId(document._id) }, {$pull: {members: member}});
+				else {
+					getCollection("groups").updateOne({ uid: res.locals.uid, _id: parseId(document._id) }, { $pull: { members: member } });
 				}
 			}
 		}
@@ -137,6 +130,7 @@ export const validateSetMemberInGroupSchema = (body: unknown): { success: boolea
 		},
 		nullable: false,
 		additionalProperties: false,
+		required: ["member", "groups"],
 	};
 
 	return validateSchema(schema, body);
