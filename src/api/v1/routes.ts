@@ -91,8 +91,8 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/group/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), group.get);
 	app.get("/v1/groups/:system", isUserAuthenticated(ApiKeyAccessType.Read), group.getGroups);
 	app.post("/v1/group/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validatePostGroupSchema), validateId, group.add);
-	app.patch("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateGroupSchema), group.update);
 	app.patch("/v1/group/members", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateSetMemberInGroupSchema), group.setMemberInGroups);
+	app.patch("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateGroupSchema), group.update);
 	app.delete("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Delete), group.del);
 
 	// Analytics
