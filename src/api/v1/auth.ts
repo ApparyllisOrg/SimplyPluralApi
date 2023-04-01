@@ -20,6 +20,7 @@ import { namedArguments } from "../../util/args";
 import { requestEmail_Execution } from "./auth/auth.requestEmail";
 import { logOpenUsage as logDailyUsage } from "./events/open";
 import { migrateAccountFromFirebase } from "./auth/auth.migrate";
+import { fetchCollection } from "../../util";
 
 initializeApp({ projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY });
 
@@ -247,6 +248,10 @@ export const requestEmailFromUsername = async (req: Request, res: Response) => {
 	res.status(500).send("Error");
 };
 
+export const getAuthLogs = async (req: Request, res: Response) => {
+	fetchCollection(req, res, "securityLogs", {});
+};
+
 export const register = async (req: Request, res: Response) => {
 	const existingUser = await getCollection("accounts").findOne({ email: getEmailRegex(req.body.email) });
 	if (existingUser) {
@@ -280,7 +285,7 @@ export const register = async (req: Request, res: Response) => {
 	const jwt = await jwtForUser(newUserId, undefined, undefined);
 	res.status(200).send(jwt);
 
-	logSecurityUserEvent(newUserId, "Registerd your user account", req);
+	logSecurityUserEvent(newUserId, "Registered your user account", req);
 
 	sendConfirmationEmail(newUserId);
 };
