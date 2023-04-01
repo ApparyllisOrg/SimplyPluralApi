@@ -29,8 +29,13 @@ export const setMemberInGroups = async (req: Request, res: Response) => {
 	const groups = await getCollection("groups").find({ uid: res.locals.uid });
 
 	await groups.forEach((document) => {
-		const members: string[] | undefined = document.members;
-		if (members) {
+		let members: string[] | undefined = document.members;
+
+		if (members === undefined) {
+			members = [];
+		}
+
+		if (members !== undefined) {
 			const includesMember = members.includes(member)
 
 			let wantsToIncludeMember = false;
