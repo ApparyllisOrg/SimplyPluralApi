@@ -34,18 +34,21 @@ export const setMemberInGroups = async (req: Request, res: Response) => {
 		if (members === undefined) {
 			members = [];
 		}
-
 		if (members !== undefined) {
 			const includesMember = members.includes(member)
 
 			let wantsToIncludeMember = false;
 			for (let i = 0; i < desiredGroups.length; ++i) {
-				if (parseId(document._id) === parseId(desiredGroups[i])) {
+				const docId = parseId(document._id);
+				const groupId = parseId(desiredGroups[i]);
+
+				if (docId.toString() === groupId.toString()) {
 					wantsToIncludeMember = true;
 				}
 			}
 
-			if (wantsToIncludeMember != includesMember) {
+			if (wantsToIncludeMember !== includesMember) {
+
 				if (wantsToIncludeMember) {
 					getCollection("groups").updateOne({ uid: res.locals.uid, _id: parseId(document._id) }, { $push: { members: member } });
 				}
