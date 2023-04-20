@@ -184,6 +184,10 @@ export const resetPasswordRequest = async (req: Request, res: Response) => {
 export const resetPassword = async (req: Request, res: Response) => {
 	const result = await resetPassword_Exection(req.body.resetKey, req.body.newPassword);
 	if (result.success === true) {
+		if (result.removedSocialLogin) {
+			logSecurityUserEvent(result.uid, "Removed social login", req);
+		}
+
 		logSecurityUserEvent(result.uid, "Changed your password", req);
 
 		const isSuspended = await isUserSuspended(result.uid);
