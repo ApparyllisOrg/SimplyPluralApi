@@ -39,7 +39,7 @@ export const resetPasswordRequest_Execution = async (email: string): Promise<{ s
 			resetUrl = `https://dist.apparyllis.com/auth/prod/resetpassword.html?key=${resetKey}`;
 		}
 
-		await getCollection("accounts").updateOne({ email: email }, { $set: { lastResetPasswordEmailSent: moment.now(), passwordResetToken: resetKey } });
+		await getCollection("accounts").updateOne({ email: getEmailRegex(email) }, { $set: { lastResetPasswordEmailSent: moment.now(), passwordResetToken: resetKey } });
 	} else {
 		const firebaseUser = await auth()
 			.getUserByEmail(email)
