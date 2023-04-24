@@ -55,7 +55,8 @@ export const add = async (req: Request, res: Response) => {
 export const del = async (req: Request, res: Response) => {
 	const toDeleteToken = await getCollection("tokens").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) });
 	if (toDeleteToken) {
-		logSecurityUserEvent(res.locals.uid, "Deleted token: " + toDeleteToken.token, req);
+		const obfuscatedToken = toDeleteToken.token.slice(0, 15) + "...";
+		logSecurityUserEvent(res.locals.uid, "Deleted token: " + obfuscatedToken, req);
 	}
 	deleteSimpleDocument(req, res, "tokens");
 };
