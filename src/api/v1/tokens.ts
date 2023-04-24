@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { ApiKeyAccessType, assignApiKey, generateNewApiKey } from "../../modules/api/keys";
-import { getCollection } from "../../modules/mongo";
+import { getCollection, parseId } from "../../modules/mongo";
 import { logSecurityUserEvent } from "../../security";
 import { deleteSimpleDocument, fetchCollection, fetchSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
@@ -33,13 +33,27 @@ export const add = async (req: Request, res: Response) => {
 	if (!success) {
 		res.status(400).send("You need to specify at least one permission");
 	} else {
-		logSecurityUserEvent(res.locals.uid, "Added token with following permission " + req.body.permission.toString(), req);
+		let permissions = ""
+
+		if (read) {
+			permissions += "\nRead"
+		}
+
+		if (read) {
+			permissions += "\Write"
+		}
+
+		if (read) {
+			permissions += "\Delete"
+		}
+
+		logSecurityUserEvent(res.locals.uid, "Added token with following permissions: " + permissions, req);
 		res.status(200).send(token);
 	}
 };
 
 export const del = async (req: Request, res: Response) => {
-	const toDeleteToken = await getCollection("tokens").findOne({ uid: res.locals.uid, _id: req.params.id });
+	const toDeleteToken = await getCollection("tokens").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) });
 	if (toDeleteToken) {
 		logSecurityUserEvent(res.locals.uid, "Deleted token: " + toDeleteToken.token, req);
 	}
