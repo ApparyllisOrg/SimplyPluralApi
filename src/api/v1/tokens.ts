@@ -40,11 +40,11 @@ export const add = async (req: Request, res: Response) => {
 		}
 
 		if (read) {
-			permissions += "\Write"
+			permissions += "\nWrite"
 		}
 
 		if (read) {
-			permissions += "\Delete"
+			permissions += "\nDelete"
 		}
 
 		logSecurityUserEvent(res.locals.uid, "Added token with following permissions: " + permissions, req);
