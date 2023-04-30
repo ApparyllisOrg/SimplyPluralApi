@@ -209,6 +209,9 @@ export const SetUsername = async (req: Request, res: Response) => {
 		const user = await getCollection("users").findOne({ uid: res.locals.uid });
 		getCollection("users").updateOne({ uid: res.locals.uid }, { $set: { username: newUsername } });
 		res.status(200).send({ success: true });
+
+		logSecurityUserEvent(res.locals.uid, "Changed username to: " + newUsername, req);
+
 		userLog(res.locals.uid, "Updated username to: " + newUsername + ", changed from " + user.username);
 	} else {
 		res.status(200).send({ success: false, msg: "This username is already taken" });
