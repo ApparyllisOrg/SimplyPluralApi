@@ -39,11 +39,11 @@ export const add = async (req: Request, res: Response) => {
 			permissions += "\nRead"
 		}
 
-		if (read) {
+		if (write) {
 			permissions += "\nWrite"
 		}
 
-		if (read) {
+		if (del) {
 			permissions += "\nDelete"
 		}
 
