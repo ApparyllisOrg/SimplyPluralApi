@@ -1,4 +1,5 @@
 import { randomBytes } from "crypto";
+import { auth } from "firebase-admin";
 import moment from "moment";
 import { getCollection } from "../../../modules/mongo";
 import { getUserConnections } from "../../../modules/socket";
@@ -41,3 +42,21 @@ export const getEmailRegex = (email: string) => {
 	const sanitizedEmail = email.replace(/[*+?^${}()|[\]\\]/g, "\\$&");
 	return { $regex: "^" + sanitizedEmail + "$", $options: "i" };
 };
+
+
+export const getEmailForUser = async (uid: string): Promise<undefined | string> => {
+	let email: undefined | string = undefined;
+
+	const user = await getCollection("accounts").findOne({ uid: uid });
+	if (!user) {
+		const firebaseUser = await auth().getUser(uid).catch((r) => undefined);
+		if (firebaseUser) {
+			email = firebaseUser.email;
+		}
+
+	} else {
+		email = user.email;
+	}
+
+	return email;
+}

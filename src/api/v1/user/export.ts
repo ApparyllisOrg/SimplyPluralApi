@@ -7,6 +7,7 @@ import { promisify } from "util";
 import { mailerTransport } from "../../../modules/mail";
 import { db, getCollection } from "../../../modules/mongo";
 import { getFileFromStorage } from "../../../modules/storage";
+import { getEmailForUser } from "../auth/auth.core";
 
 //-------------------------------//
 // Fetch all avatars from a user
@@ -82,9 +83,7 @@ export const exportData = async (uid: string): Promise<{ success: boolean; code:
 		}
 	}
 
-	const user = await auth().getUser(uid);
-
-	const email = user.email ?? "";
+	const email = await getEmailForUser(uid)
 
 	const getFile = promisify(readFile);
 	let emailTemplate = await getFile("./templates/exportEmailTemplate.html", "utf-8");

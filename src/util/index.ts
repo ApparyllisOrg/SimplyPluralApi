@@ -43,7 +43,7 @@ export const getDocumentAccess = async (_req: Request, res: Response, document: 
 			if (document.private) {
 				const trustedFriend: boolean = await isTrustedFriend(friendLevel);
 				if (trustedFriend) {
-					return { access: !document.preventTrusted, statusCode: 200, message: "" };
+					return { access: document.preventTrusted !== true, statusCode: 200, message: "" };
 				} else {
 					return { access: false, statusCode: 403, message: "Access to document has been rejected." };
 				}

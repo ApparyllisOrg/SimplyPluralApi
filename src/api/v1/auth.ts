@@ -5,7 +5,7 @@ import { randomBytes, timingSafeEqual } from "crypto";
 import { confirmUserEmail, getConfirmationKey, sendConfirmationEmail } from "./auth/auth.confirmation";
 import { base64decodeJwt, isJwtValid, jwtForUser } from "./auth/auth.jwt";
 import { hash } from "./auth/auth.hash";
-import { getEmailRegex, getNewUid, getPasswordRegex, getPasswordRegexString } from "./auth/auth.core";
+import { getEmailForUser, getEmailRegex, getNewUid, getPasswordRegex, getPasswordRegexString } from "./auth/auth.core";
 import moment from "moment";
 import { loginWithGoogle } from "./auth/auth.google";
 import { auth } from "firebase-admin";
@@ -120,15 +120,13 @@ export const refreshToken = async (req: Request, res: Response) => {
 				return;
 			}
 
-			let email = undefined;
+			let email = await getEmailForUser(validResult.decoded.sub);
 
-			const user = await getCollection("accounts").findOne({ uid: validResult.decoded.sub });
-			if (!user) {
-				const firebaseUser = await auth().getUser(validResult.decoded.sub);
-				email = firebaseUser.email;
-			} else {
-				email = user.email;
+			if (!email) {
+				res.status(401).send("Cannot refresh, unable to find your account from this refresh token");
+				return;
 			}
+
 
 			const newToken = await jwtForUser(validResult.decoded.sub, email, true);
 
