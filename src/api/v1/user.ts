@@ -19,6 +19,7 @@ import { ERR_FUNCTIONALITY_EXPECTED_VALID } from "../../modules/errors";
 import { createUser } from "./user/migrate";
 import { exportData, fetchAllAvatars } from "./user/export";
 import JSZip from "jszip";
+import { getEmailForUser } from "./auth/auth.core";
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -276,8 +277,6 @@ export const deleteAccount = async (req: Request, res: Response) => {
 	await getCollection("pendingFriendRequests").deleteMany({ receiver: { $eq: res.locals.uid } });
 	await getCollection("pendingFriendRequests").deleteMany({ sender: { $eq: res.locals.uid } });
 
-	const user = await auth().getUser(res.locals.uid);
-
 	// Don't delete avatars and reports when deleting pretesting
 	if (process.env.PRETESTING !== "true") {
 		{
@@ -286,12 +285,12 @@ export const deleteAccount = async (req: Request, res: Response) => {
 		}
 	}
 
-	const email = user.email ?? "";
+	let email = await getEmailForUser(res.locals.uid)
 
 	userLog(res.locals.uid, `Pre Delete User ${email} and username ${username}`);
 
 	if (process.env.PRETESTING !== "true") {
-		auth().deleteUser(res.locals.uid);
+		auth().deleteUser(res.locals.uid).catch((r) => undefined);
 		userLog(res.locals.uid, `Post Delete Firebase User ${email} and username ${username}`);
 	}
 
@@ -307,8 +306,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 		return;
 	}
 
-	const user = await auth().getUser(res.locals.uid);
-	const email = user.email ?? "";
+	const email = await getEmailForUser(res.locals.uid)
 
 	await getCollection("private").updateOne({ uid: res.locals.uid, _id: parseId(res.locals.uid) }, { $set: { lastExport: moment.now() } });
 	logSecurityUserEvent(res.locals.uid, "Exported user account", _req);

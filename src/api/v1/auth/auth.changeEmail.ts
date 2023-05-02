@@ -14,7 +14,7 @@ import { userNotFound } from "../../../modules/messages";
 export const changeEmail_Execution = async (oldEmail: string, password: string, newEmail: string): Promise<{ success: boolean; msg: string; uid: string }> => {
 	const user = await getCollection("accounts").findOne({ email: getEmailRegex(oldEmail) });
 
-	if (user.oAuth2 === true) {
+	if (user && user.oAuth2 === true) {
 		return { success: false, msg: "You cannot change the email of an account when you use Sign in with Apple or Sign in with Google", uid: "" };
 	}
 
