@@ -5,6 +5,6 @@ import { auth } from "firebase-admin";
 //-------------------------------//
 export const migrateAccountFromFirebase = async (uid: string) => {
 	if (process.env.PRETESTING !== "true") {
-		await auth().updateUser(uid, { disabled: true });
+		await auth().updateUser(uid, { disabled: true }).catch((r) => undefined);
 	}
 };
