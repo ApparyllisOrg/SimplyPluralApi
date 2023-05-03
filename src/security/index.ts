@@ -83,7 +83,6 @@ export const canAccessDocument = async (requestor: string, owner: string, privat
 	const friendLevel = await getFriendLevel(owner, requestor);
 	if (privateDoc === true) {
 		const trustedFriend: boolean = isTrustedFriend(friendLevel);
-
 		// Trusted and not prevent trusted.. give access
 		// eslint-disable-next-line sonarjs/prefer-single-boolean-return
 		if (trustedFriend && !preventTrusted) {
@@ -108,14 +107,16 @@ export const isUserSuspended = async (uid: string) => {
 
 export const isUserVerified = async (uid: string) => {
 	const result = await getCollection("accounts").findOne({ uid });
-	if (result && (result.verified === true || result.oAuth2 === true)) {
-		return true;
+	if (result) {
+		return result.verified === true || result.oAuth2 === true;
 	} else {
-		const firebaseUser = await auth().getUser(uid);
+		const firebaseUser = await auth().getUser(uid).catch((r) => undefined);
 
-		// oAuth2 is always verified
-		if ((firebaseUser && firebaseUser.emailVerified === true) || firebaseUser.providerData.length > 0) {
-			return true;
+		if (firebaseUser) {
+			// oAuth2 is always verified
+			if (firebaseUser.emailVerified === true || firebaseUser.providerData.length > 0) {
+				return true;
+			}
 		}
 	}
 
