@@ -7,24 +7,24 @@ on:
   workflow_dispatch:
     inputs:
       logLevel:
-        description: 'Log level'     
+        description: "Log level"
         required: true
-        default: 'warning'
+        default: "warning"
       tags:
-        description: 'Test scenario tags'  
+        description: "Test scenario tags"
   push:
-    branches: [ pretesting ]
+    branches: [pretesting]
 
 jobs:
   build:
     runs-on: pretesting
     steps:
-    - uses: actions/checkout@v2
-      with:
-        ref: pretesting
-    - run: npm install
-    - run: npm run build
-    - run: cp /home/actions_runner_pretesting/.env ./dist/.env
-    - run: cp /home/actions_runner_pretesting/spGoogle.json ./dist/spGoogle.json
-    - run: cp -R ./templates ./dist/templates
-    - run: pm2 restart pretesting
+      - uses: actions/checkout@v2
+        with:
+          ref: pretesting
+      - run: npm i
+      - run: npm run build
+      - run: cp /home/actions_runner_pretesting/.env ./dist/.env
+      - run: cp /home/actions_runner_pretesting/spGoogle.json ./dist/spGoogle.json
+      - run: cp -R ./templates ./dist/templates
+      - run: pm2 restart pretesting
