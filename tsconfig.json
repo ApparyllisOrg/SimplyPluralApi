@@ -7,9 +7,16 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
+    "skipLibCheck": true,
     "strict": true
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", ".vscode", "src/tests/**"],
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".vscode",
+    "src/tests/**"
+  ],
   "skipLibCheck": true
 }
