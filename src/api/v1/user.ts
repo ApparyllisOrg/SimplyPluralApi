@@ -20,6 +20,7 @@ import { createUser } from "./user/migrate";
 import { exportData, fetchAllAvatars } from "./user/export";
 import JSZip from "jszip";
 import { getEmailForUser } from "./auth/auth.core";
+import { s3 } from "./storage";
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -92,14 +93,22 @@ const performReportGeneration = async (req: Request, res: Response) => {
 
 	getCollection("reports").insertOne({ uid: res.locals.uid, url: reportUrl, createdAt: moment.now(), usedSettings: req.body });
 
-	minioClient
-		.putObject("spaces", path, htmlFile)
-		.catch((e) => {
-			logger.error(e);
-			console.log(e);
+	const params = {
+		Bucket: "simply-plural",
+		Key: path,
+		Body: htmlFile,
+		ACL: "public-read",
+	};
+
+	s3.putObject(params, function (err) {
+		if (err) {
+			logger.error(err);
+			console.log(err);
 			res.status(500).send("Error uploading report");
-		})
-		.then(() => res.status(200).send({ success: true, msg: reportUrl }));
+		} else {
+			res.status(200).send({ success: true, msg: reportUrl });
+		}
+	});
 };
 
 export const getReports = async (req: Request, res: Response) => {
@@ -221,6 +230,39 @@ export const SetUsername = async (req: Request, res: Response) => {
 
 const deleteUploadedUserFolder = async (uid: string, prefix: string) => {
 	const deleteFolderPromise = new Promise<any>(async (resolve) => {
+
+		const recursiveDelete = async (token: string | undefined) => {
+			const params = {
+				Bucket: "simply-plural",
+				Prefix: `${prefix}/${uid}/`,
+				ContinuationToken: token
+			};
+
+			try {
+				let list = await s3.listObjectsV2(params).promise();
+
+				if (list.NextContinuationToken) {
+					await recursiveDelete(list.NextContinuationToken);
+				}
+
+				if (list.KeyCount && list.Contents) {
+					const deleteParams = {
+						Bucket: "simply-plural",
+						Delete: {
+							Objects: list.Contents.map((item) => ({ Key: item.Key ?? "" }))
+						},
+					};
+
+					s3.deleteObjects(deleteParams, (err: any) => { }).promise();
+				}
+			}
+			catch (e) {
+				console.log(e)
+			}
+		};
+
+		await recursiveDelete(undefined)
+
 		const listedObjects = await minioClient.listObjectsV2("spaces", `/${prefix}/${uid}/`);
 		if (listedObjects) {
 			const list: minio.BucketItem[] = [];
@@ -260,6 +302,8 @@ export const deleteAccount = async (req: Request, res: Response) => {
 		return;
 	}
 
+	let email = await getEmailForUser(res.locals.uid)
+
 	const userDoc = await getCollection("users").findOne({ uid: res.locals.uid, _id: res.locals.uid });
 	const username = userDoc?.username ?? "";
 
@@ -284,8 +328,6 @@ export const deleteAccount = async (req: Request, res: Response) => {
 			await deleteUploadedUserFolder(res.locals.uid, "avatars");
 		}
 	}
-
-	let email = await getEmailForUser(res.locals.uid)
 
 	userLog(res.locals.uid, `Pre Delete User ${email} and username ${username}`);
 
@@ -327,7 +369,8 @@ export const exportAvatars = async (req: Request, res: Response) => {
 	const zip = new JSZip();
 
 	result.forEach((result) => {
-		zip.file(result.name + ".png", Buffer.concat(result.data));
+		const buffer = Buffer.isBuffer(result.data) ? result.data : Buffer.concat(result.data as Buffer[]);
+		zip.file(result.name + ".png", buffer);
 	});
 
 	logSecurityUserEvent(res.locals.uid, "Exported user avatars", req);

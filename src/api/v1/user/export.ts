@@ -1,3 +1,4 @@
+import { S3 } from "aws-sdk";
 import { randomBytes } from "crypto";
 import { auth } from "firebase-admin";
 import { readFile } from "fs";
@@ -12,8 +13,8 @@ import { getEmailForUser } from "../auth/auth.core";
 //-------------------------------//
 // Fetch all avatars from a user
 //-------------------------------//
-export const fetchAllAvatars = async (uid: string): Promise<{ name: string; data: Buffer[] }[]> => {
-	const avatars: { name: string; data: Buffer[] }[] = [];
+export const fetchAllAvatars = async (uid: string): Promise<{ name: string; data: Buffer[] | S3.Body }[]> => {
+	const avatars: { name: string; data: Buffer[] | S3.Body }[] = [];
 
 	const members = await getCollection("members").find({ uid }).toArray();
 
