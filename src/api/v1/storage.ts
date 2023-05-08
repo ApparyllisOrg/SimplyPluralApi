@@ -5,8 +5,15 @@ import * as minio from "minio";
 import { isUserVerified } from "../../security";
 import { getCollection } from "../../modules/mongo";
 import moment from "moment";
+import * as AWS from "aws-sdk";
+import { S3 } from "aws-sdk";
 
-const tracePerformance = process.env.TRACEPERFORMANCE == "true";
+const objectEndpoint = new AWS.Endpoint(process.env.OBJECT_HOST ?? "");
+export const s3 = new AWS.S3({
+	endpoint: objectEndpoint,
+	accessKeyId: process.env.OBJECT_KEY,
+	secretAccessKey: process.env.OBJECT_SECRET,
+});
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -26,27 +33,21 @@ export const Store = async (req: Request, res: Response) => {
 	const path = `avatars/${res.locals.uid}/${req.params.dashedid}`;
 
 	const buffer = Buffer.from(req.body["buffer"]);
-	const now = moment.now();
+	const params = {
+		Bucket: "simply-plural",
+		Key: path,
+		Body: buffer,
+	};
 
-	minioClient
-		.putObject("spaces", path, buffer)
-		.catch((e) => {
-			logger.error(e);
-		})
-		.then((onfullfilled: void | minio.UploadedObjectInfo) => {
-			if (onfullfilled) {
-				const diff = (moment.now() - now) / 1000;
-
-				if (tracePerformance) {
-					getCollection("performanceTrace").insertOne({ type: "upload", bytes: buffer.byteLength, duration: diff });
-				}
-
-				res.status(200).send({ success: true, msg: { url: "https://serve.apparyllis.com/avatars/" + path } });
-				userLog(res.locals.uid, "Stored avatar with size: " + buffer.length);
-			} else {
-				res.status(500).send("Error uploading avatar");
-			}
-		});
+	s3.putObject(params, function (err) {
+		if (err) {
+			console.log(err)
+			res.status(500).send("Error uploading avatar");
+		} else {
+			res.status(200).send({ success: true, msg: { url: "https://serve.apparyllis.com/avatars/" + path } });
+			userLog(res.locals.uid, "Stored avatar with size: " + buffer.length);
+		}
+	});
 };
 
 export const validateStoreAvatarSchema = (body: unknown): { success: boolean; msg: string } => {
@@ -71,14 +72,26 @@ export const Delete = async (req: Request, res: Response) => {
 	}
 
 	const path = `avatars/${res.locals.uid}/${req.params.dashedid}`;
-	minioClient
-		.removeObject("spaces", path)
-		.then(() => {
+
+	const params = {
+		Bucket: "simply-plural",
+		Key: path,
+	};
+
+	s3.deleteObject(params, function (err) {
+		if (err) {
+			minioClient
+				.removeObject("spaces", path)
+				.then(() => {
+					res.status(200).send({ success: true, msg: "" });
+					userLog(res.locals.uid, "Deleted avatar");
+				})
+				.catch((e) => {
+					logger.error(e);
+					res.status(500).send("Error deleting file");
+				});
+		} else {
 			res.status(200).send({ success: true, msg: "" });
-			userLog(res.locals.uid, "Deleted avatar");
-		})
-		.catch((e) => {
-			logger.error(e);
-			res.status(500).send("Error deleting file");
-		});
+		}
+	});
 };

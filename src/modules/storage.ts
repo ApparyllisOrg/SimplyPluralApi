@@ -1,4 +1,13 @@
 import * as minio from "minio";
+import * as AWS from "aws-sdk";
+import { S3 } from "aws-sdk";
+
+const objectEndpoint = new AWS.Endpoint(process.env.OBJECT_HOST ?? "");
+const s3 = new AWS.S3({
+	endpoint: objectEndpoint,
+	accessKeyId: process.env.OBJECT_KEY,
+	secretAccessKey: process.env.OBJECT_SECRET,
+});
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -11,8 +20,22 @@ const minioClient = new minio.Client({
 //-------------------------------//
 // Get a file from storage
 //-------------------------------//
-export const getFileFromStorage = async (path: string): Promise<Buffer[] | null> => {
-	return new Promise<Buffer[] | null>(async (resolve, _reject) => {
+export const getFileFromStorage = async (path: string): Promise<Buffer[] | null | S3.Body> => {
+	return new Promise<Buffer[] | null | S3.Body>(async (resolve, _reject) => {
+		const params = {
+			Bucket: "simply-plural",
+			Key: path
+		};
+		try {
+			const file = await s3.getObject(params).promise();
+			if (file && file.Body) {
+				resolve(file.Body);
+				return;
+			}
+		}
+		catch (e) {
+		}
+
 		try {
 			const file = await minioClient.getObject("spaces", path);
 
