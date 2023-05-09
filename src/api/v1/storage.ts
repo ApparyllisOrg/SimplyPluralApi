@@ -78,20 +78,20 @@ export const Delete = async (req: Request, res: Response) => {
 		Key: path,
 	};
 
-	s3.deleteObject(params, function (err) {
+	s3.deleteObject(params, function (err, data) {
+		minioClient
+			.removeObject("spaces", path)
+			.then(() => {
+				res.status(200).send({ success: true, msg: "" });
+				userLog(res.locals.uid, "Deleted avatar");
+			})
+			.catch((e) => {
+				logger.error(e);
+				res.status(500).send("Error deleting file");
+			});
+
 		if (err) {
-			minioClient
-				.removeObject("spaces", path)
-				.then(() => {
-					res.status(200).send({ success: true, msg: "" });
-					userLog(res.locals.uid, "Deleted avatar");
-				})
-				.catch((e) => {
-					logger.error(e);
-					res.status(500).send("Error deleting file");
-				});
-		} else {
-			res.status(200).send({ success: true, msg: "" });
+			logger.error(err);
 		}
 	});
 };
