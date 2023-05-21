@@ -66,7 +66,6 @@ const sendNotification = async (notification: Notification) => {
 					getCollection("private").updateOne({ uid: notification.instigator, _id: notification.instigator }, { $pull: { notificationToken: notification.token } });
 				} else {
 					console.log(error);
-					console.log(sendPayload);
 				}
 			});
 	}

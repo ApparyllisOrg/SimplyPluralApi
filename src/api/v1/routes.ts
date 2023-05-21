@@ -24,6 +24,11 @@ import * as messages from "./messages";
 import * as chats from "./chats";
 import * as auth from "./auth";
 import * as event from "./events";
+import * as generateCheckoutSession from "./subscriptions/subscriptions.checkout";
+import * as getSubscription from "./subscriptions/subscriptions.get";
+import * as cancelSubscription from "./subscriptions/subscriptions.cancel";
+import * as getInvoices from "./subscriptions/subscriptions.invoices";
+import * as reactivateSubscription from "./subscriptions/subscriptions.reactivate";
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
@@ -210,4 +215,11 @@ export const setupV1routes = (app: core.Express) => {
 	{
 		app.post("/v1/event/open", isUserAppJwtAuthenticated, event.openEvent);
 	}
+
+	// Subscriptions
+	app.get("/v1/subscription/get", isUserAppJwtAuthenticated, getSubscription.getSubscription)
+	app.get("/v1/subscription/invoices", isUserAppJwtAuthenticated, getInvoices.getInvoices)
+	app.post("/v1/subscription/create", isUserAppJwtAuthenticated, validateBody(generateCheckoutSession.validateSubscribeSessionsSchema), generateCheckoutSession.generateSubscribeSession)
+	app.post("/v1/subscription/cancel", isUserAppJwtAuthenticated, cancelSubscription.cancelSubscription)
+	app.post("/v1/subscription/reactivate", isUserAppJwtAuthenticated, reactivateSubscription.reactivateSubscription)
 };

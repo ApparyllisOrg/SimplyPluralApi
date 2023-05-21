@@ -277,7 +277,6 @@ export const syncAllSpMembersToPk = async (options: syncOptions, _allSyncOptions
 		const foundMember: any | undefined = foundMembers.find((value) => value.id === member.pkId);
 
 		const result = await syncMemberToPk(options, member._id, token, userId, foundMember, systemResult?.data.id);
-		console.log(result);
 	}
 	return { success: true, msg: "Sync completed" };
 };

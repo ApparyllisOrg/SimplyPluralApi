@@ -15,6 +15,7 @@ import { validateOperationTime } from "../util/validation";
 import { NextFunction, Request, Response } from "express-serve-static-core";
 import cors from "cors";
 import cluster from "cluster";
+import { initializeStripe } from "../api/v1/subscriptions/subscriptions.core";
 
 export const initializeServer = async () => {
 	const app = express();
@@ -30,6 +31,8 @@ export const initializeServer = async () => {
 		app.use(Sentry.Handlers.requestHandler());
 		app.use(helmet());
 	}
+
+	initializeStripe(app);
 
 	app.use(express.json({ limit: "3mb" }));
 
