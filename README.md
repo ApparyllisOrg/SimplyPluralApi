@@ -28,17 +28,47 @@ The Simply Plural API has a host of functionalities.
 * Syncing information between Simply Plural and third party integrations such as PluralKit
 ## Environment variables
 
-**Required:**
-
+**Database:**
 - `DATABASE_URI`: a MongoDB connection URI (for example, `mongodb://localhost:27017`)
+- `DBNAME`: Name of the database
+
+**Mail:**
 - `MAILPORT`: Port for the SMTP server
 - `MAILHOST`: Hostname for the SMTP server
 - `MAILUSER`: Username for the SMTP server
 - `MAILPASSWORD`: Password for the SMTP server
-- `DBNAME`: Name of the database
+
+**Sentry:**
 - `SENTRY_DSN`: DSN for the Sentry integration
+
+**Storage:**
 - `MINIO_KEY`: Key for MinIO
 - `MINIO_Secret`: Secret for MinIO
+- `OBJECT_HOST`
+
+**Google**
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_AUD`
+- `GOOGLE_CLIENT_IOS_ID`
+- `GOOGLE_CLIENT_SECRET`
+
+**Hash:**
+- `PASSWORD_KEY`
+- `PASSWORD_SEPERATOR`
+
+**JWT:**
+- `JWT_KEY`
+- `GOOGLE_CLIENT_JWT_AUD`
+
+**Environment:**
+- `PRETESTING`
+- `DEVELOPMENT`
+- `UNITEST`
+- `LOCAL`
+
+**Chat**
+- `MESSAGES_KEY`
+
 
 **Optional:**
 
