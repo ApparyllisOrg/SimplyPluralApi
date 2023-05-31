@@ -73,38 +73,38 @@ const handlePkResponse = (requestResponse: AxiosResponse<any, any> | { status: n
 export const syncMemberToPk = async (options: syncOptions, spMemberId: string, token: string, userId: string, memberData: any | undefined, knownSystemId: string | undefined): Promise<{ success: boolean; msg: string }> => {
 	const spMemberResult = await getCollection("members").findOne({ uid: userId, _id: parseId(spMemberId) });
 
-	let { name, avatarUrl, pronouns, desc } = spMemberResult;
-	const { color } = spMemberResult;
-
-	name = limitStringLength(name, 100);
-	avatarUrl = limitStringLength(avatarUrl, 256);
-	pronouns = limitStringLength(pronouns, 100);
-	desc = limitStringLength(desc, 1000);
-
-	const memberDataToSync: any = {};
-	if (options.name) {
-		if (options.useDisplayName) {
-			memberDataToSync.display_name = name;
-		} else {
-			memberDataToSync.name = name;
-		}
-	}
-
-	if (options.avatar && avatarUrl) memberDataToSync.avatar_url = avatarUrl;
-	if (options.pronouns && pronouns) memberDataToSync.pronouns = pronouns;
-	if (options.description && desc != null) memberDataToSync.description = desc;
-	if (options.color && color) {
-		const updateColor = spColorToPkColor(color);
-		if (updateColor) {
-			memberDataToSync.color = updateColor;
-		}
-	}
-
-	if (memberDataToSync.avatar_url && !validUrl.isUri(memberDataToSync.avatar_url)) {
-		delete memberDataToSync["avatar_url"];
-	}
-
 	if (spMemberResult) {
+		let { name = "", avatarUrl = "", pronouns = "", desc = "" } = spMemberResult;
+		const { color } = spMemberResult;
+
+		name = limitStringLength(name, 100);
+		avatarUrl = limitStringLength(avatarUrl, 256);
+		pronouns = limitStringLength(pronouns, 100);
+		desc = limitStringLength(desc, 1000);
+
+		const memberDataToSync: any = {};
+		if (options.name) {
+			if (options.useDisplayName) {
+				memberDataToSync.display_name = name;
+			} else {
+				memberDataToSync.name = name;
+			}
+		}
+
+		if (options.avatar && avatarUrl) memberDataToSync.avatar_url = avatarUrl;
+		if (options.pronouns && pronouns) memberDataToSync.pronouns = pronouns;
+		if (options.description && desc != null) memberDataToSync.description = desc;
+		if (options.color && color) {
+			const updateColor = spColorToPkColor(color);
+			if (updateColor) {
+				memberDataToSync.color = updateColor;
+			}
+		}
+
+		if (memberDataToSync.avatar_url && !validUrl.isUri(memberDataToSync.avatar_url)) {
+			delete memberDataToSync["avatar_url"];
+		}
+
 		const pkId: string | undefined | null = spMemberResult.pkId;
 		if (pkId && pkId.length === 5) {
 			const getRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${spMemberResult.pkId}`, token, response: null, data: undefined, type: PkRequestType.Get, id: "" };
