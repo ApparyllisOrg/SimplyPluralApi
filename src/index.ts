@@ -31,6 +31,7 @@ admin.initializeApp({
 startCollectingUsage();
 
 const start = async () => {
+	console.log(`Spawned API instance ${process.env.NODE_APP_INSTANCE}`)
 	const app = await initializeServer();
 	const _server = await startServer(app, process.env.DATABASE_URI ?? "");
 };
