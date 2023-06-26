@@ -4,7 +4,7 @@ import { automatedRemindersDueEvent, removeDeletedReminders } from "./automatedR
 import { notifyPrivateFrontDue, notifySharedFrontDue } from "./frontChange";
 import { repeatRemindersDueEvent, repeatRemindersEvent } from "./repeatReminders";
 import promclient from "prom-client";
-import { getStartOfDay } from "../../util";
+import { getStartOfDay, isPrimaryInstace } from "../../util";
 
 type bindFunc = (uid: string, event: any) => void;
 const _boundEvents = new Map<string, bindFunc>();
@@ -67,13 +67,15 @@ const enqueueEvent = (event: string, uid: string, delay: number) => {
 };
 
 export const init = () => {
-	runEvents();
-	// Todo: Edit this so that every server can run queued events and that
-	// getting queued events is atomic, so only one server handles the documents it got returned
-	// We don't want to run runEvents twice on two servers and have it return
-	// the same events on both. It needs to return atomically.
-	if (process.env.DEVELOPMENT !== "true" && process.env.LOCALEVENTS === "true") {
-		bindEvents();
-		console.log("Bound to events, started event controller");
+	if (isPrimaryInstace()) {
+		runEvents();
+		// Todo: Edit this so that every server can run queued events and that
+		// getting queued events is atomic, so only one server handles the documents it got returned
+		// We don't want to run runEvents twice on two servers and have it return
+		// the same events on both. It needs to return atomically.
+		if (process.env.DEVELOPMENT !== "true" && process.env.LOCALEVENTS === "true") {
+			bindEvents();
+			console.log("Bound to events, started event controller");
+		}
 	}
 };

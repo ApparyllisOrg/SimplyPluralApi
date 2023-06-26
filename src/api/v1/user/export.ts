@@ -47,8 +47,6 @@ export const fetchAllAvatars = async (uid: string): Promise<{ name: string; data
 		}
 	}
 
-	console.log(avatars.length);
-
 	return avatars;
 };
 

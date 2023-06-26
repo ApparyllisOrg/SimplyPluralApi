@@ -214,3 +214,7 @@ export const getStartOfDay = (): Moment => {
 	const today = moment();
 	return today.startOf("day");
 };
+
+export const isPrimaryInstace = () => {
+	return process.env.NODE_APP_INSTANCE === '0';
+}
