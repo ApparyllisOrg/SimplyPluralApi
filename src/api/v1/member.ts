@@ -95,6 +95,9 @@ export const del = async (req: Request, res: Response) => {
 	// Delete notes that belong to this member
 	getCollection("notes").deleteMany({ uid: res.locals.uid, member: req.params.id });
 
+	// Delete board messages that are for to this member
+	getCollection("boardMessages").deleteMany({ uid: res.locals.uid, writtenFor: req.params.id });
+
 	deleteSimpleDocument(req, res, "members");
 };
 
@@ -119,6 +122,8 @@ export const validateMemberSchema = (body: unknown): { success: boolean; msg: st
 				},
 			},
 			supportDescMarkdown: { type: "boolean" },
+			archived: { type: "boolean" },
+			archivedReason: { type: "string", maxLength: 150 }
 		},
 		nullable: false,
 		additionalProperties: false,
@@ -149,6 +154,8 @@ export const validatePostMemberSchema = (body: unknown): { success: boolean; msg
 				},
 			},
 			supportDescMarkdown: { type: "boolean" },
+			archived: { type: "boolean" },
+			archivedReason: { type: "string", maxLength: 150 }
 		},
 		required: ["name", "private", "preventTrusted"],
 		nullable: false,

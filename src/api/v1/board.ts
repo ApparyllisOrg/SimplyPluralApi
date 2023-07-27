@@ -50,7 +50,7 @@ export const validateCommentPatchSchema = (body: unknown): { success: boolean; m
     const schema = {
         type: "object",
         properties: {
-            read: { type: "boolean", enum: [true] },
+            read: { type: "boolean" },
         },
         nullable: false,
         additionalProperties: false,
