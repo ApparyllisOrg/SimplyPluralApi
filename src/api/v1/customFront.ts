@@ -5,6 +5,7 @@ import { getCollection } from "../../modules/mongo";
 import { canSeeMembers } from "../../security";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
 import { getPrivacyDependency, validateSchema } from "../../util/validation";
+import { frameType } from "../types/frameType";
 
 export const getCustomFronts = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
@@ -60,6 +61,7 @@ export const validateCustomFrontSchema = (body: unknown): { success: boolean; ms
 			preventTrusted: { type: "boolean" },
 			private: { type: "boolean" },
 			supportDescMarkdown: { type: "boolean" },
+			frame: frameType
 		},
 		nullable: false,
 		additionalProperties: false,
@@ -81,6 +83,7 @@ export const validatePostCustomFrontSchema = (body: unknown): { success: boolean
 			preventTrusted: { type: "boolean" },
 			private: { type: "boolean" },
 			supportDescMarkdown: { type: "boolean" },
+			frame: frameType
 		},
 		required: ["name", "private", "preventTrusted"],
 		nullable: false,

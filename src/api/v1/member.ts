@@ -5,6 +5,7 @@ import { getCollection, parseId } from "../../modules/mongo";
 import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security";
 import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendDocuments, updateSimpleDocument } from "../../util";
 import { getPrivacyDependency, validateSchema } from "../../util/validation";
+import { frameType } from "../types/frameType";
 
 export const getMembers = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
@@ -123,7 +124,9 @@ export const validateMemberSchema = (body: unknown): { success: boolean; msg: st
 			},
 			supportDescMarkdown: { type: "boolean" },
 			archived: { type: "boolean" },
-			archivedReason: { type: "string", maxLength: 150 }
+			archivedReason: { type: "string", maxLength: 150 },
+			frame: frameType
+
 		},
 		nullable: false,
 		additionalProperties: false,
@@ -155,7 +158,8 @@ export const validatePostMemberSchema = (body: unknown): { success: boolean; msg
 			},
 			supportDescMarkdown: { type: "boolean" },
 			archived: { type: "boolean" },
-			archivedReason: { type: "string", maxLength: 150 }
+			archivedReason: { type: "string", maxLength: 150 },
+			frame: frameType
 		},
 		required: ["name", "private", "preventTrusted"],
 		nullable: false,

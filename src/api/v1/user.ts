@@ -21,6 +21,7 @@ import { exportData, fetchAllAvatars } from "./user/export";
 import JSZip from "jszip";
 import { getEmailForUser } from "./auth/auth.core";
 import { s3 } from "./storage";
+import { frameType } from "../types/frameType";
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -454,6 +455,7 @@ export const validateUserSchema = (body: unknown): { success: boolean; msg: stri
 				},
 				additionalProperties: false,
 			},
+			frame: frameType
 		},
 		nullable: false,
 		additionalProperties: false,
