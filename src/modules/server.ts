@@ -16,6 +16,7 @@ import { NextFunction, Request, Response } from "express-serve-static-core";
 import cors from "cors";
 import cluster from "cluster";
 import { initializeStripe } from "../api/v1/subscriptions/subscriptions.core";
+import { loadTemplates } from "./mail/mailTemplates";
 
 export const initializeServer = async () => {
 	const app = express();
@@ -33,6 +34,8 @@ export const initializeServer = async () => {
 	}
 
 	initializeStripe(app);
+
+	await loadTemplates()
 
 	app.use(express.json({ limit: "3mb" }));
 

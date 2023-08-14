@@ -3,6 +3,7 @@ import e, { Request, Response } from "express";
 import { getStripe } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendSimpleEmail } from "../../../modules/mail";
+import { mailTemplate_createdSubscription } from "../../../modules/mail/mailTemplates";
 
 export const stripeCallback = async (req: Request, res: Response) => {
     if (getStripe() === undefined) {
@@ -66,12 +67,13 @@ export const stripeCallback = async (req: Request, res: Response) => {
                         getCollection("users").updateOne({ uid: subscriber.uid, _id: subscriber.uid }, { $set: { plus: true } })
 
                         const price = subItem.plan.amount
+                        const priceId = subItem.price.id;
                         const periodEnd = eventObject.current_period_end
                         const currency = subItem.plan.currency
 
-                        getCollection("subscribers").updateOne({ customerId }, { $set: { price, periodEnd, currency } }, { upsert: true })
+                        getCollection("subscribers").updateOne({ customerId }, { $set: { price, periodEnd, currency, priceId } }, { upsert: true })
 
-                        sendSimpleEmail(subscriber.uid, "./templates/subscription/createdSubscription.html", "Your Simply Plus subscription")
+                        sendSimpleEmail(subscriber.uid, mailTemplate_createdSubscription(), "Your Simply Plus subscription")
                     }
                     else {
                         res.status(500).send("Unable to find customer in our database in subscription")
@@ -142,6 +144,11 @@ export const stripeCallback = async (req: Request, res: Response) => {
                     }
 
                     const customerId = eventObject.customer
+
+                    const priceId = eventObject.items.data[0].price.id
+                    getCollection('subscribers').updateOne({ customerId }, { $set: { priceId } })
+
+
                     if (eventObject.cancel_at_period_end !== undefined) {
                         getCollection('subscribers').updateOne({ customerId }, { $set: { cancelled: eventObject.cancel_at_period_end } })
                     }

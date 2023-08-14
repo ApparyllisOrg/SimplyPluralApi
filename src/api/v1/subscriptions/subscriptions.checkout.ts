@@ -1,9 +1,7 @@
-import Stripe from "stripe";
 import { Request, Response } from "express";
-import { getEmailForUser } from "../auth/auth.core";
-import assert from "assert";
 import { validateSchema } from "../../../util/validation";
 import { getStripe } from "./subscriptions.core";
+import { nameToPriceId } from "./subscriptions.utils";
 
 export const generateSubscribeSession = async (req: Request, res: Response) => {
     if (getStripe() === undefined) {
@@ -11,23 +9,7 @@ export const generateSubscribeSession = async (req: Request, res: Response) => {
         return
     }
 
-    let price = "";
-
-    const requestedPrice = req.body.price;
-    switch (requestedPrice) {
-        case "affordable": {
-            price = process.env.STRIPE_PRICE_A!;
-            break;
-        }
-        case "regular": {
-            price = process.env.STRIPE_PRICE_B!;
-            break;
-        }
-        case "pif": {
-            price = process.env.STRIPE_PRICE_C!;
-            break;
-        }
-    }
+    let price = nameToPriceId(req.body.price);
 
     const session = await getStripe()!.checkout.sessions.create(
         {

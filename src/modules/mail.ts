@@ -1,10 +1,10 @@
-import { readFile } from "node:fs";
-import { promisify } from "node:util";
 import nodemailer, { Transporter } from "nodemailer";
 import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { getEmailForUser } from "../api/v1/auth/auth.core";
+import { getTemplate } from "./mail/mailTemplates";
+import promclient from "prom-client";
 
-export let mailerTransport: null | Transporter<SMTPTransport.SentMessageInfo> = null;
+let mailerTransport: null | Transporter<SMTPTransport.SentMessageInfo> = null;
 
 export const startMailTransport = async () => {
 	mailerTransport = nodemailer.createTransport({
@@ -26,20 +26,67 @@ export const startMailTransport = async () => {
 		.then(() => console.log("SMTP connection live"));
 };
 
-export const sendSimpleEmail = async (uid: string, fileName: string, title: string) => {
-	const getFile = promisify(readFile);
-	let emailTemplate = await getFile(fileName, "utf-8");
+const transaction_mail_counter = new promclient.Counter({
+	name: "apparyllis_transactional_mails",
+	help: "Amount of transactional mails sent",
+});
+
+export const sendSimpleEmail = async (uid: string, templateName: string, title: string, cc?: string[] | undefined) => {
+	let emailTemplate = getTemplate(templateName);
 
 	const userEmail = await getEmailForUser(uid);
 
-	await mailerTransport
+	const res = await mailerTransport
 		?.sendMail({
 			from: '"Apparyllis" <noreply@apparyllis.com>',
 			to: userEmail,
 			html: emailTemplate,
+			cc: cc,
 			subject: title,
 		})
 		.catch((reason) => {
 			console.log(reason)
 		});
+
+	transaction_mail_counter.inc();
+
+	return res;
+}
+
+export const sendCustomizedEmail = async (uid: string, email: string, title: string, cc?: string[] | undefined) => {
+	const userEmail = await getEmailForUser(uid);
+
+	const res = await mailerTransport
+		?.sendMail({
+			from: '"Apparyllis" <noreply@apparyllis.com>',
+			to: userEmail,
+			html: email,
+			cc: cc,
+			subject: title,
+		})
+		.catch((reason) => {
+			console.log(reason)
+		});
+
+	transaction_mail_counter.inc();
+
+	return res;
+}
+
+export const sendCustomizedEmailToEmail = async (userMail: string, email: string, title: string, cc?: string[] | undefined) => {
+	const res = await mailerTransport
+		?.sendMail({
+			from: '"Apparyllis" <noreply@apparyllis.com>',
+			to: userMail,
+			html: email,
+			cc: cc,
+			subject: title,
+		})
+		.catch((reason) => {
+			console.log(reason)
+		});
+
+	transaction_mail_counter.inc();
+
+	return res;
 }

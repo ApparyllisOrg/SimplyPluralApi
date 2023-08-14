@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { getStripe } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendSimpleEmail } from "../../../modules/mail";
+import { mailTemplate_cancelledSubscription } from "../../../modules/mail/mailTemplates";
 
 export const cancelSubscription = async (req: Request, res: Response) => {
     if (getStripe() === undefined) {
@@ -15,7 +16,7 @@ export const cancelSubscription = async (req: Request, res: Response) => {
         if (result?.cancel_at_period_end !== undefined) {
             res.status(200).send("Cancelled subscription")
 
-            sendSimpleEmail(res.locals.uid, "./templates/subscription/cancelledSubscription.html", "Your Simply Plus subscription is cancelled")
+            sendSimpleEmail(res.locals.uid, mailTemplate_cancelledSubscription(), "Your Simply Plus subscription is cancelled")
         }
         else {
             res.status(500).send("Unable to cancel subscription")

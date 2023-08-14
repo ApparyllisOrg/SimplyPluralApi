@@ -1,12 +1,11 @@
 import { timingSafeEqual } from "crypto";
-import { readFile } from "fs";
-import { promisify } from "util";
-import { mailerTransport } from "../../../modules/mail";
 import { getCollection } from "../../../modules/mongo";
 import { hash } from "./auth.hash";
 import { base64decodeJwt } from "./auth.jwt";
 import { getEmailRegex, revokeAllUserAccess } from "./auth.core";
 import { userNotFound } from "../../../modules/messages";
+import { getTemplate, mailTemplate_emailChanged } from "../../../modules/mail/mailTemplates";
+import { sendCustomizedEmailToEmail } from "../../../modules/mail";
 
 //-------------------------------//
 // Change password
@@ -39,43 +38,24 @@ export const changeEmail_Execution = async (oldEmail: string, password: string, 
 			revokeAllUserAccess(user.uid);
 
 			{
-				const getFile = promisify(readFile);
-				let emailTemplate = await getFile("./templates/emailChanged.html", "utf-8");
+				let emailTemplate = await getTemplate(mailTemplate_emailChanged())
 
 				// This template has the url twice
 				emailTemplate = emailTemplate.replace("{{oldEmail}}", oldEmail);
 				emailTemplate = emailTemplate.replace("{{newEmail}}", newEmail);
 
-				await mailerTransport
-					?.sendMail({
-						from: '"Apparyllis" <noreply@apparyllis.com>',
-						to: oldEmail,
-						html: emailTemplate,
-						subject: "Your Simply Plural email changed",
-					})
-					.catch((reason) => {
-						reason.toString() as string;
-					});
+				const result: any = sendCustomizedEmailToEmail(oldEmail, emailTemplate, "Your Simply Plural email changed");
 			}
 
 			{
-				const getFile = promisify(readFile);
-				let emailTemplate = await getFile("./templates/emailChanged.html", "utf-8");
+				let emailTemplate = await getTemplate(mailTemplate_emailChanged())
 
 				// This template has the url twice
 				emailTemplate = emailTemplate.replace("{{oldEmail}}", oldEmail);
 				emailTemplate = emailTemplate.replace("{{newEmail}}", newEmail);
 
-				await mailerTransport
-					?.sendMail({
-						from: '"Apparyllis" <noreply@apparyllis.com>',
-						to: newEmail,
-						html: emailTemplate,
-						subject: "Your Simply Plural email changed",
-					})
-					.catch((reason) => {
-						reason.toString() as string;
-					});
+
+				const result: any = sendCustomizedEmailToEmail(newEmail, emailTemplate, "Your Simply Plural email changed");
 			}
 
 			return { success: true, msg: "", uid: user.uid };
