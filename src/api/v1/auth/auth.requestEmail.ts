@@ -1,10 +1,9 @@
-import { readFile } from "fs";
 import * as Sentry from "@sentry/node";
-import { promisify } from "util";
-import { mailerTransport } from "../../../modules/mail";
 import { getCollection } from "../../../modules/mongo";
 import { auth } from "firebase-admin";
 import { ERR_AUTH_USER_NOT_FOUND } from "../../../modules/errors";
+import { sendCustomizedEmail, sendCustomizedEmailToEmail } from "../../../modules/mail";
+import { getTemplate, mailTemplate_accountReminder } from "../../../modules/mail/mailTemplates";
 
 //-------------------------------//
 // Request email
@@ -34,21 +33,11 @@ export const requestEmail_Execution = async (username: string): Promise<{ succes
 			userEmail = firebaseUser.email;
 		}
 
-		const getFile = promisify(readFile);
-		let emailTemplate = await getFile("./templates/accountReminder.html", "utf-8");
+		let emailTemplate = getTemplate(mailTemplate_accountReminder());
 
 		emailTemplate = emailTemplate.replace("{{username}}", username);
 
-		await mailerTransport
-			?.sendMail({
-				from: '"Apparyllis" <noreply@apparyllis.com>',
-				to: userEmail,
-				html: emailTemplate,
-				subject: "Your Simply Plural Account",
-			})
-			.catch((reason) => {
-				reason.toString() as string;
-			});
+		sendCustomizedEmail(user.uid, emailTemplate, "Your Simply Plural Account");
 
 		return { success: true, msg: "If a user exists for that username, you will receive an email under the account it is registered under" };
 	} else {

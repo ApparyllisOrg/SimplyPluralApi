@@ -9,9 +9,6 @@ import { update122 } from "./user/updates/update112";
 import { nanoid } from "nanoid";
 import { auth } from "firebase-admin";
 import { getFriendLevel, isTrustedFriend, logSecurityUserEvent } from "../../security";
-import { mailerTransport } from "../../modules/mail";
-import { readFile } from "fs";
-import { promisify } from "util";
 import moment from "moment";
 import * as minio from "minio";
 import * as Sentry from "@sentry/node";
@@ -21,6 +18,9 @@ import { exportData, fetchAllAvatars } from "./user/export";
 import JSZip from "jszip";
 import { getEmailForUser } from "./auth/auth.core";
 import { s3 } from "./storage";
+import { frameType } from "../types/frameType";
+import { getTemplate, mailTemplate_userReport } from "../../modules/mail/mailTemplates";
+import { sendCustomizedEmailToEmail } from "../../modules/mail";
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -78,18 +78,11 @@ const performReportGeneration = async (req: Request, res: Response) => {
 
 	const reportUrl = reportBaseUrl_V2 + path;
 
-	const getFile = promisify(readFile);
-	let emailTemplate = await getFile("./templates/userReportEmail.html", "utf-8");
+	let emailTemplate = await getTemplate(mailTemplate_userReport())
 
 	emailTemplate = emailTemplate.replace("{{reportUrl}}", reportUrl);
 
-	mailerTransport?.sendMail({
-		from: '"Apparyllis" <noreply@apparyllis.com>',
-		to: req.body.sendTo,
-		cc: req.body.cc,
-		html: emailTemplate,
-		subject: "Your user report",
-	});
+	sendCustomizedEmailToEmail(req.body.sendTo, emailTemplate, "Your user report", req.body.cc)
 
 	getCollection("reports").insertOne({ uid: res.locals.uid, url: reportUrl, createdAt: moment.now(), usedSettings: req.body });
 
@@ -454,6 +447,7 @@ export const validateUserSchema = (body: unknown): { success: boolean; msg: stri
 				},
 				additionalProperties: false,
 			},
+			frame: frameType
 		},
 		nullable: false,
 		additionalProperties: false,

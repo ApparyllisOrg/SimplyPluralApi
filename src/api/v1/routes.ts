@@ -21,9 +21,16 @@ import * as pk from "./pk";
 import * as token from "./tokens";
 import * as analytics from "./analytics";
 import * as messages from "./messages";
+import * as board from "./board";
 import * as chats from "./chats";
 import * as auth from "./auth";
 import * as event from "./events";
+import { getStripe } from "./subscriptions/subscriptions.core";
+import { generateSubscribeSession, validateSubscribeSessionsSchema } from "./subscriptions/subscriptions.checkout";
+import { cancelSubscription } from "./subscriptions/subscriptions.cancel";
+import { getSubscription } from "./subscriptions/subscriptions.get";
+import { reactivateSubscription } from "./subscriptions/subscriptions.reactivate";
+import { getInvoices } from "./subscriptions/subscriptions.invoices";
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
@@ -113,6 +120,14 @@ export const setupV1routes = (app: core.Express) => {
 	// Messages
 	app.get("/v1/messages", isUserAppJwtAuthenticated, messages.get);
 	app.post("/v1/messages/read", isUserAppJwtAuthenticated, validateBody(messages.validateMarkReadSchema), messages.maskAsRead);
+
+	// Board Messages
+	app.get("/v1/board/unread", isUserAuthenticated(ApiKeyAccessType.Read), board.getUnreadMessages);
+	app.get("/v1/board/:id", isUserAuthenticated(ApiKeyAccessType.Read), board.get);
+	app.get("/v1/board/member/:id", isUserAuthenticated(ApiKeyAccessType.Read), board.getBoardMessagesForMember);
+	app.post("/v1/board/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(board.validateBoardMessageSchema), board.add);
+	app.patch("/v1/board/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(board.validateCommentPatchSchema), board.update);
+	app.delete("/v1/board/:id", isUserAuthenticated(ApiKeyAccessType.Delete), board.del);
 
 	// Chat channels
 	app.get("/v1/chat/channel/:id", isUserAuthenticated(ApiKeyAccessType.Read), chats.getChannel);
@@ -209,5 +224,13 @@ export const setupV1routes = (app: core.Express) => {
 	// Specific events with per-event code
 	{
 		app.post("/v1/event/open", isUserAppJwtAuthenticated, event.openEvent);
+	}
+
+	if (getStripe() != undefined) {
+		app.post("/v1/subscription/create", isUserAppJwtAuthenticated, validateBody(validateSubscribeSessionsSchema), generateSubscribeSession)
+		app.post("/v1/subscription/cancel", isUserAppJwtAuthenticated, cancelSubscription)
+		app.post("/v1/subscription/reactivate", isUserAppJwtAuthenticated, reactivateSubscription)
+		app.get("/v1/subscription/get", isUserAppJwtAuthenticated, getSubscription)
+		app.get("/v1/subscription/invoices", isUserAppJwtAuthenticated, getInvoices)
 	}
 };

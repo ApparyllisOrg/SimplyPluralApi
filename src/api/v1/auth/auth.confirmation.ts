@@ -1,12 +1,11 @@
 import { randomBytes } from "crypto";
-import { readFile } from "fs";
 import moment from "moment";
-import { promisify } from "util";
-import { mailerTransport } from "../../../modules/mail";
 import { getCollection } from "../../../modules/mongo";
 import * as Sentry from "@sentry/node";
 import { getAPIUrl } from "../../../util";
 import { userNotFound } from "../../../modules/messages";
+import { getTemplate, mailTemplate_verifyEmail } from "../../../modules/mail/mailTemplates";
+import { sendCustomizedEmail } from "../../../modules/mail";
 
 //-------------------------------//
 // Generate a new random confirmation key
@@ -35,8 +34,7 @@ export const sendConfirmationEmail = async (uid: string): Promise<{ success: boo
 
 	await getCollection("accounts").updateOne({ uid }, { $set: { lastConfirmationEmailSent: moment.now() } });
 
-	const getFile = promisify(readFile);
-	let emailTemplate = await getFile("./templates/verifyEmail.html", "utf-8");
+	let emailTemplate = getTemplate(mailTemplate_verifyEmail());
 
 	// Email confirmation mail can be sent in different situations
 	// 1) The user has registered through the new auth code, the confirmation code is set in the `register` function to `user.verificationCode`, and the usual URL should be okay.
@@ -56,16 +54,7 @@ export const sendConfirmationEmail = async (uid: string): Promise<{ success: boo
 	emailTemplate = emailTemplate.replace("{{verificationUrl}}", verificationUrl);
 	emailTemplate = emailTemplate.replace("{{verificationUrl}}", verificationUrl);
 
-	const result: any = await mailerTransport
-		?.sendMail({
-			from: '"Apparyllis" <noreply@apparyllis.com>',
-			to: user.email,
-			html: emailTemplate,
-			subject: "Verify your Simply Plural account",
-		})
-		.catch((reason) => {
-			console.log(reason.toString() as string);
-		});
+	const result: any = sendCustomizedEmail(uid, emailTemplate, "Verify your Simply Plural account");
 
 	if (result && result.err) {
 		Sentry.captureMessage(result.err.toString());
