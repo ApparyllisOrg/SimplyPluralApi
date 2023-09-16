@@ -3,6 +3,7 @@ import SMTPTransport from "nodemailer/lib/smtp-transport";
 import { getEmailForUser } from "../api/v1/auth/auth.core";
 import { getTemplate } from "./mail/mailTemplates";
 import promclient from "prom-client";
+import Mail from "nodemailer/lib/mailer";
 
 let mailerTransport: null | Transporter<SMTPTransport.SentMessageInfo> = null;
 
@@ -31,7 +32,7 @@ const transaction_mail_counter = new promclient.Counter({
 	help: "Amount of transactional mails sent",
 });
 
-export const sendSimpleEmail = async (uid: string, templateName: string, title: string, cc?: string[] | undefined) => {
+export const sendSimpleEmail = async (uid: string, templateName: string, title: string, cc?: string[] | undefined, attachements?: Mail.Attachment[]) => {
 	let emailTemplate = getTemplate(templateName);
 
 	const userEmail = await getEmailForUser(uid);
@@ -43,6 +44,7 @@ export const sendSimpleEmail = async (uid: string, templateName: string, title: 
 			html: emailTemplate,
 			cc: cc,
 			subject: title,
+			attachments: attachements
 		})
 		.catch((reason) => {
 			console.log(reason)
@@ -53,7 +55,7 @@ export const sendSimpleEmail = async (uid: string, templateName: string, title: 
 	return res;
 }
 
-export const sendCustomizedEmail = async (uid: string, email: string, title: string, cc?: string[] | undefined) => {
+export const sendCustomizedEmail = async (uid: string, email: string, title: string, cc?: string[] | undefined, attachements?: Mail.Attachment[]) => {
 	const userEmail = await getEmailForUser(uid);
 
 	const res = await mailerTransport
@@ -63,6 +65,7 @@ export const sendCustomizedEmail = async (uid: string, email: string, title: str
 			html: email,
 			cc: cc,
 			subject: title,
+			attachments: attachements
 		})
 		.catch((reason) => {
 			console.log(reason)

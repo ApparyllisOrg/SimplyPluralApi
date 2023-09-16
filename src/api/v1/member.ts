@@ -124,6 +124,7 @@ export const validateMemberSchema = (body: unknown): { success: boolean; msg: st
 			},
 			supportDescMarkdown: { type: "boolean" },
 			archived: { type: "boolean" },
+			receiveMessageBoardNotifs: { type: "boolean" },
 			archivedReason: { type: "string", maxLength: 150 },
 			frame: frameType
 
@@ -158,6 +159,7 @@ export const validatePostMemberSchema = (body: unknown): { success: boolean; msg
 			},
 			supportDescMarkdown: { type: "boolean" },
 			archived: { type: "boolean" },
+			receiveMessageBoardNotifs: { type: "boolean" },
 			archivedReason: { type: "string", maxLength: 150 },
 			frame: frameType
 		},

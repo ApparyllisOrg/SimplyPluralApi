@@ -5,7 +5,7 @@ import { readFile } from "fs";
 import moment from "moment";
 import Mail from "nodemailer/lib/mailer";
 import { promisify } from "util";
-import { mailerTransport } from "../../../modules/mail";
+import { sendCustomizedEmail } from "../../../modules/mail";
 import { db, getCollection } from "../../../modules/mongo";
 import { getFileFromStorage } from "../../../modules/storage";
 import { getEmailForUser } from "../auth/auth.core";
@@ -100,22 +100,7 @@ export const exportData = async (uid: string): Promise<{ success: boolean; code:
 		content: JSON.stringify(allData),
 	};
 
-	const resolution = await mailerTransport
-		?.sendMail({
-			from: '"Apparyllis" <noreply@apparyllis.com>',
-			to: email,
-			subject: "Your requested data export",
-			html: emailTemplate,
-			attachments: [attachement],
-		})
-		.catch((e) => {
-			console.log(e);
-			return "ERR";
-		});
-
-	if (resolution === "ERR") {
-		return { success: false, code: 400, msg: "Unable to deliver the data to your email. Does the email exist?" };
-	}
+	sendCustomizedEmail(uid, emailTemplate, "Your requested data export", [], [attachement])
 
 	getCollection("avatarExports").insertOne({ uid, key: randomKey, exp: moment.now() + 1000 * 60 * 60 * 24 * 7 });
 
