@@ -38,6 +38,7 @@ export const requestEmail_Execution = async (username: string): Promise<{ succes
 		let emailTemplate = await getFile("./templates/accountReminder.html", "utf-8");
 
 		emailTemplate = emailTemplate.replace("{{username}}", username);
+		emailTemplate = emailTemplate.replace("{{email}}", userEmail);
 
 		await mailerTransport
 			?.sendMail({
