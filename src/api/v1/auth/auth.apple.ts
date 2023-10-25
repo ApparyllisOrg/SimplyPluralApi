@@ -34,8 +34,6 @@ export const loginWithApple = async (credential: string): Promise<{ success: boo
 		return { success: false, uid: "", email: "" };
 	}
 
-	console.log(payload);
-
 	if (payload.aud != "com.apparyllis.simplyplural") {
 		return { success: false, uid: "", email: "" };
 	}
