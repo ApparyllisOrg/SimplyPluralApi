@@ -40,7 +40,7 @@ const getIp = (req: Request): string => {
 		return connectingHeaders[0] ?? "Unknown";
 	}
 
-	return req.ip;
+	return req.ip ?? "Unknown";
 };
 
 const rejectEntry = (req: Request, res: Response, msg: string, ip: string) => {
