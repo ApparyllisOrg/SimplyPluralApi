@@ -36,6 +36,7 @@ export const requestEmail_Execution = async (username: string): Promise<{ succes
 		let emailTemplate = getTemplate(mailTemplate_accountReminder());
 
 		emailTemplate = emailTemplate.replace("{{username}}", username);
+		emailTemplate = emailTemplate.replace("{{email}}", userEmail);
 
 		sendCustomizedEmail(user.uid, emailTemplate, "Your Simply Plural Account");
 
