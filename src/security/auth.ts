@@ -34,13 +34,13 @@ export const validateToken = async (tokenStr: string): Promise<{ uid: string | u
 	}
 };
 
-const getIp = (req: Request) => {
+const getIp = (req: Request): string => {
 	const connectingHeaders = req.headers["cf-connecting-ip"] ?? [];
 	if (Array.isArray(connectingHeaders) && connectingHeaders.length > 0) {
-		return connectingHeaders[0];
+		return connectingHeaders[0] ?? "Unknown";
 	}
 
-	return req.ip;
+	return req.ip ?? "Unknown";
 };
 
 const rejectEntry = (req: Request, res: Response, msg: string, ip: string) => {
