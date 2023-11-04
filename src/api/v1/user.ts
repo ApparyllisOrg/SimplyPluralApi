@@ -278,7 +278,9 @@ const deleteUploadedUserFolder = async (uid: string, prefix: string) => {
 
 			listedObjects.on("end", async function () {
 				list.forEach(({ name }) => {
-					toDeleteList.push(name);
+					if (name) {
+						toDeleteList.push(name);
+					}
 				});
 
 				userLog(uid, `Deleting ${toDeleteList.length.toString()} of type ${prefix} in storage`);
