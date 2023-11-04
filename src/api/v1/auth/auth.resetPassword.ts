@@ -1,8 +1,5 @@
 import { randomBytes } from "crypto";
-import { readFile } from "fs";
 import moment from "moment";
-import { promisify } from "util";
-import { mailerTransport } from "../../../modules/mail";
 import { getCollection } from "../../../modules/mongo";
 import * as Sentry from "@sentry/node";
 import { auth } from "firebase-admin";
@@ -11,6 +8,8 @@ import { hash } from "./auth.hash";
 import { getEmailRegex, revokeAllUserAccess } from "./auth.core";
 import { userNotFound } from "../../../modules/messages";
 import { logSecurityUserEvent } from "../../../security";
+import { getTemplate, mailTemplate_resetPassword } from "../../../modules/mail/mailTemplates";
+import { sendCustomizedEmail, sendCustomizedEmailToEmail } from "../../../modules/mail";
 
 //-------------------------------//
 // Generate a new random reset password key
@@ -57,8 +56,7 @@ export const resetPasswordRequest_Execution = async (email: string): Promise<{ s
 		}
 	}
 
-	const getFile = promisify(readFile);
-	let emailTemplate = await getFile("./templates/resetPasswordEmail.html", "utf-8");
+	let emailTemplate = getTemplate(mailTemplate_resetPassword())
 
 	// This template has the url twice
 	emailTemplate = emailTemplate.replace("{{resetUrl}}", resetUrl);
@@ -71,16 +69,7 @@ export const resetPasswordRequest_Execution = async (email: string): Promise<{ s
 		emailTemplate = emailTemplate.replace("{{socialLoginMessage}}", "")
 	}
 
-	const result: any = await mailerTransport
-		?.sendMail({
-			from: '"Apparyllis" <noreply@apparyllis.com>',
-			to: email,
-			html: emailTemplate,
-			subject: "Reset your Simply Plural account password",
-		})
-		.catch(() => {
-			null;
-		});
+	const result: any = sendCustomizedEmailToEmail(email, emailTemplate, "Reset your Simply Plural account password");
 
 	if (result && result.err) {
 		Sentry.captureMessage(result.err.toString());

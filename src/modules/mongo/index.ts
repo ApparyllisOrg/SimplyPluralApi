@@ -24,14 +24,14 @@ const wait = (time: number): Promise<void> => new Promise<void>((res) => setTime
 
 export const init = async (retry: boolean, url: string): Promise<void> => {
 	// init
-	console.log("Connecting Mongodb");
 
+	console.log("Connecting Mongodb to");
 	const _client = new MongoDb.MongoClient(url ?? "", { maxPoolSize: 1000, minPoolSize: 100 });
 	_client.on("close", (...args: any) => {
 		console.log(args);
 	});
 
-	logger.info(`attempt to connect to db`);
+	console.log(`attempt to connect to db`);
 
 	try {
 		await _client.connect().then((newDb: void | MongoDb.MongoClient) => {

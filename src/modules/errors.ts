@@ -12,3 +12,6 @@ export const ERR_SECURITY = 2000;
 export const ERR_FUNCTIONALITY = 3000;
 export const ERR_FUNCTIONALITY_EXPECTED_ARRAY = 3001;
 export const ERR_FUNCTIONALITY_EXPECTED_VALID = 3002;
+
+// Errors for subscription related issues
+export const ERR_SUBSCRIPTION = 4000;

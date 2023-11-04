@@ -1,7 +1,6 @@
 import { timingSafeEqual } from "crypto";
-import { readFile } from "fs";
-import { promisify } from "util";
-import { mailerTransport } from "../../../modules/mail";
+import { sendCustomizedEmail } from "../../../modules/mail";
+import { getTemplate, mailTemplate_passwordChanged } from "../../../modules/mail/mailTemplates";
 import { userNotFound } from "../../../modules/messages";
 import { getCollection } from "../../../modules/mongo";
 import { getAPIUrl } from "../../../util";
@@ -40,21 +39,11 @@ export const changePassword_Execution = async (uid: string, oldPassword: string,
 
 		await getCollection("accounts").updateOne({ uid }, { $set: { password: newHashedPasswd.hashed } });
 		{
-			const getFile = promisify(readFile);
-			let emailTemplate = await getFile("./templates/passwordChangedEmail.html", "utf-8");
+			let emailTemplate = getTemplate(mailTemplate_passwordChanged())
 
 			emailTemplate = emailTemplate.replace("{{resetUrl}}", getAPIUrl(`v1/auth/password/reset?email=${user.email}`));
 
-			mailerTransport
-				?.sendMail({
-					from: '"Apparyllis" <noreply@apparyllis.com>',
-					to: user.email,
-					html: emailTemplate,
-					subject: "Your Simply Plural password changed",
-				})
-				.catch((reason) => {
-					reason.toString() as string;
-				});
+			sendCustomizedEmail(uid, emailTemplate, "Your Simply Plural password changed");
 		}
 
 		return { success: true, msg: "", uid: user.uid };
