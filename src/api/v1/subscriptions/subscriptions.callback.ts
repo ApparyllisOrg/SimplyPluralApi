@@ -4,6 +4,8 @@ import { getStripe } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendSimpleEmail } from "../../../modules/mail";
 import { mailTemplate_createdSubscription } from "../../../modules/mail/mailTemplates";
+import { logger } from "../../../modules/logger";
+import assert from "node:assert";
 
 export const stripeCallback = async (req: Request, res: Response) => {
     if (getStripe() === undefined) {
@@ -35,6 +37,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
 
     if (process.env.DEVELOPMENT) {
         console.log(event.type)
+        console.log(event.data.object)
     }
 
     switch (event.type) {
@@ -62,77 +65,22 @@ export const stripeCallback = async (req: Request, res: Response) => {
                         console.log("subItem")
                         console.log(subItem)
                     }
-                    const subscriber = await getCollection('subscribers').findOne({ customerId })
-                    if (subscriber !== undefined) {
-                        getCollection("users").updateOne({ uid: subscriber.uid, _id: subscriber.uid }, { $set: { plus: true } })
-
-                        const price = subItem.plan.amount
-                        const priceId = subItem.price.id;
-                        const periodEnd = eventObject.current_period_end
-                        const currency = subItem.plan.currency
-
-                        getCollection("subscribers").updateOne({ customerId }, { $set: { price, periodEnd, currency, priceId } }, { upsert: true })
-
-                        sendSimpleEmail(subscriber.uid, mailTemplate_createdSubscription(), "Your Simply Plus subscription")
-                    }
-                    else {
-                        res.status(500).send("Unable to find customer in our database in subscription")
-                        return
-                    }
-                }
-                break;
-            }
-
-        case 'checkout.session.completed':
-            {
-                if (event.data.object as Stripe.Checkout.Session) {
-                    const eventObject = event.data.object as Stripe.Checkout.Session
-
-                    if (process.env.DEVELOPMENT) {
-                        console.log("session")
-                        console.log(eventObject)
-                    }
-
-                    const subscriptionId = eventObject.subscription
-                    const customerId = eventObject.customer
-
-                    getCollection('subscribers').updateOne({ customerId }, { $set: { uid: eventObject.client_reference_id, subscriptionId } }, { upsert: true })
-                }
-                break;
-            }
-
-        case 'invoice.paid':
-            {
-                if (event.data.object as Stripe.Invoice) {
-                    const eventObject = event.data.object as Stripe.Invoice
-
-                    if (process.env.DEVELOPMENT) {
-                        console.log("invoice")
-                        console.log(eventObject)
-                    }
-                    const customerId = eventObject.customer
 
                     const subscriber = await getCollection('subscribers').findOne({ customerId })
-                    if (subscriber !== undefined) {
-                        getCollection("invoices").insertOne({
-                            uid: subscriber.uid,
-                            customerId,
-                            invoiceId: eventObject.id,
-                            currency: eventObject.currency,
-                            price: eventObject.amount_paid,
-                            url: eventObject.hosted_invoice_url,
-                            time: eventObject.created,
-                            subscriptionId: eventObject.subscription
-                        })
-                    }
-                    else {
-                        res.status(404).send("Unable to find customer in our database in subscription")
-                        return
-                    }
+                    assert(subscriber)
+
+                    getCollection("users").updateOne({ uid: subscriber.uid, _id: subscriber.uid }, { $set: { plus: true } })
+                    sendSimpleEmail(subscriber.uid, mailTemplate_createdSubscription(), "Your Simply Plus subscription")
+
+                    const price = subItem.plan.amount
+                    const priceId = subItem.price.id;
+                    const periodEnd = eventObject.current_period_end
+                    const currency = subItem.plan.currency
+
+                    getCollection("subscribers").updateOne({ customerId }, { $set: { price, periodEnd, currency, priceId } }, { upsert: true })
                 }
                 break;
             }
-
         case 'customer.subscription.updated':
             {
                 if (event.data.object as Stripe.Subscription) {
@@ -147,7 +95,6 @@ export const stripeCallback = async (req: Request, res: Response) => {
 
                     const priceId = eventObject.items.data[0].price.id
                     getCollection('subscribers').updateOne({ customerId }, { $set: { priceId } })
-
 
                     if (eventObject.cancel_at_period_end !== undefined) {
                         getCollection('subscribers').updateOne({ customerId }, { $set: { cancelled: eventObject.cancel_at_period_end } })
@@ -169,11 +116,9 @@ export const stripeCallback = async (req: Request, res: Response) => {
                     const customerId = eventObject.customer
 
                     const subscriber = await getCollection('subscribers').findOne({ customerId })
-                    if (subscriber !== undefined) {
-                        getCollection("users").updateOne({ uid: subscriber.uid }, { $set: { plus: false } })
-                    }
+                    assert(subscriber)
 
-                    getCollection('subscribers').deleteOne({ customerId })
+                    getCollection("users").updateOne({ uid: subscriber.uid }, { $set: { plus: false } })
                 }
                 break;
             }

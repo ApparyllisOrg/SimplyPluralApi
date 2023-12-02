@@ -11,7 +11,7 @@ export const cancelSubscription = async (req: Request, res: Response) => {
     }
 
     const subscriber = await getCollection("subscribers").findOne({ uid: res.locals.uid })
-    if (subscriber !== undefined) {
+    if (subscriber !== undefined && subscriber != null) {
         const result = await getStripe()?.subscriptions.update(subscriber.subscriptionId, { cancel_at_period_end: true })
         if (result?.cancel_at_period_end !== undefined) {
             res.status(200).send("Cancelled subscription")
