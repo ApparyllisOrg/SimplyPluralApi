@@ -32,7 +32,7 @@ export const getCustomerIdFromUser = async (uid: string, createIfMissing: boolea
 
     if (!subscriber) {
         if (createIfMissing) {
-            customer = await getStripe()?.customers.create({})
+            customer = await getStripe()?.customers.create({ metadata: { uid } })
             getCollection('subscribers').insertOne({ customerId: customer?.id, uid })
         }
     }

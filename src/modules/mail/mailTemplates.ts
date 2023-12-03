@@ -12,6 +12,7 @@ export const mailTemplate_cancelledSubscription = () => "mailTemplate_cancelledS
 export const mailTemplate_createdSubscription = () => "mailTemplate_createdSubscription";
 export const mailTemplate_reactivatedSubscription = () => "mailTemplate_reactivatedSubscription";
 export const mailTemplate_changedSubscription = () => "mailTemplate_changedSubscription";
+export const mailTemplate_refundedSubscription = () => "mailTemplate_refundedSubscription";
 
 const filename_accountReminder = () => "./templates/accountReminder.html";
 const filename_emailChanged = () => "./templates/emailChanged.html";
@@ -24,6 +25,7 @@ const filename_cancelledSubscription = () => "./templates/subscription/cancelled
 const filename_createdSubscription = () => "./templates/subscription/createdSubscription.html";
 const filename_reactivatedSubscription = () => "./templates/subscription/reactivatedSubscription.html";
 const filename_changedSubscription = () => "./templates/subscription/changedSubscription.html";
+const filename_refundedSubscription = () => "./templates/subscription/refundedSubscription.html";
 
 let cachedMail_accountReminder: string | undefined = undefined;
 let cachedMail_emailChanged: string | undefined = undefined;
@@ -36,6 +38,7 @@ let cachedMail_cancelledSubscription: string | undefined = undefined;
 let cachedMail_createdSubscription: string | undefined = undefined;
 let cachedMail_reactivatedSubscription: string | undefined = undefined;
 let cachedMail_changedSubscription: string | undefined = undefined;
+let cachedMail_refundedSubscription: string | undefined = undefined;
 
 export const loadTemplates = async () => {
     const getFile = promisify(readFile);
@@ -51,6 +54,7 @@ export const loadTemplates = async () => {
     cachedMail_createdSubscription = await getFile(filename_createdSubscription(), "utf-8")
     cachedMail_reactivatedSubscription = await getFile(filename_reactivatedSubscription(), "utf-8")
     cachedMail_changedSubscription = await getFile(filename_changedSubscription(), "utf-8")
+    cachedMail_refundedSubscription = await getFile(filename_refundedSubscription(), "utf-8")
 }
 
 export const getTemplate = (template: string): string => {
@@ -66,6 +70,7 @@ export const getTemplate = (template: string): string => {
         case mailTemplate_createdSubscription(): return cachedMail_createdSubscription!
         case mailTemplate_reactivatedSubscription(): return cachedMail_reactivatedSubscription!
         case mailTemplate_changedSubscription(): return cachedMail_changedSubscription!
+        case mailTemplate_refundedSubscription(): return cachedMail_refundedSubscription!
     }
 
     return '';

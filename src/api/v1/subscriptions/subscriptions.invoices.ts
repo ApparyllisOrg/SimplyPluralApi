@@ -26,6 +26,10 @@ export const getInvoices = async (req: Request, res: Response) => {
     const invoiceList: client_result<{ uid: string, customerId: string, invoiceId: string, currency: string, price: number, url: string, time: number, subscriptionId: string }>[] = []
 
     invoices?.data.forEach((invoice) => {
+        if (!invoice.hosted_invoice_url) {
+            return;
+        }
+
         invoiceList.push({
             exists: true,
             id: invoice.id,
@@ -37,7 +41,7 @@ export const getInvoices = async (req: Request, res: Response) => {
                 price: invoice.total,
                 subscriptionId: invoice.subscription as string,
                 time: invoice.created,
-                url: invoice.hosted_invoice_url ?? ''
+                url: invoice.hosted_invoice_url
             }
         })
     })

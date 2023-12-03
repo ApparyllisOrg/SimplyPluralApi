@@ -72,7 +72,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
                     getCollection("users").updateOne({ uid: subscriber.uid, _id: subscriber.uid }, { $set: { plus: true } })
                     sendSimpleEmail(subscriber.uid, mailTemplate_createdSubscription(), "Your Simply Plus subscription")
 
-                    getCollection("subscribers").updateOne({ customerId }, { $set: { subscriptionId: subItem.id, periodEnd: eventObject.current_period_end } })
+                    getCollection("subscribers").updateOne({ customerId }, { $set: { subscriptionId: eventObject.id, periodEnd: eventObject.current_period_end } })
                 }
                 break;
             }
@@ -118,7 +118,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
                     const subscriber = await getCollection('subscribers').findOne({ customerId })
                     assert(subscriber)
 
-                    getCollection("subscribers").updateOne({ customerId }, { $set: { $unset: { subscriptionId: "" } } }, { upsert: true })
+                    getCollection("subscribers").updateOne({ customerId }, { $unset: { subscriptionId: "", cancelled: "" } }, { upsert: true })
                     getCollection("users").updateOne({ uid: subscriber.uid }, { $set: { plus: false } })
                 }
                 break;

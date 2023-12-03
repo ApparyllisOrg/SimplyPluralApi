@@ -39,12 +39,14 @@
 		"@types/yargs": "^17.0.13",
 		"@typescript-eslint/eslint-plugin": "^4.33.0",
 		"@typescript-eslint/parser": "^4.33.0",
+		"accounting": "^0.4.1",
 		"ajv": "^8.10.0",
 		"ajv-formats": "^2.1.1",
 		"aws-sdk": "^2.1079.0",
 		"axios": "^0.26.0",
 		"bson": "4.7.2",
 		"cors": "^2.8.5",
+		"currency-symbol-map": "^5.1.0",
 		"dotenv": "^16.0.1",
 		"express": "^4.17.3",
 		"express-prom-bundle": "^6.4.1",
@@ -79,6 +81,7 @@
 		"yargs": "^17.6.0"
 	},
 	"devDependencies": {
+		"@types/accounting": "^0.4.5",
 		"chai": "^4.3.6",
 		"eslint-plugin-import": "^2.26.0",
 		"eslint-plugin-security": "^1.7.1",

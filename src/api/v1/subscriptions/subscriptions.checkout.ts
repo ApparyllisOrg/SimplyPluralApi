@@ -13,6 +13,18 @@ export const generateSubscribeSession = async (req: Request, res: Response) => {
         return
     }
 
+    // Limit number of subscribers for initial release(s)
+    if (process.env.STRIPE_MAX_SUBS) {
+        const maxSubs: number = parseInt(process.env.STRIPE_MAX_SUBS);
+        if (maxSubs && maxSubs > 0) {
+            const numSubs: number = await getCollection("subscribers").countDocuments({ subscriptionId: { $ne: null } })
+            if (numSubs >= maxSubs) {
+                res.status(401).send("Simply Plus is currently limiting the amount of subscribers. The limit has been reached, try again when Simply Plus if fully released.");
+                return;
+            }
+        }
+    }
+
     let price = nameToPriceId(req.body.price);
     let customer = await getCustomerIdFromUser(res.locals.uid, true)
 
@@ -26,10 +38,12 @@ export const generateSubscribeSession = async (req: Request, res: Response) => {
                         quantity: 1
                     }
                 ],
+
                 mode: "subscription",
                 success_url: `${process.env.PLUS_ROOT_URL!}#success?session_id={CHECKOUT_SESSION_ID}`,
                 cancel_url: `${process.env.PLUS_ROOT_URL!}#dashboard`,
                 client_reference_id: res.locals.uid,
+
                 payment_method_types: ["sepa_debit", "card", "paypal", "sofort"],
                 phone_number_collection: { enabled: false },
                 metadata: {

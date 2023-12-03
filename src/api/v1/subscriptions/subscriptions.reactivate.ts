@@ -11,14 +11,24 @@ export const reactivateSubscription = async (req: Request, res: Response) => {
     }
 
     const subscriber = await getCollection("subscribers").findOne({ uid: res.locals.uid })
-    if (subscriber !== undefined) {
+    if (subscriber) {
+        if (subscriber.cancelled !== true) {
+            res.status(200).send("Subscription already active")
+            return
+        }
+
+        if (!subscriber.subscriptionId) {
+            res.status(200).send("Subscription not active")
+            return
+        }
+
         const result = await getStripe()?.subscriptions.update(subscriber.subscriptionId, { cancel_at_period_end: false })
         if (result?.cancel_at_period_end === false) {
             res.status(200).send("Reactivated subscription")
             sendSimpleEmail(res.locals.uid, mailTemplate_reactivatedSubscription(), "Your Simply Plus subscription is reactivated")
         }
         else {
-            res.status(500).send("Unable to reactivate subscription")
+            res.status(500).send("Failed to reactivate subscription")
         }
     }
     else {

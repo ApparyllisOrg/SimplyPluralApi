@@ -23,7 +23,7 @@ export const getSubscription = async (req: Request, res: Response) => {
             assert(subscription.items.data.length == 1)
             const item = subscription.items.data[0]
 
-            const response: client_result<{ price: number, currency: string, periodEnd: number, priceId: string, cancelled: boolean }> =
+            const response: client_result<{ price: number, currency: string, periodEnd: number, periodStart: number, subscriptionStart: number, priceId: string, cancelled: boolean }> =
             {
                 id: subscription.id,
                 exists: true,
@@ -31,6 +31,8 @@ export const getSubscription = async (req: Request, res: Response) => {
                     price: item.price.unit_amount ?? 0,
                     currency: item.price.currency,
                     periodEnd: subscription.current_period_end,
+                    periodStart: subscription.current_period_start,
+                    subscriptionStart: subscription.start_date,
                     priceId: priceIdToName(item.price.id),
                     cancelled: subscription.canceled_at ? true : false
                 }

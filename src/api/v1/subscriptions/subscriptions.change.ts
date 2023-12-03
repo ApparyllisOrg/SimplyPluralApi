@@ -1,11 +1,13 @@
 import { Request, Response } from "express";
 import { getStripe } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
-import { sendSimpleEmail } from "../../../modules/mail";
+import { sendCustomizedEmail, sendSimpleEmail } from "../../../modules/mail";
 import { validateSchema } from "../../../util/validation";
-import { mailTemplate_cancelledSubscription, mailTemplate_changedSubscription } from "../../../modules/mail/mailTemplates";
+import { getTemplate, mailTemplate_cancelledSubscription, mailTemplate_changedSubscription } from "../../../modules/mail/mailTemplates";
 import { nameToPriceId } from "./subscriptions.utils";
 import assert from "node:assert";
+import accounting from "accounting"
+import getSymbolFromCurrency from "currency-symbol-map";
 
 export const changeSubscription = async (req: Request, res: Response) => {
     if (getStripe() === undefined) {
@@ -34,7 +36,14 @@ export const changeSubscription = async (req: Request, res: Response) => {
 
         assert(result?.items.data[0].price.id == nameToPriceId(req.body.price))
         res.status(200).send("Changed subscription")
-        sendSimpleEmail(res.locals.uid, mailTemplate_changedSubscription(), "Your Simply Plus subscription has changed")
+
+        let emailTemplate = await getTemplate(mailTemplate_changedSubscription())
+
+        const priceValue = result?.items.data[0].price.unit_amount! * .01
+        const currency = result.currency
+        emailTemplate = emailTemplate.replace("{{newPrice}}", `${accounting.formatMoney(priceValue, getSymbolFromCurrency(currency), 2)}`);
+
+        sendCustomizedEmail(res.locals.uid, emailTemplate, "Your Simply Plus subscription has changed");
     }
     else {
         res.status(404).send()
