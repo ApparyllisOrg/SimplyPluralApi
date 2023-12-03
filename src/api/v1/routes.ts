@@ -31,6 +31,7 @@ import { cancelSubscription } from "./subscriptions/subscriptions.cancel";
 import { getSubscription } from "./subscriptions/subscriptions.get";
 import { reactivateSubscription } from "./subscriptions/subscriptions.reactivate";
 import { getInvoices } from "./subscriptions/subscriptions.invoices";
+import { changeSubscription, validateChangeSubscriptionSchema } from "./subscriptions/subscriptions.change";
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
@@ -229,6 +230,7 @@ export const setupV1routes = (app: core.Express) => {
 	if (getStripe() != undefined) {
 		app.post("/v1/subscription/create", isUserAppJwtAuthenticated, validateBody(validateSubscribeSessionsSchema), generateSubscribeSession)
 		app.post("/v1/subscription/cancel", isUserAppJwtAuthenticated, cancelSubscription)
+		app.post("/v1/subscription/change", isUserAppJwtAuthenticated, validateBody(validateChangeSubscriptionSchema), changeSubscription)
 		app.post("/v1/subscription/reactivate", isUserAppJwtAuthenticated, reactivateSubscription)
 		app.get("/v1/subscription/get", isUserAppJwtAuthenticated, getSubscription)
 		app.get("/v1/subscription/invoices", isUserAppJwtAuthenticated, getInvoices)

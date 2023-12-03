@@ -72,12 +72,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
                     getCollection("users").updateOne({ uid: subscriber.uid, _id: subscriber.uid }, { $set: { plus: true } })
                     sendSimpleEmail(subscriber.uid, mailTemplate_createdSubscription(), "Your Simply Plus subscription")
 
-                    const price = subItem.plan.amount
-                    const priceId = subItem.price.id;
-                    const periodEnd = eventObject.current_period_end
-                    const currency = subItem.plan.currency
-
-                    getCollection("subscribers").updateOne({ customerId }, { $set: { price, periodEnd, currency, priceId } }, { upsert: true })
+                    getCollection("subscribers").updateOne({ customerId }, { $set: { subscriptionId: subItem.id, periodEnd: eventObject.current_period_end } })
                 }
                 break;
             }
@@ -99,6 +94,11 @@ export const stripeCallback = async (req: Request, res: Response) => {
                     if (eventObject.cancel_at_period_end !== undefined) {
                         getCollection('subscribers').updateOne({ customerId }, { $set: { cancelled: eventObject.cancel_at_period_end } })
                     }
+
+                    if (eventObject.items.data.length == 1) {
+                        const item = eventObject.items.data[0]
+                        getCollection('subscribers').updateOne({ customerId }, { $set: { priceId: item.id } })
+                    }
                 }
                 break;
             }
@@ -118,6 +118,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
                     const subscriber = await getCollection('subscribers').findOne({ customerId })
                     assert(subscriber)
 
+                    getCollection("subscribers").updateOne({ customerId }, { $set: { $unset: { subscriptionId: "" } } }, { upsert: true })
                     getCollection("users").updateOne({ uid: subscriber.uid }, { $set: { plus: false } })
                 }
                 break;

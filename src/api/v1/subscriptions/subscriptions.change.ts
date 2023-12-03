@@ -4,6 +4,8 @@ import { getCollection } from "../../../modules/mongo";
 import { sendSimpleEmail } from "../../../modules/mail";
 import { validateSchema } from "../../../util/validation";
 import { mailTemplate_cancelledSubscription, mailTemplate_changedSubscription } from "../../../modules/mail/mailTemplates";
+import { nameToPriceId } from "./subscriptions.utils";
+import assert from "node:assert";
 
 export const changeSubscription = async (req: Request, res: Response) => {
     if (getStripe() === undefined) {
@@ -12,17 +14,27 @@ export const changeSubscription = async (req: Request, res: Response) => {
     }
 
     const subscriber = await getCollection("subscribers").findOne({ uid: res.locals.uid })
-    if (subscriber !== undefined) {
-        const result = await getStripe()?.subscriptions.update(subscriber.subscriptionId, { cancel_at_period_end: true })
-        if (result?.cancel_at_period_end !== undefined) {
-
-            res.status(200).send("Change subscription")
-
-            sendSimpleEmail(res.locals.uid, mailTemplate_changedSubscription(), "Your Simply Plus subscription has changed")
+    if (subscriber) {
+        if (!subscriber.subscriptionId) {
+            res.status(404).send()
+            return
         }
-        else {
-            res.status(500).send("Unable to cancel subscription")
-        }
+
+        const existingSubscription = await getStripe()?.subscriptions.retrieve(subscriber.subscriptionId)
+        assert(existingSubscription)
+
+        const result = await getStripe()?.subscriptions.update(subscriber.subscriptionId, {
+            items: [
+                {
+                    id: existingSubscription.items.data[0].id,
+                    price: nameToPriceId(req.body.price)
+                }
+            ]
+        })
+
+        assert(result?.items.data[0].price.id == nameToPriceId(req.body.price))
+        res.status(200).send("Changed subscription")
+        sendSimpleEmail(res.locals.uid, mailTemplate_changedSubscription(), "Your Simply Plus subscription has changed")
     }
     else {
         res.status(404).send()

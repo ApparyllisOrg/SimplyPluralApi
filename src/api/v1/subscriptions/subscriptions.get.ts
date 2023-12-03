@@ -6,6 +6,8 @@ import { validateSchema } from "../../../util/validation";
 import { getStripe } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { transformResultForClientRead } from "../../../util";
+import { client_result } from "../../../util/types";
+import { priceIdToName } from "./subscriptions.utils";
 
 export const getSubscription = async (req: Request, res: Response) => {
     if (getStripe() === undefined) {
@@ -14,11 +16,28 @@ export const getSubscription = async (req: Request, res: Response) => {
     }
 
     const subscriber = await getCollection("subscribers").findOne({ uid: res.locals.uid })
-    if (subscriber !== undefined) {
-        const response = transformResultForClientRead(subscriber, res.locals.uid)
-        res.status(200).send(response)
+    if (subscriber && subscriber.subscriptionId) {
+        const subscription = await getStripe()?.subscriptions.retrieve(subscriber.subscriptionId)
+        if (subscription) {
+
+            assert(subscription.items.data.length == 1)
+            const item = subscription.items.data[0]
+
+            const response: client_result<{ price: number, currency: string, periodEnd: number, priceId: string, cancelled: boolean }> =
+            {
+                id: subscription.id,
+                exists: true,
+                content: {
+                    price: item.price.unit_amount ?? 0,
+                    currency: item.price.currency,
+                    periodEnd: subscription.current_period_end,
+                    priceId: priceIdToName(item.price.id),
+                    cancelled: subscription.canceled_at ? true : false
+                }
+            }
+            res.status(200).send(response)
+            return
+        }
     }
-    else {
-        res.status(404).send()
-    }
+    res.status(404).send()
 };

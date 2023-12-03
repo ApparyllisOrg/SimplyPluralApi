@@ -7,6 +7,7 @@ import { documentObject } from "../modules/mongo/baseTypes";
 import { dispatchDelete, OperationType } from "../modules/socket";
 import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
 import { parseForAllowedReadValues } from "../security/readRules";
+import { client_result } from "./types";
 
 export function transformResultForClientRead(value: documentObject, requestorUid: string) {
 	parseForAllowedReadValues(value, requestorUid);

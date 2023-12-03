@@ -6,6 +6,7 @@ import { validateSchema } from "../../../util/validation";
 import { getCustomerIdFromUser, getStripe } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { fetchCollection, sendDocuments, transformResultForClientRead } from "../../../util";
+import { client_result } from "../../../util/types";
 
 export const getInvoices = async (req: Request, res: Response) => {
     if (getStripe() === undefined) {
@@ -22,7 +23,7 @@ export const getInvoices = async (req: Request, res: Response) => {
 
     const invoices = await getStripe()?.invoices.list({ customer: customer.id })
 
-    const invoiceList: { exists: boolean, id: string, content: { uid: string, customerId: string, invoiceId: string, currency: string, price: Number, url: string, time: Number, subscriptionId: string } }[] = []
+    const invoiceList: client_result<{ uid: string, customerId: string, invoiceId: string, currency: string, price: number, url: string, time: number, subscriptionId: string }>[] = []
 
     invoices?.data.forEach((invoice) => {
         invoiceList.push({
