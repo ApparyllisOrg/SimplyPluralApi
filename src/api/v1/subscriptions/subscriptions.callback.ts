@@ -3,7 +3,7 @@ import e, { Request, Response } from "express";
 import { getStripe } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendSimpleEmail } from "../../../modules/mail";
-import { mailTemplate_createdSubscription } from "../../../modules/mail/mailTemplates";
+import { mailTemplate_createdSubscription, mailTemplate_failedPaymentCancelSubscription } from "../../../modules/mail/mailTemplates";
 import { logger } from "../../../modules/logger";
 import assert from "node:assert";
 
@@ -120,6 +120,10 @@ export const stripeCallback = async (req: Request, res: Response) => {
 
                     getCollection("subscribers").updateOne({ customerId }, { $unset: { subscriptionId: "", cancelled: "" } }, { upsert: true })
                     getCollection("users").updateOne({ uid: subscriber.uid }, { $set: { plus: false } })
+
+                    if (eventObject.cancellation_details?.reason === "payment_failed") {
+                        sendSimpleEmail(subscriber.uid, mailTemplate_failedPaymentCancelSubscription(), "Your Simply Plus subscription payment failed")
+                    }
                 }
                 break;
             }

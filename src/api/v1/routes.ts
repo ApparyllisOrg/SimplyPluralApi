@@ -33,6 +33,7 @@ import { reactivateSubscription } from "./subscriptions/subscriptions.reactivate
 import { getInvoices } from "./subscriptions/subscriptions.invoices";
 import { changeSubscription, validateChangeSubscriptionSchema } from "./subscriptions/subscriptions.change";
 import { refundSubscription, validateRefundSubscriptionSchema } from "./subscriptions/subscriptions.refund";
+import { getManagementLink } from "./subscriptions/subscriptions.manage";
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
@@ -236,5 +237,6 @@ export const setupV1routes = (app: core.Express) => {
 		app.post("/v1/subscription/reactivate", isUserAppJwtAuthenticated, reactivateSubscription)
 		app.get("/v1/subscription/get", isUserAppJwtAuthenticated, getSubscription)
 		app.get("/v1/subscription/invoices", isUserAppJwtAuthenticated, getInvoices)
+		app.get("/v1/subscription/management", isUserAppJwtAuthenticated, getManagementLink)
 	}
 };
