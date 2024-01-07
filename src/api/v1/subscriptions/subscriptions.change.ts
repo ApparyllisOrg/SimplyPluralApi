@@ -1,17 +1,19 @@
 import { Request, Response } from "express";
-import { getStripe } from "./subscriptions.core";
+import {isPaddleSetup } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendCustomizedEmail, sendSimpleEmail } from "../../../modules/mail";
 import { validateSchema } from "../../../util/validation";
 import { getTemplate, mailTemplate_cancelledSubscription, mailTemplate_changedSubscription } from "../../../modules/mail/mailTemplates";
-import { nameToPriceId } from "./subscriptions.utils";
+import { nameToPriceId, reportPaddleError } from "./subscriptions.utils";
 import assert from "node:assert";
 import accounting from "accounting"
 import getSymbolFromCurrency from "currency-symbol-map";
+import { getRequestPaddle, patchRequestPaddle, postRequestPaddle } from "./subscriptions.http";
+import { PaddleSubscription } from "../../../util/paddle/paddle_types";
 
 export const changeSubscription = async (req: Request, res: Response) => {
-    if (getStripe() === undefined) {
-        res.status(404).send("API is not Stripe enabled");
+    if (!isPaddleSetup()) {
+        res.status(404).send("API is not Paddle enabled");
         return
     }
 
@@ -21,26 +23,45 @@ export const changeSubscription = async (req: Request, res: Response) => {
             res.status(404).send()
             return
         }
+  
+        const existingSubscription = await getRequestPaddle(`subscriptions/${subscriber.subscriptionId}`)
 
-        const existingSubscription = await getStripe()?.subscriptions.retrieve(subscriber.subscriptionId)
-        assert(existingSubscription)
+        assert(existingSubscription.success === true)
 
-        const result = await getStripe()?.subscriptions.update(subscriber.subscriptionId, {
-            items: [
-                {
-                    id: existingSubscription.items.data[0].id,
-                    price: nameToPriceId(req.body.price)
-                }
-            ]
-        })
+        const existingSubData : PaddleSubscription = existingSubscription.data
 
-        assert(result?.items.data[0].price.id == nameToPriceId(req.body.price))
+        assert(existingSubData.data.items.length === 1)
+        assert(existingSubData.data.items[0].price)
+
+        const priceId = nameToPriceId(req.body.price) 
+
+        if (priceId === existingSubData.data.items[0].price.id)
+        {
+            res.status(200).send("Subscription already at this price")
+            return;
+        }
+
+        const updatedSubscription = await patchRequestPaddle(`subscriptions/${subscriber.subscriptionId}`, {items: [
+            {priceId: nameToPriceId(priceId), quantity: 1}
+        ]})
+        if (updatedSubscription.status !== 200)
+        {
+            reportPaddleError(subscriber.uid, "Request change subscription price to paddle")
+            res.status(500).send("Something went wrong trying to update your subscription")
+            return
+        }
+
+        const updatedSubData : PaddleSubscription = updatedSubscription.data
+
+        assert(updatedSubData.data.items[0].price.id === priceId)
+
         res.status(200).send("Changed subscription")
 
         let emailTemplate = await getTemplate(mailTemplate_changedSubscription())
 
-        const priceValue = result?.items.data[0].price.unit_amount! * .01
-        const currency = result.currency
+        const priceValue = Number(updatedSubData.data.items[0].price.unit_price.amount) * .01
+        const currency = updatedSubData.data.items[0].price.unit_price.currency_code
+        
         emailTemplate = emailTemplate.replace("{{newPrice}}", `${accounting.formatMoney(priceValue, getSymbolFromCurrency(currency), 2)}`);
 
         sendCustomizedEmail(res.locals.uid, emailTemplate, "Your Simply Plus subscription has changed");

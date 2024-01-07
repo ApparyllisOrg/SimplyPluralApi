@@ -69,7 +69,6 @@
 		"prom-client": "^14.0.1",
 		"redis": "^4.0.4",
 		"short-uuid": "^4.2.0",
-		"stripe": "^12.5.0",
 		"typescript": "^4.9.5",
 		"url-value-parser": "^2.1.0",
 		"valid-url": "^1.0.9",

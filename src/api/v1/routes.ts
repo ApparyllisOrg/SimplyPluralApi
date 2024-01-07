@@ -25,8 +25,7 @@ import * as board from "./board";
 import * as chats from "./chats";
 import * as auth from "./auth";
 import * as event from "./events";
-import { getStripe } from "./subscriptions/subscriptions.core";
-import { generateSubscribeSession, validateSubscribeSessionsSchema } from "./subscriptions/subscriptions.checkout";
+import { isPaddleSetup } from "./subscriptions/subscriptions.core";
 import { cancelSubscription } from "./subscriptions/subscriptions.cancel";
 import { getSubscription } from "./subscriptions/subscriptions.get";
 import { reactivateSubscription } from "./subscriptions/subscriptions.reactivate";
@@ -229,8 +228,7 @@ export const setupV1routes = (app: core.Express) => {
 		app.post("/v1/event/open", isUserAppJwtAuthenticated, event.openEvent);
 	}
 
-	if (getStripe() != undefined) {
-		app.post("/v1/subscription/create", isUserAppJwtAuthenticated, validateBody(validateSubscribeSessionsSchema), generateSubscribeSession)
+	if (isPaddleSetup()) {
 		app.post("/v1/subscription/cancel", isUserAppJwtAuthenticated, cancelSubscription)
 		app.post("/v1/subscription/change", isUserAppJwtAuthenticated, validateBody(validateChangeSubscriptionSchema), changeSubscription)
 		app.post("/v1/subscription/refund", isUserAppJwtAuthenticated, validateBody(validateRefundSubscriptionSchema), refundSubscription)

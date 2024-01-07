@@ -15,7 +15,7 @@ import { validateOperationTime } from "../util/validation";
 import { NextFunction, Request, Response } from "express-serve-static-core";
 import cors from "cors";
 import cluster from "cluster";
-import { initializeStripe } from "../api/v1/subscriptions/subscriptions.core";
+import { setupPaddle } from "../api/v1/subscriptions/subscriptions.core";
 import { loadTemplates } from "./mail/mailTemplates";
 
 export const initializeServer = async () => {
@@ -33,7 +33,7 @@ export const initializeServer = async () => {
 		app.use(helmet());
 	}
 
-	initializeStripe(app);
+	setupPaddle(app);
 
 	await loadTemplates()
 

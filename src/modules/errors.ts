@@ -15,3 +15,4 @@ export const ERR_FUNCTIONALITY_EXPECTED_VALID = 3002;
 
 // Errors for subscription related issues
 export const ERR_SUBSCRIPTION = 4000;
+export const ERR_SUBSCRIPTION_PADDLE = 4001;

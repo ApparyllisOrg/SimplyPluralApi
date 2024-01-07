@@ -1,13 +1,16 @@
 import { Request, Response } from "express";
-import { getStripe } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendSimpleEmail } from "../../../modules/mail";
 import { mailTemplate_cancelledSubscription } from "../../../modules/mail/mailTemplates";
 import { validateSchema } from "../../../util/validation";
+import { isPaddleSetup } from "./subscriptions.core";
+import { postRequestPaddle } from "./subscriptions.http";
+import { PaddleSubscriptionData } from "../../../util/paddle/paddle_types";
+import { reportPaddleError } from "./subscriptions.utils";
 
 export const cancelSubscription = async (req: Request, res: Response) => {
-    if (getStripe() === undefined) {
-        res.status(404).send("API is not Stripe enabled");
+    if (!isPaddleSetup()) {
+        res.status(404).send("API is not Paddle enabled");
         return
     }
 
@@ -23,11 +26,21 @@ export const cancelSubscription = async (req: Request, res: Response) => {
             return
         }
 
-        const result = await getStripe()?.subscriptions.update(subscriber.subscriptionId, { cancel_at_period_end: true, cancellation_details: { feedback: req.body.feedback, comment: req.body.comment }, })
-        if (result?.cancel_at_period_end !== undefined) {
-            res.status(200).send("Cancelled subscription")
+        const result = await postRequestPaddle(`/subscriptions/${subscriber.subscriptionId}/pause`, {effective_from: "next_billing_period"})
+        if (result.status !== 200)
+        {
+            reportPaddleError(subscriber.uid, "Request pausing subcription to paddle")
+            res.status(500).send("Something went wrong trying to cancel your subscription")
+            return
+        }
 
+        const resultData : PaddleSubscriptionData = result.data
+        if (resultData.scheduled_change?.action === "pause") {
+            res.status(200).send("Cancelled subscription")
+            
             sendSimpleEmail(res.locals.uid, mailTemplate_cancelledSubscription(), "Your Simply Plus subscription is cancelled")
+
+            await getCollection("cancelFeedback").insertOne({feedback: req.body.feedback, reason: req.body.reason, date: new Date().toISOString()})
         }
         else {
             res.status(500).send("Unable to cancel subscription")

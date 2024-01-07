@@ -1,18 +1,20 @@
 import { Request, Response } from "express";
-import { getStripe } from "./subscriptions.core";
+import { isPaddleSetup } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendCustomizedEmail, sendSimpleEmail } from "../../../modules/mail";
 import { validateSchema } from "../../../util/validation";
 import { getTemplate, mailTemplate_cancelledSubscription, mailTemplate_changedSubscription, mailTemplate_refundedSubscription } from "../../../modules/mail/mailTemplates";
-import { nameToPriceId } from "./subscriptions.utils";
+import { nameToPriceId, reportPaddleError } from "./subscriptions.utils";
 import assert from "node:assert";
 import accounting from "accounting"
 import getSymbolFromCurrency from "currency-symbol-map";
 import moment from "moment";
+import { getRequestPaddle, postRequestPaddle } from "./subscriptions.http";
+import { PaddleSubscriptionData } from "../../../util/paddle/paddle_types";
 
 export const refundSubscription = async (req: Request, res: Response) => {
-    if (getStripe() === undefined) {
-        res.status(404).send("API is not Stripe enabled");
+    if (!isPaddleSetup()) {
+        res.status(404).send("API is not Paddle enabled");
         return
     }
 
@@ -23,14 +25,26 @@ export const refundSubscription = async (req: Request, res: Response) => {
             return
         }
 
-        const existingSubscription = await getStripe()?.subscriptions.retrieve(subscriber.subscriptionId)
-        assert(existingSubscription)
+        const existingSubscription = await getRequestPaddle(`subscriptions/${subscriber.subscriptionId}`)
+        if (!existingSubscription.success)
+        {
+            res.status(500).send()
+            return
+        }
+
+        const existingSubData : PaddleSubscriptionData = existingSubscription.data
+
+        if (existingSubData.status !== "active")
+        {
+            res.status(400).send("Cannot refund an inactive subscription")
+            return
+        }
 
         const dayInSeconds = 1000 * 60 * 60
 
         const now = Date.now() / 1000
-        const subscriptionStart = existingSubscription.start_date
-        const periodStart = existingSubscription.current_period_start
+        const subscriptionStart = subscriber.periodStart
+        const periodStart = subscriber.periodEnd
 
         let allowRefund = false
 
@@ -49,15 +63,23 @@ export const refundSubscription = async (req: Request, res: Response) => {
             return
         }
 
-        const result = await getStripe()?.subscriptions.cancel(subscriber.subscriptionId, {
-            cancellation_details: { feedback: req.body.feedback, comment: req.body.comment },
-            prorate: true,
-
-        })
-
-        assert(result?.canceled_at != null)
+        const resumeResult = await postRequestPaddle(`subscriptions/${subscriber.subscriptionId}/cancel`, { effective_from: 'immediately' })
+        if (resumeResult.status !== 200)
+        {
+            reportPaddleError(subscriber.uid, "Request cancel sub to paddle")
+            res.status(500).send("Something went wrong trying to refund your subscription")
+            return 
+        }
+        
+        const resumeData : PaddleSubscriptionData = resumeResult.data
+        if (resumeData.status !== "canceled")
+        {
+            reportPaddleError(subscriber.uid, "Post request cancel sub to paddle")
+            res.status(500).send("Something went wrong trying to refund your subscription")
+            return
+        }
+        
         res.status(200).send("Refunded subscription")
-
         sendSimpleEmail(res.locals.uid, mailTemplate_refundedSubscription(), "Your Simply Plus subscription has been refunded")
     }
     else {

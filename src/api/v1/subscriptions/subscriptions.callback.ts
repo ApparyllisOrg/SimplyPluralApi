@@ -1,132 +1,144 @@
-import Stripe from "stripe";
 import e, { Request, Response } from "express";
-import { getStripe } from "./subscriptions.core";
+import { getCustomerIdFromUser, isPaddleSetup } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendSimpleEmail } from "../../../modules/mail";
 import { mailTemplate_createdSubscription, mailTemplate_failedPaymentCancelSubscription } from "../../../modules/mail/mailTemplates";
 import { logger } from "../../../modules/logger";
 import assert from "node:assert";
+import * as crypto from "crypto";
+import moment from "moment";
+import { PaddleSubscriptionData } from "../../../util/paddle/paddle_types";
 
-export const stripeCallback = async (req: Request, res: Response) => {
-    if (getStripe() === undefined) {
-        res.status(404).send("API is not Stripe enabled")
+export const paddleCallback = async (req: Request, res: Response) => {
+    
+    if (!isPaddleSetup()) {
+        res.status(404).send("API is not Paddle enabled")
         return
     }
 
-    const sig = req.headers['stripe-signature']
+    const paddleHeader = req.headers['paddle-signature']?.toString()
 
-    if (sig === undefined) {
-        res.status(400)
+    if (paddleHeader === undefined) {
+        res.status(400).send()
         return;
     }
 
-    let event;
+    let event = JSON.parse(req.body);
 
     try {
-        event = getStripe()!.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
-    }
-    catch (err: any) {
-        if (err instanceof Stripe.errors.StripeSignatureVerificationError) {
-            console.log(err)
-            res.status(400).send(`Webhook Error: ${err.message}`)
+        const paddleHeaderParts = paddleHeader.split(";")
+        const paddleTs = paddleHeaderParts[0]
+        const paddleH1 = paddleHeaderParts[1]
+
+        const paddleExtractedTs = paddleTs.split("=")[1]
+        const extractedTs = Number(paddleExtractedTs)
+
+        const paddleExtractedH1 = paddleH1.split("=")[1]
+
+        const payload = `${extractedTs}:${req.body}`
+
+        const hmac = crypto
+        .createHmac('sha256', process.env.PADDLE_WEBHOOK_SECRET!)
+        .update(payload)
+
+        if (!paddleExtractedH1.match(hmac.digest("hex")))
+        {
+            res.status(401).send("No")
             return
         }
+
+    }
+    catch (err: any) {
         res.status(500).send("Getting invalid error type when trying to verify signature")
         return
     }
 
     if (process.env.DEVELOPMENT) {
-        console.log(event.type)
-        console.log(event.data.object)
+
+       console.log(event.event_type)
+       console.log(event.data)
     }
 
-    switch (event.type) {
-        case 'customer.subscription.created':
+    switch (event.event_type) {
+        case 'subscription.created':
             {
-                if (event.data.object as Stripe.Subscription) {
-                    const eventObject = event.data.object as Stripe.Subscription
-                    if (process.env.DEVELOPMENT) {
-                        console.log("sub")
-                        console.log(eventObject)
-                    }
+                const subData : PaddleSubscriptionData = event.data
 
-                    const customerId = eventObject.customer
+                const custom_data : {uid: string} = subData.custom_data;
+                assert(custom_data.uid)
 
-                    let subItem: Stripe.SubscriptionItem | undefined = undefined
+                const account = await getCollection("accounts").findOne({uid: custom_data.uid})
+                assert(account)
 
-                    if (eventObject.items.data.length == 1) {
-                        subItem = eventObject.items.data[0]
-                    }
-                    else {
-                        res.status(500).send("Unable to find subscription item in subscription")
-                        return
-                    }
-                    if (process.env.DEVELOPMENT) {
-                        console.log("subItem")
-                        console.log(subItem)
-                    }
+                const customerId = await getCustomerIdFromUser(custom_data.uid)
+                assert(!customerId || (customerId === subData.customer_id))
 
-                    const subscriber = await getCollection('subscribers').findOne({ customerId })
-                    assert(subscriber)
-
-                    getCollection("users").updateOne({ uid: subscriber.uid, _id: subscriber.uid }, { $set: { plus: true } })
-                    sendSimpleEmail(subscriber.uid, mailTemplate_createdSubscription(), "Your Simply Plus subscription")
-
-                    getCollection("subscribers").updateOne({ customerId }, { $set: { subscriptionId: eventObject.id, periodEnd: eventObject.current_period_end } })
+                if (!customerId)
+                {
+                    await getCollection('subscribers').insertOne({uid: custom_data.uid, customerId: subData.customer_id})
                 }
+
+                assert(subData.current_billing_period)
+
+                sendSimpleEmail(custom_data.uid, mailTemplate_createdSubscription(), "Your Simply Plus subscription")
+
+                const periodStart : number = moment.utc(subData.current_billing_period.starts_at).valueOf()
+                const periodEnd : number = moment.utc(subData.next_billed_at).valueOf()
+
+                getCollection("subscribers").updateOne({ customerId }, { $set: { subscriptionId: subData.id, periodEnd, periodStart } })
+                getCollection("users").updateOne({ uid: custom_data.uid, _id: custom_data.uid }, { $set: { plus: true } })
+
                 break;
             }
-        case 'customer.subscription.updated':
+        case 'subscription.updated':
             {
-                if (event.data.object as Stripe.Subscription) {
-                    const eventObject = event.data.object as Stripe.Subscription
+                const subData : PaddleSubscriptionData = event.data
 
-                    if (process.env.DEVELOPMENT) {
-                        console.log("sub updated")
-                        console.log(eventObject)
-                    }
+                const customerId = subData.customer_id
+                const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
+                assert(subscriber)
 
-                    const customerId = eventObject.customer
+                // Subscription is cancelled or paused, revoke perks
+                if (subData.status === "active")
+                {
+                    const scheduledToPause = subData.scheduled_change?.action === "paused"
 
-                    const priceId = eventObject.items.data[0].price.id
-                    getCollection('subscribers').updateOne({ customerId }, { $set: { priceId } })
+                    // Update cancel state
+                    getCollection('subscribers').updateOne({ customerId, uid: subscriber.uid }, { $set: { cancelled: scheduledToPause } })
 
-                    if (eventObject.cancel_at_period_end !== undefined) {
-                        getCollection('subscribers').updateOne({ customerId }, { $set: { cancelled: eventObject.cancel_at_period_end } })
-                    }
+                    assert(subData.current_billing_period)
 
-                    if (eventObject.items.data.length == 1) {
-                        const item = eventObject.items.data[0]
-                        getCollection('subscribers').updateOne({ customerId }, { $set: { priceId: item.id } })
-                    }
+                    // Update period start and end
+                    const periodStart : number = moment.utc(subData.current_billing_period.starts_at).valueOf()
+                    const periodEnd : number = moment.utc(subData.current_billing_period.ends_at).valueOf()
+
+                    getCollection('subscribers').updateOne({ customerId, uid: subscriber.uid }, { $set: { periodStart, periodEnd } })
                 }
+
                 break;
             }
-
-        case 'customer.subscription.deleted':
+        case 'subscription.paused': 
             {
-                if (event.data.object as Stripe.Subscription) {
-                    const eventObject = event.data.object as Stripe.Subscription
+                const subData : PaddleSubscriptionData = event.data
 
-                    if (process.env.DEVELOPMENT) {
-                        console.log("sub deleted")
-                        console.log(eventObject)
-                    }
+                const customerId = subData.customer_id
+                const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
+                assert(subscriber)
 
-                    const customerId = eventObject.customer
+                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { subscriptionId: null, periodEnd: null, cancelled: null, periodStart: null} })
+                getCollection("users").updateOne({ uid: subscriber.uid, _id:subscriber }, { $set: { plus: false } })
+            }   
+        case 'subscription.canceled': 
+            {
+                const subData : PaddleSubscriptionData = event.data
 
-                    const subscriber = await getCollection('subscribers').findOne({ customerId })
-                    assert(subscriber)
+                const customerId = subData.customer_id
+                const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
+                assert(subscriber)
 
-                    getCollection("subscribers").updateOne({ customerId }, { $unset: { subscriptionId: "", cancelled: "" } }, { upsert: true })
-                    getCollection("users").updateOne({ uid: subscriber.uid }, { $set: { plus: false } })
-
-                    if (eventObject.cancellation_details?.reason === "payment_failed") {
-                        sendSimpleEmail(subscriber.uid, mailTemplate_failedPaymentCancelSubscription(), "Your Simply Plus subscription payment failed")
-                    }
-                }
-                break;
-            }
+                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { subscriptionId: null, periodEnd: null, cancelled: null, periodStart: null} })
+                getCollection("users").updateOne({ uid: subscriber.uid, _id:subscriber }, { $set: { plus: false } })
+            }   
     }
 
     res.status(200).send()
