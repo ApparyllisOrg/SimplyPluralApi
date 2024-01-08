@@ -11,6 +11,8 @@ import { priceIdToName } from "./subscriptions.utils";
 import { getRequestPaddle } from "./subscriptions.http";
 import { PaddleSubscription, PaddleSubscriptionData } from "../../../util/paddle/paddle_types";
 
+type subscription_client_result = client_result<{ price: number, currency: string, periodEnd: number, periodStart: number, priceId: string, cancelled: boolean, customerId : string, subscribed: boolean }>
+
 export const getSubscription = async (req: Request, res: Response) => {
     if (!isPaddleSetup()) {
         res.status(404).send("API is not Paddle enabled");
@@ -29,7 +31,7 @@ export const getSubscription = async (req: Request, res: Response) => {
         assert(existingSubData.items.length == 1)
         const item = existingSubData.items[0]
 
-        const response: client_result<{ price: number, currency: string, periodEnd: number, periodStart: number, priceId: string, cancelled: boolean }> =
+        const response: subscription_client_result =
         {
             id: existingSubData.id,
             exists: true,
@@ -39,12 +41,30 @@ export const getSubscription = async (req: Request, res: Response) => {
                 periodEnd: subscriber.periodEnd,
                 periodStart: subscriber.periodStart,
                 priceId: priceIdToName(existingSubData.items[0].price.id),
-                cancelled: existingSubData.canceled_at ? true : false
+                cancelled: existingSubData.canceled_at ? true : false,
+                customerId: subscriber.customerId,
+                subscribed: !!subscriber.subscriptionId
             }
         }
         res.status(200).send(response)
         return
 
     }
-    res.status(404).send()
+
+    const response: subscription_client_result =
+        {
+            id: "",
+            exists: false,
+            content: {
+                price: 0,
+                currency: '',
+                periodEnd: 0,
+                periodStart: 0,
+                priceId: '',
+                cancelled: false,
+                customerId: '',
+                subscribed: false
+            }
+        }
+    res.status(200).send(response)
 };

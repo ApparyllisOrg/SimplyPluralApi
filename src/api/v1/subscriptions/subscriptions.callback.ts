@@ -8,6 +8,9 @@ import assert from "node:assert";
 import * as crypto from "crypto";
 import moment from "moment";
 import { PaddleSubscriptionData } from "../../../util/paddle/paddle_types";
+import * as Sentry from "@sentry/node";
+import { ERR_SUBSCRIPTION_POTENTIALLYMALICIOUS } from "../../../modules/errors";
+import { postRequestPaddle } from "./subscriptions.http";
 
 export const paddleCallback = async (req: Request, res: Response) => {
     
@@ -64,19 +67,73 @@ export const paddleCallback = async (req: Request, res: Response) => {
             {
                 const subData : PaddleSubscriptionData = event.data
 
-                const custom_data : {uid: string} = subData.custom_data;
-                assert(custom_data.uid)
+                const custom_data : {uid: string, ts: string, hmac: string, cancelReason: string | undefined} = subData.custom_data;
+
+                const reportInvalid = (error: string, uid: string) => 
+                {
+                    Sentry.captureMessage(`ErrorCode(${ERR_SUBSCRIPTION_POTENTIALLYMALICIOUS})`, (scope) => {
+                        scope.setExtra("reason", error);
+                        scope.setExtra("uid", uid);
+                        return scope;
+                    });
+
+                    const newCustomData = custom_data
+                    newCustomData.cancelReason = error
+
+                    postRequestPaddle(`subscriptions/${subData.id}`, { custom_data: newCustomData })
+                    postRequestPaddle(`subscriptions/${subData.id}/cancel`, { effective_from: "immediately" })
+                }
+
+                if (!custom_data.uid)
+                {
+                    res.status(400).send("Missing uid")
+                    reportInvalid("Missing uid", "")
+                    return 
+                }
+
+                if (!custom_data.ts)
+                {
+                    res.status(400).send("Missing ts")
+                    reportInvalid("Missing ts", custom_data.uid)
+                    return 
+                }
+
+                if (!custom_data.hmac)
+                {
+                    res.status(400).send("Missing hmac")
+                    reportInvalid("Missing hmac", custom_data.uid)
+                    return 
+                }
+
+                if (subData.items.length !== 1)
+                {
+                    res.status(400).send("Invalid subscription data")
+                    reportInvalid("Invalid item count", custom_data.uid)
+                    return 
+                }
+
+                const uid = custom_data.uid
+                const price = subData.items[0].price.id
+                const ts = custom_data.ts
+
+                const value = uid + price + ts
+                const hmac = crypto.createHmac('sha256', process.env.PADDLE_HMAC_KEY!)
+                hmac.update(value)
+
+                const digest = hmac.digest('hex')
+
+                if (custom_data.hmac !== digest)
+                {
+                    res.status(401).send("HMAC does not match the payload!")
+                    reportInvalid("Invalid HMAC", uid)
+                    return 
+                }
 
                 const account = await getCollection("accounts").findOne({uid: custom_data.uid})
                 assert(account)
 
                 const customerId = await getCustomerIdFromUser(custom_data.uid)
-                assert(!customerId || (customerId === subData.customer_id))
-
-                if (!customerId)
-                {
-                    await getCollection('subscribers').insertOne({uid: custom_data.uid, customerId: subData.customer_id})
-                }
+                assert(customerId)
 
                 assert(subData.current_billing_period)
 

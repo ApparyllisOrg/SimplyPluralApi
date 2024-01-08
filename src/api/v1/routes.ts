@@ -33,6 +33,7 @@ import { getInvoices } from "./subscriptions/subscriptions.invoices";
 import { changeSubscription, validateChangeSubscriptionSchema } from "./subscriptions/subscriptions.change";
 import { refundSubscription, validateRefundSubscriptionSchema } from "./subscriptions/subscriptions.refund";
 import { getManagementLink } from "./subscriptions/subscriptions.manage";
+import { startCheckoutSession } from "./subscriptions/subscriptions.checkout";
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
@@ -229,6 +230,7 @@ export const setupV1routes = (app: core.Express) => {
 	}
 
 	if (isPaddleSetup()) {
+		app.post("/v1/subscription/checkout", isUserAppJwtAuthenticated, startCheckoutSession)
 		app.post("/v1/subscription/cancel", isUserAppJwtAuthenticated, cancelSubscription)
 		app.post("/v1/subscription/change", isUserAppJwtAuthenticated, validateBody(validateChangeSubscriptionSchema), changeSubscription)
 		app.post("/v1/subscription/refund", isUserAppJwtAuthenticated, validateBody(validateRefundSubscriptionSchema), refundSubscription)

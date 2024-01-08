@@ -3,13 +3,13 @@ import { ERR_SUBSCRIPTION_PADDLE } from "../../../modules/errors";
 
 export const priceIdToName = (id: string) => {
     switch (id) {
-        case process.env.STRIPE_PRICE_A!: {
+        case process.env.PADDLE_PRICE_A!: {
             return "affordable";
         }
-        case process.env.STRIPE_PRICE_B!: {
+        case process.env.PADDLE_PRICE_B!: {
             return "regular";
         }
-        case process.env.STRIPE_PRICE_C!: {
+        case process.env.PADDLE_PRICE_C!: {
             return "pif";
         }
     }
@@ -20,13 +20,13 @@ export const priceIdToName = (id: string) => {
 export const nameToPriceId = (name: string) => {
     switch (name) {
         case "affordable": {
-            return process.env.STRIPE_PRICE_A!;
+            return process.env.PADDLE_PRICE_A!;
         }
         case "regular": {
-            return process.env.STRIPE_PRICE_B!;
+            return process.env.PADDLE_PRICE_B!;
         }
         case "pif": {
-            return process.env.STRIPE_PRICE_C!;
+            return process.env.PADDLE_PRICE_C!;
         }
     }
 

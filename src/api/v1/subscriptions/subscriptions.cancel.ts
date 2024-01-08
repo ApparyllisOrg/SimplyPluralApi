@@ -26,7 +26,7 @@ export const cancelSubscription = async (req: Request, res: Response) => {
             return
         }
 
-        const result = await postRequestPaddle(`/subscriptions/${subscriber.subscriptionId}/pause`, {effective_from: "next_billing_period"})
+        const result = await postRequestPaddle(`subscriptions/${subscriber.subscriptionId}/pause`, {effective_from: "next_billing_period"})
         if (result.status !== 200)
         {
             reportPaddleError(subscriber.uid, "Request pausing subcription to paddle")

@@ -18,6 +18,7 @@ export const setupPaddle = (app: core.Express) => {
         assert(process.env.PADDLE_URL !== undefined);
         assert(process.env.PADDLE_WEBHOOK_SECRET !== undefined);
         assert(process.env.PLUS_ROOT_URL !== undefined);
+        assert(process.env.PADDLE_HMAC_KEY !== undefined);
 
         // Handle webhook before we parse the body as json
         app.post("/v1/subscription/callback", express.raw({ type: 'application/json' }), paddleCallback)
