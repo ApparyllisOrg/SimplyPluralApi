@@ -158,10 +158,10 @@ export const paddleCallback = async (req: Request, res: Response) => {
                 // Subscription is cancelled or paused, revoke perks
                 if (subData.status === "active")
                 {
-                    const scheduledToPause = subData.scheduled_change?.action === "paused"
+                    const scheduledToPause = subData.scheduled_change?.action === "pause"
 
                     // Update cancel state
-                    getCollection('subscribers').updateOne({ customerId, uid: subscriber.uid }, { $set: { cancelled: scheduledToPause } })
+                    getCollection('subscribers').updateOne({ customerId, uid: subscriber.uid }, { $set: { paused: scheduledToPause } })
 
                     assert(subData.current_billing_period)
 
@@ -182,8 +182,19 @@ export const paddleCallback = async (req: Request, res: Response) => {
                 const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
                 assert(subscriber)
 
-                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { subscriptionId: null, periodEnd: null, cancelled: null, periodStart: null} })
+                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { paused: true, } })
                 getCollection("users").updateOne({ uid: subscriber.uid, _id:subscriber }, { $set: { plus: false } })
+            }   
+        case 'subscription.resumed': 
+            {
+                const subData : PaddleSubscriptionData = event.data
+
+                const customerId = subData.customer_id
+                const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
+                assert(subscriber)
+
+                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { paused: false } })
+                getCollection("users").updateOne({ uid: subscriber.uid, _id:subscriber }, { $set: { plus: true } })
             }   
         case 'subscription.canceled': 
             {
@@ -193,7 +204,7 @@ export const paddleCallback = async (req: Request, res: Response) => {
                 const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
                 assert(subscriber)
 
-                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { subscriptionId: null, periodEnd: null, cancelled: null, periodStart: null} })
+                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { subscriptionId: null, periodEnd: null, paused: null, periodStart: null} })
                 getCollection("users").updateOne({ uid: subscriber.uid, _id:subscriber }, { $set: { plus: false } })
             }   
     }

@@ -26,7 +26,7 @@ import * as chats from "./chats";
 import * as auth from "./auth";
 import * as event from "./events";
 import { isPaddleSetup } from "./subscriptions/subscriptions.core";
-import { cancelSubscription } from "./subscriptions/subscriptions.cancel";
+import { pauseSubscription } from "./subscriptions/subscriptions.pause";
 import { getSubscription } from "./subscriptions/subscriptions.get";
 import { reactivateSubscription } from "./subscriptions/subscriptions.reactivate";
 import { getInvoices } from "./subscriptions/subscriptions.invoices";
@@ -231,7 +231,7 @@ export const setupV1routes = (app: core.Express) => {
 
 	if (isPaddleSetup()) {
 		app.post("/v1/subscription/checkout", isUserAppJwtAuthenticated, startCheckoutSession)
-		app.post("/v1/subscription/cancel", isUserAppJwtAuthenticated, cancelSubscription)
+		app.post("/v1/subscription/pause", isUserAppJwtAuthenticated, pauseSubscription)
 		app.post("/v1/subscription/change", isUserAppJwtAuthenticated, validateBody(validateChangeSubscriptionSchema), changeSubscription)
 		app.post("/v1/subscription/refund", isUserAppJwtAuthenticated, validateBody(validateRefundSubscriptionSchema), refundSubscription)
 		app.post("/v1/subscription/reactivate", isUserAppJwtAuthenticated, reactivateSubscription)

@@ -42,10 +42,14 @@ export const changeSubscription = async (req: Request, res: Response) => {
         }
 
         const updatedSubscription = await patchRequestPaddle(`subscriptions/${subscriber.subscriptionId}`, {items: [
-            {priceId: nameToPriceId(priceId), quantity: 1}
-        ]})
+            {price_id: priceId, quantity: 1}
+        ], proration_billing_mode: "full_next_billing_period"})
         if (updatedSubscription.status !== 200)
         {
+            if (process.env.DEVELOPMENT)
+            {
+                console.log(updatedSubscription)
+            }
             reportPaddleError(subscriber.uid, "Request change subscription price to paddle")
             res.status(500).send("Something went wrong trying to update your subscription")
             return

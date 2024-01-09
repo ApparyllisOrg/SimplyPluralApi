@@ -8,7 +8,7 @@ import { postRequestPaddle } from "./subscriptions.http";
 import { PaddleSubscriptionData } from "../../../util/paddle/paddle_types";
 import { reportPaddleError } from "./subscriptions.utils";
 
-export const cancelSubscription = async (req: Request, res: Response) => {
+export const pauseSubscription = async (req: Request, res: Response) => {
     if (!isPaddleSetup()) {
         res.status(404).send("API is not Paddle enabled");
         return
@@ -16,8 +16,8 @@ export const cancelSubscription = async (req: Request, res: Response) => {
 
     const subscriber = await getCollection("subscribers").findOne({ uid: res.locals.uid })
     if (subscriber) {
-        if (subscriber.cancelled === true) {
-            res.status(200).send("Subscription already cancelled")
+        if (subscriber.paused === true) {
+            res.status(200).send("Subscription already paused")
             return
         }
 
@@ -29,21 +29,22 @@ export const cancelSubscription = async (req: Request, res: Response) => {
         const result = await postRequestPaddle(`subscriptions/${subscriber.subscriptionId}/pause`, {effective_from: "next_billing_period"})
         if (result.status !== 200)
         {
+            if (process.env.DEVELOPMENT)
+            {
+                console.log(result)
+            }
             reportPaddleError(subscriber.uid, "Request pausing subcription to paddle")
-            res.status(500).send("Something went wrong trying to cancel your subscription")
+            res.status(500).send("Something went wrong trying to pause your subscription")
             return
         }
 
-        const resultData : PaddleSubscriptionData = result.data
+        const resultData : PaddleSubscriptionData = result.data.data
         if (resultData.scheduled_change?.action === "pause") {
-            res.status(200).send("Cancelled subscription")
-            
-            sendSimpleEmail(res.locals.uid, mailTemplate_cancelledSubscription(), "Your Simply Plus subscription is cancelled")
-
             await getCollection("cancelFeedback").insertOne({feedback: req.body.feedback, reason: req.body.reason, date: new Date().toISOString()})
+            res.status(200).send("Paused subscription")
         }
         else {
-            res.status(500).send("Unable to cancel subscription")
+            res.status(500).send("Unable to pause subscription")
         }
     }
     else {
@@ -51,7 +52,7 @@ export const cancelSubscription = async (req: Request, res: Response) => {
     }
 };
 
-export const validateCancelSubscriptionSchema = (body: unknown): { success: boolean; msg: string } => {
+export const validatePauseSubscriptionSchema = (body: unknown): { success: boolean; msg: string } => {
     const schema = {
         type: "object",
         properties: {

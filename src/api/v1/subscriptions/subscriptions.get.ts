@@ -11,7 +11,7 @@ import { priceIdToName } from "./subscriptions.utils";
 import { getRequestPaddle } from "./subscriptions.http";
 import { PaddleSubscription, PaddleSubscriptionData } from "../../../util/paddle/paddle_types";
 
-type subscription_client_result = client_result<{ price: number, currency: string, periodEnd: number, periodStart: number, priceId: string, cancelled: boolean, customerId : string, subscribed: boolean }>
+type subscription_client_result = client_result<{ price: number, currency: string, periodEnd: number, periodStart: number, priceId: string, paused: boolean, customerId : string, subscribed: boolean }>
 
 export const getSubscription = async (req: Request, res: Response) => {
     if (!isPaddleSetup()) {
@@ -24,9 +24,10 @@ export const getSubscription = async (req: Request, res: Response) => {
         
         const existingSubscription = await getRequestPaddle(`subscriptions/${subscriber.subscriptionId}`)
 
+        
         assert(existingSubscription.success === true)
 
-        const existingSubData : PaddleSubscriptionData = existingSubscription.data
+        const existingSubData : PaddleSubscriptionData = existingSubscription.data.data
      
         assert(existingSubData.items.length == 1)
         const item = existingSubData.items[0]
@@ -41,7 +42,7 @@ export const getSubscription = async (req: Request, res: Response) => {
                 periodEnd: subscriber.periodEnd,
                 periodStart: subscriber.periodStart,
                 priceId: priceIdToName(existingSubData.items[0].price.id),
-                cancelled: existingSubData.canceled_at ? true : false,
+                paused: existingSubData.scheduled_change?.action === "pause" || existingSubData.status === "paused",
                 customerId: subscriber.customerId,
                 subscribed: !!subscriber.subscriptionId
             }
@@ -49,6 +50,26 @@ export const getSubscription = async (req: Request, res: Response) => {
         res.status(200).send(response)
         return
 
+    }
+    else if (subscriber)
+    {
+        const response: subscription_client_result =
+        {
+            id: "",
+            exists: false,
+            content: {
+                price: 0,
+                currency: '',
+                periodEnd: 0,
+                periodStart: 0,
+                priceId: '',
+                paused: false,
+                customerId: subscriber.customerId,
+                subscribed: false
+            }
+        }
+        res.status(200).send(response)
+        return;
     }
 
     const response: subscription_client_result =
@@ -61,7 +82,7 @@ export const getSubscription = async (req: Request, res: Response) => {
                 periodEnd: 0,
                 periodStart: 0,
                 priceId: '',
-                cancelled: false,
+                paused: false,
                 customerId: '',
                 subscribed: false
             }

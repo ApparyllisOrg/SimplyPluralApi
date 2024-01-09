@@ -19,12 +19,12 @@ export const reactivateSubscription = async (req: Request, res: Response) => {
     const subscriber = await getCollection("subscribers").findOne({ uid: res.locals.uid })
     if (subscriber) {
         if (subscriber.paused !== true) {
-            res.status(200).send("Subscription already active")
+            res.status(400).send("Subscription already active")
             return
         }
 
         if (!subscriber.subscriptionId) {
-            res.status(200).send("Subscription not existing")
+            res.status(400).send("Subscription not existing")
             return
         }
 
@@ -32,12 +32,39 @@ export const reactivateSubscription = async (req: Request, res: Response) => {
 
         assert(existingSubscription.success === true)
 
-        const existingSubData : PaddleSubscriptionData = existingSubscription.data
-        assert(existingSubData.scheduled_change?.action === "pause")
+        const existingSubData : PaddleSubscriptionData = existingSubscription.data.data
 
-        const resumeResult = await postRequestPaddle(`subscriptions/${subscriber.subscriptionId}/resume`, { effective_from: 'next_billing_period' })
+        let effective_from
+
+        if (existingSubData.status === "active")
+        {
+            effective_from = 'next_billing_period';
+        }
+        else if (existingSubData.scheduled_change?.action === "pause")
+        {
+            effective_from = 'next_billing_period';
+        }
+        else if (existingSubData.status === "paused")
+        {
+            effective_from = 'immediately';
+        }
+
+        if (!effective_from)
+        {
+            res.status(500).send("Something went wrong, we're unable to resume the subscription, please contact support.")
+            return
+        }
+
+        console.log(existingSubData)
+
+        const resumeResult = await postRequestPaddle(`subscriptions/${subscriber.subscriptionId}/resume`, { effective_from: effective_from })
         if (resumeResult.status !== 200)
         {
+            if (process.env.DEVELOPMENT)
+            {
+                console.log(resumeResult)
+            }
+
             reportPaddleError(subscriber.uid, "Request resume to paddle")
             res.status(500).send("Something went wrong trying to reactivate your subscription")
             return 
