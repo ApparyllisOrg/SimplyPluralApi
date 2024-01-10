@@ -137,8 +137,6 @@ export const paddleCallback = async (req: Request, res: Response) => {
 
                 assert(subData.current_billing_period)
 
-                sendSimpleEmail(custom_data.uid, mailTemplate_createdSubscription(), "Your Simply Plus subscription")
-
                 const periodStart : number = moment.utc(subData.current_billing_period.starts_at).valueOf()
                 const periodEnd : number = moment.utc(subData.next_billed_at).valueOf()
 
@@ -156,7 +154,7 @@ export const paddleCallback = async (req: Request, res: Response) => {
                 assert(subscriber)
 
                 // Subscription is cancelled or paused, revoke perks
-                if (subData.status === "active")
+                if (subData.status === "active" || subData.status === "trialing")
                 {
                     const scheduledToPause = subData.scheduled_change?.action === "pause"
 

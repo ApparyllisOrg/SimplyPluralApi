@@ -4,9 +4,10 @@ import { sendSimpleEmail } from "../../../modules/mail";
 import { mailTemplate_cancelledSubscription } from "../../../modules/mail/mailTemplates";
 import { validateSchema } from "../../../util/validation";
 import { isPaddleSetup } from "./subscriptions.core";
-import { postRequestPaddle } from "./subscriptions.http";
-import { PaddleSubscriptionData } from "../../../util/paddle/paddle_types";
+import { getRequestPaddle, postRequestPaddle } from "./subscriptions.http";
+import { PaddleSubscription, PaddleSubscriptionData } from "../../../util/paddle/paddle_types";
 import { reportPaddleError } from "./subscriptions.utils";
+import assert from "assert";
 
 export const pauseSubscription = async (req: Request, res: Response) => {
     if (!isPaddleSetup()) {
@@ -26,25 +27,62 @@ export const pauseSubscription = async (req: Request, res: Response) => {
             return
         }
 
-        const result = await postRequestPaddle(`subscriptions/${subscriber.subscriptionId}/pause`, {effective_from: "next_billing_period"})
-        if (result.status !== 200)
-        {
-            if (process.env.DEVELOPMENT)
-            {
-                console.log(result)
-            }
-            reportPaddleError(subscriber.uid, "Request pausing subcription to paddle")
-            res.status(500).send("Something went wrong trying to pause your subscription")
-            return
-        }
+        const existingSubscription = await getRequestPaddle(`subscriptions/${subscriber.subscriptionId}`)
 
-        const resultData : PaddleSubscriptionData = result.data.data
-        if (resultData.scheduled_change?.action === "pause") {
-            await getCollection("cancelFeedback").insertOne({feedback: req.body.feedback, reason: req.body.reason, date: new Date().toISOString()})
-            res.status(200).send("Paused subscription")
+        assert(existingSubscription.success === true)
+
+        const existingSubData : PaddleSubscription = existingSubscription.data
+
+        assert(existingSubData.data.items.length === 1)
+        assert(existingSubData.data.items[0].price)
+
+        const isTrial = existingSubData.data.status === "trialing"
+
+        if (isTrial)
+        {
+            const result = await postRequestPaddle(`subscriptions/${subscriber.subscriptionId}/cancel`, {effective_from: "immediately"})
+            if (result.status !== 200)
+            {
+                if (process.env.DEVELOPMENT)
+                {
+                    console.log(result)
+                }
+                reportPaddleError(subscriber.uid, "Request cancel trialing subcription to paddle")
+                res.status(500).send("Something went wrong trying to pause your subscription")
+                return
+            }
+    
+            const resultData : PaddleSubscriptionData = result.data.data
+            if (resultData.status === "canceled") {
+                await getCollection("cancelFeedback").insertOne({feedback: req.body.feedback, reason: req.body.reason, date: new Date().toISOString()})
+                res.status(200).send("Canceled subscription")
+            }
+            else {
+                res.status(500).send("Unable to cancel subscription")
+            }
         }
-        else {
-            res.status(500).send("Unable to pause subscription")
+        else 
+        {
+            const result = await postRequestPaddle(`subscriptions/${subscriber.subscriptionId}/pause`, {effective_from: "next_billing_period"})
+            if (result.status !== 200)
+            {
+                if (process.env.DEVELOPMENT)
+                {
+                    console.log(result)
+                }
+                reportPaddleError(subscriber.uid, "Request pausing subcription to paddle")
+                res.status(500).send("Something went wrong trying to pause your subscription")
+                return
+            }
+    
+            const resultData : PaddleSubscriptionData = result.data.data
+            if (resultData.scheduled_change?.action === "pause") {
+                await getCollection("cancelFeedback").insertOne({feedback: req.body.feedback, reason: req.body.reason, date: new Date().toISOString()})
+                res.status(200).send("Paused subscription")
+            }
+            else {
+                res.status(500).send("Unable to pause subscription")
+            }
         }
     }
     else {

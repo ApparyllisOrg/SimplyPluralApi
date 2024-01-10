@@ -14,12 +14,23 @@ export const startCheckoutSession = async (req: Request, res: Response) => {
         return
     }
 
+    if (process.env.PADDLE_MAX_SUBS) {
+        const maxSubs: number = parseInt(process.env.PADDLE_MAX_SUBS);
+        if (maxSubs && maxSubs > 0) {
+            const numSubs: number = await getCollection("subscribers").countDocuments({ subscriptionId: { $ne: null } })
+            if (numSubs >= maxSubs) {
+                // 401 isn't correct.. what else can we use?
+                res.status(401).send("Simply Plus is currently limiting the amount of subscribers. The limit has been reached, try again when Simply Plus if fully released.");
+                return;
+            }
+        }
+    }
+
     const ts : number = moment.now()
     const uid : string = res.locals.uid
     const priceId : string = nameToPriceId(req.body.price)
-    const value : string = uid + priceId + ts.toString()
 
-    console.log(priceId)
+    const value : string = uid + priceId + ts.toString()
 
     const hmac = createHmac('sha256', process.env.PADDLE_HMAC_KEY!)
     hmac.update(value)
@@ -57,7 +68,6 @@ export const startCheckoutSession = async (req: Request, res: Response) => {
         // Found existing one that's not linked up to us, let's connect
         if (findEmailCustomerResult.status === 200 && findEmailCustomerResult.data.data.length === 1)
         {
-            console.log(findEmailCustomerResult.data.data)
             customerId = findEmailCustomerResult.data.data[0].id
             
             const result = await patchRequestPaddle(`customers/${customerId}`, { custom_data: { uid: res.locals.uid } })

@@ -71,7 +71,6 @@ export const reactivateSubscription = async (req: Request, res: Response) => {
         }
 
         res.status(200).send("Reactivated subscription")
-        sendSimpleEmail(res.locals.uid, mailTemplate_reactivatedSubscription(), "Your Simply Plus subscription is reactivated")
     }
     else {
         res.status(404).send()

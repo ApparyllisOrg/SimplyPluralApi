@@ -41,9 +41,12 @@ export const changeSubscription = async (req: Request, res: Response) => {
             return;
         }
 
+        const isTrial = existingSubData.data.status === "trialing"
+        const proration = isTrial ? "do_not_bill" : "full_next_billing_period"
+
         const updatedSubscription = await patchRequestPaddle(`subscriptions/${subscriber.subscriptionId}`, {items: [
             {price_id: priceId, quantity: 1}
-        ], proration_billing_mode: "full_next_billing_period"})
+        ], proration_billing_mode: proration})
         if (updatedSubscription.status !== 200)
         {
             if (process.env.DEVELOPMENT)
@@ -60,15 +63,6 @@ export const changeSubscription = async (req: Request, res: Response) => {
         assert(updatedSubData.data.items[0].price.id === priceId)
 
         res.status(200).send("Changed subscription")
-
-        let emailTemplate = await getTemplate(mailTemplate_changedSubscription())
-
-        const priceValue = Number(updatedSubData.data.items[0].price.unit_price.amount) * .01
-        const currency = updatedSubData.data.items[0].price.unit_price.currency_code
-        
-        emailTemplate = emailTemplate.replace("{{newPrice}}", `${accounting.formatMoney(priceValue, getSymbolFromCurrency(currency), 2)}`);
-
-        sendCustomizedEmail(res.locals.uid, emailTemplate, "Your Simply Plus subscription has changed");
     }
     else {
         res.status(404).send()
