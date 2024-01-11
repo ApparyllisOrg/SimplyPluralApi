@@ -67,8 +67,17 @@ export const update = async (req: Request, res: Response) => {
 
 	if (group) {
 		// eslint-disable-next-line sonarjs/no-collapsible-if
-		if (req.body.private === true && req.body.preventTrusted !== null && req.body.preventTrusted !== null) {
-			if (group.private !== req.body.private || req.body.preventTrusted != group.preventTrusted) {
+		if (req.body.private === true && req.body.preventTrusted !== null) {
+			let shouldRecursePrivacyUpdate = false
+			if (!group.private && req.body.private === true)
+			{
+				shouldRecursePrivacyUpdate = true
+			}
+			if ((group.private && !group.preventTrusted) && req.body.preventTrusted)
+			{
+				shouldRecursePrivacyUpdate = true
+			}
+			if (shouldRecursePrivacyUpdate) {
 				privateGroupRecursive(req.params.id, res.locals.uid, req.body.private, req.body.preventTrusted);
 			}
 		}
