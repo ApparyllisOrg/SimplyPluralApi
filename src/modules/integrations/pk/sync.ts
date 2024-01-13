@@ -58,6 +58,16 @@ const limitStringLength = (value: string | undefined, length: number) => {
 	return newValue;
 };
 
+const cleanURLs = (url: string | undefined | null) : string | null => 
+{	
+	if (!url)
+	{
+		return null
+	}	
+
+	return url.replace("http://", "https://")
+}
+
 const handlePkResponse = (requestResponse: AxiosResponse<any, any> | { status: number }) => {
 	if (requestResponse.status === 401) {
 		return { success: false, msg: `Failed to sync. PluralKit token is invalid.` };
@@ -78,7 +88,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 		const { color } = spMemberResult;
 
 		name = limitStringLength(name, 100);
-		avatarUrl = limitStringLength(avatarUrl, 256);
+		avatarUrl = cleanURLs(limitStringLength(avatarUrl, 256));
 		pronouns = limitStringLength(pronouns, 100);
 		desc = limitStringLength(desc, 1000);
 
