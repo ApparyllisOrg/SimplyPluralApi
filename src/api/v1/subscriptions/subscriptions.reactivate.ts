@@ -1,24 +1,23 @@
 import { Request, Response } from "express";
-import { isPaddleSetup } from "./subscriptions.core";
+import { isLemonSetup } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendSimpleEmail } from "../../../modules/mail";
 import { mailTemplate_reactivatedSubscription } from "../../../modules/mail/mailTemplates";
-import { getRequestPaddle, postRequestPaddle } from "./subscriptions.http";
-import { PaddleSubscriptionData } from "../../../util/paddle/paddle_types";
+import { getRequestLemon, patchRequestLemon, postRequestLemon } from "./subscriptions.http";
 import assert from "assert";
 
-import { reportPaddleError } from "./subscriptions.utils";
+import { reportLemonError } from "./subscriptions.utils";
 
 
 export const reactivateSubscription = async (req: Request, res: Response) => {
-    if (!isPaddleSetup()) {
-        res.status(404).send("API is not Paddle enabled");
+    if (!isLemonSetup()) {
+        res.status(404).send("API is not Lemon enabled");
         return
     }
 
     const subscriber = await getCollection("subscribers").findOne({ uid: res.locals.uid })
     if (subscriber) {
-        if (subscriber.paused !== true) {
+        if (subscriber.canceled !== true) {
             res.status(400).send("Subscription already active")
             return
         }
@@ -28,46 +27,39 @@ export const reactivateSubscription = async (req: Request, res: Response) => {
             return
         }
 
-        const existingSubscription = await getRequestPaddle(`subscriptions/${subscriber.subscriptionId}`)
+        const existingSubscription = await getRequestLemon(`v1/subscriptions/${subscriber.subscriptionId}`)
 
         assert(existingSubscription.success === true)
 
-        const existingSubData : PaddleSubscriptionData = existingSubscription.data.data
+        const existingSubData : any = existingSubscription.data.data
+        const existingSubAttributes = existingSubData.attributes
 
-        let effective_from
-
-        if (existingSubData.status === "active")
+        if (existingSubAttributes.status !== "cancelled")
         {
-            effective_from = 'next_billing_period';
-        }
-        else if (existingSubData.scheduled_change?.action === "pause")
-        {
-            effective_from = 'next_billing_period';
-        }
-        else if (existingSubData.status === "paused")
-        {
-            effective_from = 'immediately';
-        }
-
-        if (!effective_from)
-        {
-            res.status(500).send("Something went wrong, we're unable to resume the subscription, please contact support.")
+            res.status(400).send("Subscription is not cancelled, cannot reacticate")
             return
         }
 
-        console.log(existingSubData)
+        const reactivateResult = await patchRequestLemon(`v1/subscriptions/${subscriber.subscriptionId}`, {
+            data: 
+            {
+                id: subscriber.subscriptionId.toString(),
+                type: "subscriptions",
+                attributes: {
+                    cancelled: false,
+                  }
+            }
+        })
 
-        const resumeResult = await postRequestPaddle(`subscriptions/${subscriber.subscriptionId}/resume`, { effective_from: effective_from })
-        if (resumeResult.status !== 200)
+        if (reactivateResult.status !== 200)
         {
             if (process.env.DEVELOPMENT)
             {
-                console.log(resumeResult)
+                console.log(reactivateResult)
             }
-
-            reportPaddleError(subscriber.uid, "Request resume to paddle")
+            reportLemonError(subscriber.uid, "Request reactivating subcription to lemon")
             res.status(500).send("Something went wrong trying to reactivate your subscription")
-            return 
+            return
         }
 
         res.status(200).send("Reactivated subscription")

@@ -1,10 +1,10 @@
 import { Request, Response } from "express";
 import { getCollection } from "../../../modules/mongo";
-import { isPaddleSetup } from "./subscriptions.core";
+import { isLemonSetup } from "./subscriptions.core";
 
 export const getManagementLink = async (req: Request, res: Response) => {
-    if (!isPaddleSetup()) {
-        res.status(404).send("API is not Paddle enabled");
+    if (!isLemonSetup()) {
+        res.status(404).send("API is not Lemon enabled");
         return
     }
 

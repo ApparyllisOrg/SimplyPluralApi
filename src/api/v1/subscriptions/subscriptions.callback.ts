@@ -1,5 +1,5 @@
 import e, { Request, Response } from "express";
-import { getCustomerIdFromUser, isPaddleSetup } from "./subscriptions.core";
+import { getCustomerIdFromUser, isLemonSetup } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendSimpleEmail } from "../../../modules/mail";
 import { mailTemplate_createdSubscription, mailTemplate_failedPaymentCancelSubscription } from "../../../modules/mail/mailTemplates";
@@ -7,21 +7,25 @@ import { logger } from "../../../modules/logger";
 import assert from "node:assert";
 import * as crypto from "crypto";
 import moment from "moment";
-import { PaddleSubscriptionData } from "../../../util/paddle/paddle_types";
 import * as Sentry from "@sentry/node";
 import { ERR_SUBSCRIPTION_POTENTIALLYMALICIOUS } from "../../../modules/errors";
-import { postRequestPaddle } from "./subscriptions.http";
+import { postRequestLemon } from "./subscriptions.http";
 
-export const paddleCallback = async (req: Request, res: Response) => {
+export const lemonCallback = async (req: Request, res: Response) => {
     
-    if (!isPaddleSetup()) {
-        res.status(404).send("API is not Paddle enabled")
+    if (!isLemonSetup()) {
+        res.status(404).send("API is not Lemon enabled")
         return
     }
 
-    const paddleHeader = req.headers['paddle-signature']?.toString()
+    if (process.env.DEVELOPMENT)
+    {
+        console.log("Received callback")
+    }
 
-    if (paddleHeader === undefined) {
+    const lemonHeader : string | undefined = req.headers['x-signature']?.toString() 
+
+    if (lemonHeader === undefined) {
         res.status(400).send()
         return;
     }
@@ -29,103 +33,42 @@ export const paddleCallback = async (req: Request, res: Response) => {
     let event = JSON.parse(req.body);
 
     try {
-        const paddleHeaderParts = paddleHeader.split(";")
-        const paddleTs = paddleHeaderParts[0]
-        const paddleH1 = paddleHeaderParts[1]
 
-        const paddleExtractedTs = paddleTs.split("=")[1]
-        const extractedTs = Number(paddleExtractedTs)
-
-        const paddleExtractedH1 = paddleH1.split("=")[1]
-
-        const payload = `${extractedTs}:${req.body}`
-
-        const hmac = crypto
-        .createHmac('sha256', process.env.PADDLE_WEBHOOK_SECRET!)
-        .update(payload)
-
-        if (!paddleExtractedH1.match(hmac.digest("hex")))
-        {
-            res.status(401).send("No")
-            return
+        const crypto    = require('crypto');
+        const hmac      = crypto.createHmac('sha256', process.env.LEMON_WEBHOOK_SECRET!);
+        const digest    = Buffer.from(hmac.update(req.body).digest('hex'), 'utf8');
+        const signature = Buffer.from(req.get('X-Signature') || '', 'utf8');
+        
+        if (!crypto.timingSafeEqual(digest, signature)) {
+            throw new Error('Invalid signature.');
         }
-
     }
     catch (err: any) {
+        if (process.env.DEVELOPMENT)
+        {
+            console.log("Failed to verify signature for callback")
+        }
         res.status(500).send("Getting invalid error type when trying to verify signature")
         return
     }
 
     if (process.env.DEVELOPMENT) {
 
-       console.log(event.event_type)
-       console.log(event.data)
+      console.log(event)
     }
 
-    switch (event.event_type) {
-        case 'subscription.created':
+    switch (event.meta.event_name) {
+        case 'subscription_created':
             {
-                const subData : PaddleSubscriptionData = event.data
+                const subData : any = event.data.attributes
+                const custom_data : {uid: string} = event.meta.custom_data;
 
-                const custom_data : {uid: string, ts: string, hmac: string, cancelReason: string | undefined} = subData.custom_data;
-
-                const reportInvalid = (error: string, uid: string) => 
-                {
-                    Sentry.captureMessage(`ErrorCode(${ERR_SUBSCRIPTION_POTENTIALLYMALICIOUS})`, (scope) => {
-                        scope.setExtra("reason", error);
-                        scope.setExtra("uid", uid);
-                        return scope;
-                    });
-
-                    const newCustomData = custom_data
-                    newCustomData.cancelReason = error
-
-                    postRequestPaddle(`subscriptions/${subData.id}`, { custom_data: newCustomData })
-                    postRequestPaddle(`subscriptions/${subData.id}/cancel`, { effective_from: "immediately" })
-                }
-
+                console.log(subData)
+        
                 if (!custom_data.uid)
                 {
                     res.status(400).send("Missing uid")
-                    reportInvalid("Missing uid", "")
-                    return 
-                }
-
-                if (!custom_data.ts)
-                {
-                    res.status(400).send("Missing ts")
-                    reportInvalid("Missing ts", custom_data.uid)
-                    return 
-                }
-
-                if (!custom_data.hmac)
-                {
-                    res.status(400).send("Missing hmac")
-                    reportInvalid("Missing hmac", custom_data.uid)
-                    return 
-                }
-
-                if (subData.items.length !== 1)
-                {
-                    res.status(400).send("Invalid subscription data")
-                    reportInvalid("Invalid item count", custom_data.uid)
-                    return 
-                }
-
-                const uid = custom_data.uid
-                const price = subData.items[0].price.id
-                const ts = custom_data.ts
-
-                const value = uid + price + ts
-                const hmac = crypto.createHmac('sha256', process.env.PADDLE_HMAC_KEY!)
-                hmac.update(value)
-
-                const digest = hmac.digest('hex')
-
-                if (custom_data.hmac !== digest)
-                {
-                    res.status(401).send("HMAC does not match the payload!")
-                    reportInvalid("Invalid HMAC", uid)
+                
                     return 
                 }
 
@@ -133,21 +76,23 @@ export const paddleCallback = async (req: Request, res: Response) => {
                 assert(account)
 
                 const customerId = await getCustomerIdFromUser(custom_data.uid)
-                assert(customerId)
+                if (!customerId)
+                {
+                   await getCollection("subscribers").insertOne( { uid: custom_data.uid, customerId: subData.customer_id } )
+                }
 
-                assert(subData.current_billing_period)
+                const periodEnd : number = moment.utc(subData.renews_at).valueOf()
 
-                const periodStart : number = moment.utc(subData.current_billing_period.starts_at).valueOf()
-                const periodEnd : number = moment.utc(subData.next_billed_at).valueOf()
+                const subId = subData.first_subscription_item.subscription_id
 
-                getCollection("subscribers").updateOne({ customerId }, { $set: { subscriptionId: subData.id, periodEnd, periodStart } })
+                getCollection("subscribers").updateOne({ customerId : subData.customer_id }, { $set: { subscriptionId:subId, periodEnd } })
                 getCollection("users").updateOne({ uid: custom_data.uid, _id: custom_data.uid }, { $set: { plus: true } })
 
                 break;
             }
-        case 'subscription.updated':
+        case 'subscription_updated':
             {
-                const subData : PaddleSubscriptionData = event.data
+                const subData : any = event.data.attributes
 
                 const customerId = subData.customer_id
                 const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
@@ -172,9 +117,9 @@ export const paddleCallback = async (req: Request, res: Response) => {
 
                 break;
             }
-        case 'subscription.paused': 
+        case 'subscription_paused': 
             {
-                const subData : PaddleSubscriptionData = event.data
+                const subData : any = event.data.attributes
 
                 const customerId = subData.customer_id
                 const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
@@ -182,28 +127,41 @@ export const paddleCallback = async (req: Request, res: Response) => {
 
                 getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { paused: true, } })
                 getCollection("users").updateOne({ uid: subscriber.uid, _id:subscriber }, { $set: { plus: false } })
+                break;
             }   
-        case 'subscription.resumed': 
+        case 'subscription_resumed': 
             {
-                const subData : PaddleSubscriptionData = event.data
+                const subData : any = event.data.attributes
 
                 const customerId = subData.customer_id
                 const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
                 assert(subscriber)
 
-                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { paused: false } })
-                getCollection("users").updateOne({ uid: subscriber.uid, _id:subscriber }, { $set: { plus: true } })
+                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { canceled: false, } })
+                break;
             }   
-        case 'subscription.canceled': 
+        case 'subscription_cancelled': 
             {
-                const subData : PaddleSubscriptionData = event.data
+                const subData : any = event.data.attributes
 
                 const customerId = subData.customer_id
                 const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
                 assert(subscriber)
 
-                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { subscriptionId: null, periodEnd: null, paused: null, periodStart: null} })
+                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { canceled: true, } })
+                break;
+            }   
+        case 'subscription_expired': 
+            {
+                const subData : any = event.data.attributes
+
+                const customerId = subData.customer_id
+                const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
+                assert(subscriber)
+
+                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { subscriptionId: null, periodEnd: null, canceled: null, } })
                 getCollection("users").updateOne({ uid: subscriber.uid, _id:subscriber }, { $set: { plus: false } })
+                break;
             }   
     }
 
