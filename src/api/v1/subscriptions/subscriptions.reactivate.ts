@@ -1,50 +1,68 @@
 import { Request, Response } from "express";
-import { isPaddleSetup } from "./subscriptions.core";
+import { isLemonSetup } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendSimpleEmail } from "../../../modules/mail";
 import { mailTemplate_reactivatedSubscription } from "../../../modules/mail/mailTemplates";
-import { getRequestPaddle, postRequestPaddle } from "./subscriptions.http";
-import { PaddleSubscriptionData } from "../../../util/paddle/paddle_types";
+import { getRequestLemon, patchRequestLemon, postRequestLemon } from "./subscriptions.http";
 import assert from "assert";
 
-import { reportPaddleError } from "./subscriptions.utils";
+import { reportLemonError } from "./subscriptions.utils";
 
 
 export const reactivateSubscription = async (req: Request, res: Response) => {
-    if (!isPaddleSetup()) {
-        res.status(404).send("API is not Paddle enabled");
+    if (!isLemonSetup()) {
+        res.status(404).send("API is not Lemon enabled");
         return
     }
 
     const subscriber = await getCollection("subscribers").findOne({ uid: res.locals.uid })
     if (subscriber) {
-        if (subscriber.paused !== true) {
-            res.status(200).send("Subscription already active")
+        if (subscriber.canceled !== true) {
+            res.status(400).send("Subscription already active")
             return
         }
 
         if (!subscriber.subscriptionId) {
-            res.status(200).send("Subscription not existing")
+            res.status(400).send("Subscription not existing")
             return
         }
 
-        const existingSubscription = await getRequestPaddle(`subscriptions/${subscriber.subscriptionId}`)
+        const existingSubscription = await getRequestLemon(`v1/subscriptions/${subscriber.subscriptionId}`)
 
         assert(existingSubscription.success === true)
 
-        const existingSubData : PaddleSubscriptionData = existingSubscription.data
-        assert(existingSubData.scheduled_change?.action === "pause")
+        const existingSubData : any = existingSubscription.data.data
+        const existingSubAttributes = existingSubData.attributes
 
-        const resumeResult = await postRequestPaddle(`subscriptions/${subscriber.subscriptionId}/resume`, { effective_from: 'next_billing_period' })
-        if (resumeResult.status !== 200)
+        if (existingSubAttributes.status !== "cancelled")
         {
-            reportPaddleError(subscriber.uid, "Request resume to paddle")
+            res.status(400).send("Subscription is not cancelled, cannot reacticate")
+            return
+        }
+
+        const reactivateResult = await patchRequestLemon(`v1/subscriptions/${subscriber.subscriptionId}`, {
+            data: 
+            {
+                id: subscriber.subscriptionId.toString(),
+                type: "subscriptions",
+                attributes: {
+                    cancelled: false,
+                  }
+            }
+        })
+
+        if (reactivateResult.status !== 200)
+        {
+            if (process.env.DEVELOPMENT)
+            {
+                console.log(reactivateResult)
+            }
+            reportLemonError(subscriber.uid, "Request reactivating subcription to lemon")
             res.status(500).send("Something went wrong trying to reactivate your subscription")
-            return 
+            return
         }
 
         res.status(200).send("Reactivated subscription")
-        sendSimpleEmail(res.locals.uid, mailTemplate_reactivatedSubscription(), "Your Simply Plus subscription is reactivated")
     }
     else {
         res.status(404).send()

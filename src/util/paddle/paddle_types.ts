@@ -1,9 +1,9 @@
-export interface PaddleSubscription {
-    data: PaddleSubscriptionData;
-    meta: PaddleMeta;
+export interface LemonSubscription {
+    data: LemonSubscriptionData;
+    meta: LemonMeta;
 }
 
-export interface PaddleSubscriptionData {
+export interface LemonSubscriptionData {
     id:                     string;
     status:                 string;
     customer_id:            string;
@@ -17,42 +17,42 @@ export interface PaddleSubscriptionData {
     next_billed_at:         string | null;
     paused_at:              string | null;
     canceled_at:            string | null;
-    discount:               PaddleDiscount | null;
+    discount:               LemonDiscount | null;
     collection_mode:        string;
-    billing_details:        PaddleBillingDetails | null;
-    current_billing_period: PaddleCurrentBillingPeriod | null;
-    billing_cycle:          PaddleBillingCycle;
-    scheduled_change:       PaddleScheduledChange | null;
-    items:                  PaddleItem[];
+    billing_details:        LemonBillingDetails | null;
+    current_billing_period: LemonCurrentBillingPeriod | null;
+    billing_cycle:          LemonBillingCycle;
+    scheduled_change:       LemonScheduledChange | null;
+    items:                  LemonItem[];
     custom_data:            any;
-    management_urls:        PaddleManagementUrls;
+    management_urls:        LemonManagementUrls;
 }
 
-export interface PaddleDiscount
+export interface LemonDiscount
 {
     id: string;
     starts_at: string;
     ends_at: string
 }
 
-export interface PaddleBillingCycle {
+export interface LemonBillingCycle {
     frequency: number;
     interval:  string;
 }
 
-export interface PaddleBillingDetails {
+export interface LemonBillingDetails {
     enable_checkout:        boolean;
     purchase_order_number:  string;
     additional_information: string | null;
-    payment_terms:          PaddleBillingCycle;
+    payment_terms:          LemonBillingCycle;
 }
 
-export interface PaddleCurrentBillingPeriod {
+export interface LemonCurrentBillingPeriod {
     starts_at: Date;
     ends_at:   Date;
 }
 
-export interface PaddleItem {
+export interface LemonItem {
     status:               string;
     quantity:             number;
     recurring:            boolean;
@@ -60,39 +60,39 @@ export interface PaddleItem {
     updated_at:           string;
     previously_billed_at: string | null;
     next_billed_at:       string | null;
-    price:                PaddlePrice;
+    price:                LemonPrice;
 }
 
-export interface PaddlePrice {
+export interface LemonPrice {
     id:            string;
     product_id:    string;
     description:   string;
     tax_mode:      string;
-    billing_cycle: PaddleBillingCycle | null;
-    unit_price:    PaddleUnitPrice;
+    billing_cycle: LemonBillingCycle | null;
+    unit_price:    LemonUnitPrice;
 }
 
-export interface PaddleTrialDates {
+export interface LemonTrialDates {
     starts_at: string;
     ends_at: string;
 }
 
-export interface PaddleUnitPrice {
+export interface LemonUnitPrice {
     amount:        string;
     currency_code: string;
 }
 
-export interface PaddleManagementUrls {
+export interface LemonManagementUrls {
     update_payment_method: string | null;
     cancel:                string;
 }
 
-export interface PaddleScheduledChange {
+export interface LemonScheduledChange {
     action:       string;
     effective_at: string;
     resume_at:    string | null;
 }
 
-export interface PaddleMeta {
+export interface LemonMeta {
     request_id: string;
 }
