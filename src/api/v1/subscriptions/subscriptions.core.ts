@@ -12,7 +12,7 @@ export const setupLemon = (app: core.Express) => {
         assert(process.env.LEMON_PRICE_A !== undefined);
         assert(process.env.LEMON_PRICE_B !== undefined);
         assert(process.env.LEMON_PRICE_C !== undefined);
-        assert(process.env.LEMON_PRICE_X !== undefined);
+        assert(process.env.LEMON_SP_PRODUCT !== undefined);
         assert(process.env.LEMON_URL !== undefined);
         assert(process.env.LEMON_WEBHOOK_SECRET !== undefined);
         assert(process.env.PLUS_ROOT_URL !== undefined);

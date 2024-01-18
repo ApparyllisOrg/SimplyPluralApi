@@ -15,7 +15,7 @@ export const getRequestLemon = async (path: string): Promise<{ success: boolean,
     {
         if (process.env.DEVELOPMENT)
         {
-            console.log(error.status)
+            console.log(error)
         }
         return undefined;
 

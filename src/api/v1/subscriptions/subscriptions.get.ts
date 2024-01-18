@@ -39,14 +39,26 @@ export const getSubscription = async (req: Request, res: Response) => {
 
         const includeData = existingSubscription.data.included[0]
         const includeAttributes = includeData.attributes
-        const includeFirstItem = includeAttributes.first_order_item
+
+        const variantResult = await getRequestLemon(`v1/variants/${subAttributes.variant_id}`)
+        if (variantResult.success !== true)
+        {
+            if (process.env.DEVELOPMENT)
+            {
+                console.log(variantResult)
+            }
+            res.status(500).send("Something went wrong trying to get your subscription")
+            return
+        }
+
+        const variantAttributes = variantResult.data.data.attributes
 
         const response: subscription_client_result =
         {
             id: existingSubData.id,
             exists: true,
             content: {
-                price: Number(includeFirstItem.price) ?? 0 ,
+                price: Number(variantAttributes.price) ?? 0 ,
                 currency: includeAttributes.currency,
                 periodEnd: new Date(subAttributes.renews_at).getTime() * .001, //Decrease a timestep
                 priceId: subAttributes.variant_id.toString(),
