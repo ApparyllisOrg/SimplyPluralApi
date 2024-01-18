@@ -73,7 +73,7 @@ export const validateChangeSubscriptionSchema = (body: unknown): { success: bool
         properties: {
             price: {
                 type: "string",
-                pattern: "^(affordable|regular|pif|pwyw)$"
+                pattern: "^(affordable|regular|pif)$"
             },
         },
         nullable: false,

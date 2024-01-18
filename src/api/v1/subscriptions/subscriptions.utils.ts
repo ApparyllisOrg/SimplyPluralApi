@@ -12,9 +12,6 @@ export const priceIdToName = (id: string) => {
         case process.env.LEMON_PRICE_C!: {
             return "pif";
         }
-        case process.env.LEMON_PRICE_X!: {
-            return "pwyw";
-        }
     }
 
     return "err";
@@ -30,9 +27,6 @@ export const nameToPriceId = (name: string) => {
         }
         case "pif": {
             return process.env.LEMON_PRICE_C!;
-        }
-        case "pwyw": {
-            return process.env.LEMON_PRICE_X!;
         }
     }
 

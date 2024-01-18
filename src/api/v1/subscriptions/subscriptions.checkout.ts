@@ -67,7 +67,7 @@ export const validateCheckoutSessionSchema = (body: unknown): { success: boolean
         properties: {
             price: {
                 type: "string",
-                pattern: "^(affordable|regular|pif|pwyw)$"
+                pattern: "^(affordable|regular|pif)$"
             }
         },
         nullable: false,
