@@ -73,11 +73,19 @@ export const confirmUserEmail = async (uid: string, key: string): Promise<boolea
 		return false;
 	}
 
+	const verifiedKey = await getCollection("verifiedKeys").findOne({key})
+	if (verifiedKey)
+	{
+		return true;
+	}
+
+
 	if (user.verified === true) {
 		return false;
 	}
 
 	if (user.verificationCode === key) {
+		await getCollection("verifiedKeys").insertOne ({ key } );
 		await getCollection("accounts").updateOne({ uid }, { $set: { verified: true }, $unset: { verificationCode: "" } });
 		return true;
 	}

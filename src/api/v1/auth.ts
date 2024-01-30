@@ -308,7 +308,7 @@ export const confirmEmail = async (req: Request, res: Response) => {
 	// TODO: Send a html web page so this is prettier
 	if (result === true) {
 		logSecurityUserEvent(req.query.uid?.toString() ?? "", "Confirmed your email", req);
-		res.status(200).send("Email confirmed");
+		res.status(200).send("Email confirmed, verification can take up to 30 minutes to show in the app.");
 	} else {
 		res.status(401).send("Invalid confirmation link");
 	}
