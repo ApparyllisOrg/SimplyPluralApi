@@ -33,6 +33,11 @@ export const startCheckoutSession = async (req: Request, res: Response) => {
                     custom: {
                         "uid": res.locals.uid
                     }
+                },
+                checkout_options:
+                {
+                    embed: true,
+                    dark: true
                 }
             },
             relationships: {
