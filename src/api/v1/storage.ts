@@ -3,10 +3,8 @@ import { logger, userLog } from "../../modules/logger";
 import { validateSchema } from "../../util/validation";
 import * as minio from "minio";
 import { isUserVerified } from "../../security";
-import { getCollection } from "../../modules/mongo";
-import moment from "moment";
 import * as AWS from "aws-sdk";
-import { S3 } from "aws-sdk";
+const fileType = require('file-type');
 
 const objectEndpoint = new AWS.Endpoint(process.env.OBJECT_HOST ?? "");
 export const s3 = new AWS.S3({
@@ -23,6 +21,7 @@ const minioClient = new minio.Client({
 	secretKey: process.env.MINIO_SECRET!,
 });
 
+
 export const Store = async (req: Request, res: Response) => {
 	const result = await isUserVerified(res.locals.uid);
 	if (result === false) {
@@ -33,6 +32,23 @@ export const Store = async (req: Request, res: Response) => {
 	const path = `avatars/${res.locals.uid}/${req.params.dashedid}`;
 
 	const buffer = Buffer.from(req.body["buffer"]);
+
+	const resolvedFileType = await fileType.fromBuffer(buffer)
+
+	if (!resolvedFileType)
+	{
+		res.status(400).send("File type cannot be detected from the file, try using another picture.");
+		return false;
+	}
+
+	const mime = resolvedFileType.mime;
+	const validMime = mime === "image/png" || mime === "image/jpeg";
+	if (!validMime)
+	{
+		res.status(400).send(`File type not valid. Only JPG and PNG are supported. Your file type is ${mime}`);
+		return false;
+	}
+
 	const params = {
 		Bucket: "simply-plural",
 		Key: path,
