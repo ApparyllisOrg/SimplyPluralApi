@@ -106,13 +106,12 @@ export const lemonCallback = async (req: Request, res: Response) => {
                     // Update cancel state
                     getCollection('subscribers').updateOne({ customerId, uid: subscriber.uid }, { $set: { paused: scheduledToPause } })
 
-                    assert(subData.current_billing_period)
+                    assert(subData.renews_at)
 
                     // Update period start and end
-                    const periodStart : number = moment.utc(subData.current_billing_period.starts_at).valueOf()
-                    const periodEnd : number = moment.utc(subData.current_billing_period.ends_at).valueOf()
+                    const periodEnd : number = moment.utc(subData.renews_at).valueOf()
 
-                    getCollection('subscribers').updateOne({ customerId, uid: subscriber.uid }, { $set: { periodStart, periodEnd } })
+                    getCollection('subscribers').updateOne({ customerId, uid: subscriber.uid }, { $set: { periodEnd } })
                 }
 
                 break;
