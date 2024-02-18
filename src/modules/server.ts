@@ -64,11 +64,12 @@ export const initializeServer = async () => {
 
 	app.use(metricsMiddleware);
 
+	setupBaseRoutes(app);
+
 	// Verify the operation time of this request
 	app.use(validateOperationTime);
 
 	setupV1routes(app);
-	setupBaseRoutes(app);
 
 	// Has to be *after* all controllers
 	app.use(Sentry.Handlers.errorHandler());
