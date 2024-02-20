@@ -159,7 +159,7 @@ export const lemonCallback = async (req: Request, res: Response) => {
                 assert(subscriber)
 
                 getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { subscriptionId: null, periodEnd: null, canceled: null, } })
-                getCollection("users").updateOne({ uid: subscriber.uid, _id:subscriber }, { $set: { plus: false } })
+                getCollection("users").updateOne({ uid: subscriber.uid, _id: subscriber.uid }, { $set: { plus: false } })
                 break;
             }   
     }
