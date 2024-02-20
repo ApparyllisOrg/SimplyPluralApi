@@ -1,4 +1,4 @@
-import { OAuth2Client, TokenPayload } from "google-auth-library";
+import { OAuth2Client, TokenInfo, TokenPayload } from "google-auth-library";
 import { getCollection } from "../../../modules/mongo";
 import * as Sentry from "@sentry/node";
 import { auth } from "firebase-admin";
@@ -39,6 +39,8 @@ export const loginWithGoogle = async (credential: string): Promise<{ success: bo
 		return { success: false, uid: "", email: "" };
 	}
 
+	let payload = undefined
+
 	let ticket = await android_client
 		.verifyIdToken({
 			idToken: credential,
@@ -51,6 +53,11 @@ export const loginWithGoogle = async (credential: string): Promise<{ success: bo
 
 			return undefined;
 		});
+
+	if (ticket)
+	{
+		payload = ticket.getPayload()
+	}
 
 	if (!ticket) {
 		ticket = await iOS_client
@@ -66,12 +73,33 @@ export const loginWithGoogle = async (credential: string): Promise<{ success: bo
 				return undefined;
 			});
 
-		if (!ticket) {
-			return { success: false, uid: "", email: "" };
+		if (ticket) {
+			payload = ticket.getPayload() 
 		}
 	}
 
-	const payload = ticket.getPayload();
+	if (!payload)
+	{
+		try {
+			let ticket = await android_client.getTokenInfo(credential).catch((e) => console.log(e))
+			if (ticket)
+			{
+				payload = ticket;
+
+				if (payload.expiry_date < Date.now())
+				{
+					return { success: false, uid: "", email: "" };
+				}
+			}
+			else 
+			{
+				return { success: false, uid: "", email: "" };
+			}
+		} 
+		catch (e) {
+			return { success: false, uid: "", email: "" };
+		}
+	}
 
 	if (!payload) {
 		return { success: false, uid: "", email: "" };
@@ -105,7 +133,7 @@ export const loginWithGoogle = async (credential: string): Promise<{ success: bo
 	return { success: false, uid: "", email: "" };
 };
 
-const registerSub = async (payload: TokenPayload): Promise<boolean> => {
+const registerSub = async (payload: TokenPayload | TokenInfo): Promise<boolean> => {
 	const firebaseUser = await auth()
 		.getUserByEmail(payload.email ?? "")
 		.catch(() => undefined);
