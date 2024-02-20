@@ -1,182 +1,167 @@
-import Stripe from "stripe";
 import e, { Request, Response } from "express";
-import { getStripe } from "./subscriptions.core";
+import { getCustomerIdFromUser, isLemonSetup } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendSimpleEmail } from "../../../modules/mail";
-import { mailTemplate_createdSubscription } from "../../../modules/mail/mailTemplates";
+import { mailTemplate_createdSubscription, mailTemplate_failedPaymentCancelSubscription } from "../../../modules/mail/mailTemplates";
+import { logger } from "../../../modules/logger";
+import assert from "node:assert";
+import * as crypto from "crypto";
+import moment from "moment";
+import * as Sentry from "@sentry/node";
+import { ERR_SUBSCRIPTION_POTENTIALLYMALICIOUS } from "../../../modules/errors";
+import { postRequestLemon } from "./subscriptions.http";
 
-export const stripeCallback = async (req: Request, res: Response) => {
-    if (getStripe() === undefined) {
-        res.status(404).send("API is not Stripe enabled")
+export const lemonCallback = async (req: Request, res: Response) => {
+    
+    if (!isLemonSetup()) {
+        res.status(404).send("API is not Lemon enabled")
         return
     }
 
-    const sig = req.headers['stripe-signature']
+    if (process.env.DEVELOPMENT)
+    {
+        console.log("Received callback")
+    }
 
-    if (sig === undefined) {
-        res.status(400)
+    const lemonHeader : string | undefined = req.headers['x-signature']?.toString() 
+
+    if (lemonHeader === undefined) {
+        res.status(400).send()
         return;
     }
 
-    let event;
+    let event = JSON.parse(req.body);
 
     try {
-        event = getStripe()!.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!);
+
+        const crypto    = require('crypto');
+        const hmac      = crypto.createHmac('sha256', process.env.LEMON_WEBHOOK_SECRET!);
+        const digest    = Buffer.from(hmac.update(req.body).digest('hex'), 'utf8');
+        const signature = Buffer.from(req.get('X-Signature') || '', 'utf8');
+        
+        if (!crypto.timingSafeEqual(digest, signature)) {
+            throw new Error('Invalid signature.');
+        }
     }
     catch (err: any) {
-        if (err instanceof Stripe.errors.StripeSignatureVerificationError) {
-            console.log(err)
-            res.status(400).send(`Webhook Error: ${err.message}`)
-            return
+        if (process.env.DEVELOPMENT)
+        {
+            console.log("Failed to verify signature for callback")
         }
         res.status(500).send("Getting invalid error type when trying to verify signature")
         return
     }
 
     if (process.env.DEVELOPMENT) {
-        console.log(event.type)
+
+      console.log(event)
     }
 
-    switch (event.type) {
-        case 'customer.subscription.created':
+    switch (event.meta.event_name) {
+        case 'subscription_created':
             {
-                if (event.data.object as Stripe.Subscription) {
-                    const eventObject = event.data.object as Stripe.Subscription
-                    if (process.env.DEVELOPMENT) {
-                        console.log("sub")
-                        console.log(eventObject)
-                    }
+                const subData : any = event.data.attributes
+                const custom_data : {uid: string} = event.meta.custom_data;
 
-                    const customerId = eventObject.customer
-
-                    let subItem: Stripe.SubscriptionItem | undefined = undefined
-
-                    if (eventObject.items.data.length == 1) {
-                        subItem = eventObject.items.data[0]
-                    }
-                    else {
-                        res.status(500).send("Unable to find subscription item in subscription")
-                        return
-                    }
-                    if (process.env.DEVELOPMENT) {
-                        console.log("subItem")
-                        console.log(subItem)
-                    }
-                    const subscriber = await getCollection('subscribers').findOne({ customerId })
-                    if (subscriber !== undefined) {
-                        getCollection("users").updateOne({ uid: subscriber.uid, _id: subscriber.uid }, { $set: { plus: true } })
-
-                        const price = subItem.plan.amount
-                        const priceId = subItem.price.id;
-                        const periodEnd = eventObject.current_period_end
-                        const currency = subItem.plan.currency
-
-                        getCollection("subscribers").updateOne({ customerId }, { $set: { price, periodEnd, currency, priceId } }, { upsert: true })
-
-                        sendSimpleEmail(subscriber.uid, mailTemplate_createdSubscription(), "Your Simply Plus subscription")
-                    }
-                    else {
-                        res.status(500).send("Unable to find customer in our database in subscription")
-                        return
-                    }
+                console.log(subData)
+        
+                if (!custom_data.uid)
+                {
+                    res.status(400).send("Missing uid")
+                
+                    return 
                 }
+
+                const account = await getCollection("accounts").findOne({uid: custom_data.uid})
+                assert(account)
+
+                const customerId = await getCustomerIdFromUser(custom_data.uid)
+                if (!customerId)
+                {
+                   await getCollection("subscribers").insertOne( { uid: custom_data.uid, customerId: subData.customer_id } )
+                }
+
+                const periodEnd : number = moment.utc(subData.renews_at).valueOf()
+
+                const subId = subData.first_subscription_item.subscription_id
+
+                getCollection("subscribers").updateOne({ customerId : subData.customer_id }, { $set: { subscriptionId:subId, periodEnd } })
+                getCollection("users").updateOne({ uid: custom_data.uid, _id: custom_data.uid }, { $set: { plus: true } })
+
                 break;
             }
-
-        case 'checkout.session.completed':
+        case 'subscription_updated':
             {
-                if (event.data.object as Stripe.Checkout.Session) {
-                    const eventObject = event.data.object as Stripe.Checkout.Session
+                const subData : any = event.data.attributes
 
-                    if (process.env.DEVELOPMENT) {
-                        console.log("session")
-                        console.log(eventObject)
-                    }
+                const customerId = subData.customer_id
+                const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
+                assert(subscriber)
 
-                    const subscriptionId = eventObject.subscription
-                    const customerId = eventObject.customer
+                // Subscription is cancelled or paused, revoke perks
+                if (subData.status === "active" || subData.status === "trialing")
+                {
+                    const scheduledToPause = subData.scheduled_change?.action === "pause"
 
-                    getCollection('subscribers').updateOne({ customerId }, { $set: { uid: eventObject.client_reference_id, subscriptionId } }, { upsert: true })
+                    // Update cancel state
+                    getCollection('subscribers').updateOne({ customerId, uid: subscriber.uid }, { $set: { paused: scheduledToPause } })
+
+                    assert(subData.renews_at)
+
+                    // Update period start and end
+                    const periodEnd : number = moment.utc(subData.renews_at).valueOf()
+
+                    getCollection('subscribers').updateOne({ customerId, uid: subscriber.uid }, { $set: { periodEnd } })
                 }
+
                 break;
             }
-
-        case 'invoice.paid':
+        case 'subscription_paused': 
             {
-                if (event.data.object as Stripe.Invoice) {
-                    const eventObject = event.data.object as Stripe.Invoice
+                const subData : any = event.data.attributes
 
-                    if (process.env.DEVELOPMENT) {
-                        console.log("invoice")
-                        console.log(eventObject)
-                    }
-                    const customerId = eventObject.customer
+                const customerId = subData.customer_id
+                const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
+                assert(subscriber)
 
-                    const subscriber = await getCollection('subscribers').findOne({ customerId })
-                    if (subscriber !== undefined) {
-                        getCollection("invoices").insertOne({
-                            uid: subscriber.uid,
-                            customerId,
-                            invoiceId: eventObject.id,
-                            currency: eventObject.currency,
-                            price: eventObject.amount_paid,
-                            url: eventObject.hosted_invoice_url,
-                            time: eventObject.created,
-                            subscriptionId: eventObject.subscription
-                        })
-                    }
-                    else {
-                        res.status(404).send("Unable to find customer in our database in subscription")
-                        return
-                    }
-                }
+                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { paused: true, } })
+                getCollection("users").updateOne({ uid: subscriber.uid, _id:subscriber }, { $set: { plus: false } })
                 break;
-            }
-
-        case 'customer.subscription.updated':
+            }   
+        case 'subscription_resumed': 
             {
-                if (event.data.object as Stripe.Subscription) {
-                    const eventObject = event.data.object as Stripe.Subscription
+                const subData : any = event.data.attributes
 
-                    if (process.env.DEVELOPMENT) {
-                        console.log("sub updated")
-                        console.log(eventObject)
-                    }
+                const customerId = subData.customer_id
+                const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
+                assert(subscriber)
 
-                    const customerId = eventObject.customer
-
-                    const priceId = eventObject.items.data[0].price.id
-                    getCollection('subscribers').updateOne({ customerId }, { $set: { priceId } })
-
-
-                    if (eventObject.cancel_at_period_end !== undefined) {
-                        getCollection('subscribers').updateOne({ customerId }, { $set: { cancelled: eventObject.cancel_at_period_end } })
-                    }
-                }
+                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { canceled: false, } })
                 break;
-            }
-
-        case 'customer.subscription.deleted':
+            }   
+        case 'subscription_cancelled': 
             {
-                if (event.data.object as Stripe.Subscription) {
-                    const eventObject = event.data.object as Stripe.Subscription
+                const subData : any = event.data.attributes
 
-                    if (process.env.DEVELOPMENT) {
-                        console.log("sub deleted")
-                        console.log(eventObject)
-                    }
+                const customerId = subData.customer_id
+                const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
+                assert(subscriber)
 
-                    const customerId = eventObject.customer
-
-                    const subscriber = await getCollection('subscribers').findOne({ customerId })
-                    if (subscriber !== undefined) {
-                        getCollection("users").updateOne({ uid: subscriber.uid }, { $set: { plus: false } })
-                    }
-
-                    getCollection('subscribers').deleteOne({ customerId })
-                }
+                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { canceled: true, } })
                 break;
-            }
+            }   
+        case 'subscription_expired': 
+            {
+                const subData : any = event.data.attributes
+
+                const customerId = subData.customer_id
+                const subscriber = await getCollection("subscribers").findOne({customerId: customerId})
+                assert(subscriber)
+
+                getCollection("subscribers").updateOne({ customerId, uid: subscriber.uid }, { $set: { subscriptionId: null, periodEnd: null, canceled: null, } })
+                getCollection("users").updateOne({ uid: subscriber.uid, _id: subscriber.uid }, { $set: { plus: false } })
+                break;
+            }   
     }
 
     res.status(200).send()

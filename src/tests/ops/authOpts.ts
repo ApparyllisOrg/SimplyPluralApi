@@ -1,5 +1,5 @@
 import assert from "assert";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { decode } from "jsonwebtoken";
 import * as mocha from "mocha";
 import { getCollection } from "../../modules/mongo";
@@ -56,10 +56,12 @@ describe("validate authentication flow", () => {
 			const firstAccVerified = await getCollection("accounts").findOne({ email: { $ne: null } });
 			assert(firstAccVerified.verified === true);
 
-			const secondResult = await axios.get(getTestAxiosUrl(`v1/auth/verification/confirm?uid=${firstAcc.uid}&key=${firstAcc.verificationCode}`)).catch((reason) => {
+			const secondResult : AxiosResponse<any, any> = await axios.get(getTestAxiosUrl(`v1/auth/verification/confirm?uid=${firstAcc.uid}&key=${firstAcc.verificationCode}`)).catch((reason) => {
 				return reason.response;
 			});
-			assert(secondResult.status == 401, "Verifying twice should not be possible");
+
+			assert(secondResult)
+			assert(secondResult.status == 200 && secondResult.data === "Email confirmed, verification can take up to 30 minutes to show in the app.", "Verifying twice should not be possible");
 		})
 		.timeout(4000);
 

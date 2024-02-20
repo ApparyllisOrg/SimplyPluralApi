@@ -1,56 +1,79 @@
 import { Request, Response } from "express";
+import { getCollection } from "../../../modules/mongo";
 import { validateSchema } from "../../../util/validation";
-import { getStripe } from "./subscriptions.core";
-import { nameToPriceId } from "./subscriptions.utils";
+import { isLemonSetup } from "./subscriptions.core";
+import { getLemonStoreRelationship, nameToPriceId, reportLemonError } from "./subscriptions.utils";
+import { postRequestLemon } from "./subscriptions.http";
 
-export const generateSubscribeSession = async (req: Request, res: Response) => {
-    if (getStripe() === undefined) {
-        res.status(404).send("API is not Stripe enabled");
+export const startCheckoutSession = async (req: Request, res: Response) => {
+    if (!isLemonSetup()) {
+        res.status(404).send("API is not Lemon enabled");
         return
     }
 
-    let price = nameToPriceId(req.body.price);
-
-    const session = await getStripe()!.checkout.sessions.create(
-        {
-            line_items: [
-                {
-                    price: price,
-                    quantity: 1
-                }
-            ],
-            mode: "subscription",
-            success_url: `${process.env.PLUS_ROOT_URL!}#success?session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${process.env.PLUS_ROOT_URL!}#dashboard`,
-            client_reference_id: res.locals.uid,
-            payment_method_types: ["sepa_debit", "card", "paypal", "sofort"],
-            phone_number_collection: { enabled: false },
-            metadata: {
-                uid: res.locals.uid
+    if (process.env.LEMON_MAX_SUBS) {
+        const maxSubs: number = parseInt(process.env.LEMON_MAX_SUBS);
+        if (maxSubs && maxSubs > 0) {
+            const numSubs: number = await getCollection("subscribers").countDocuments({ subscriptionId: { $ne: null } })
+            if (numSubs >= maxSubs) {
+                // 401 isn't correct.. what else can we use?
+                res.status(401).send("Simply Plus is currently limiting the amount of subscribers. The limit has been reached, try again when Simply Plus if fully released.");
+                return;
             }
         }
-    ).catch((e) => {
-        if (process.env.DEVELOPMENT) {
-            console.log(e)
+    }
+
+    const priceId : string = nameToPriceId(req.body.price)
+
+    const result = await postRequestLemon(`v1/checkouts`, {
+        data: {
+            type: "checkouts",
+            attributes: {
+                checkout_data: {
+                    custom: {
+                        "uid": res.locals.uid
+                    }
+                },
+                checkout_options:
+                {
+                    embed: true,
+                    dark: true
+                }
+            },
+            relationships: {
+                store: getLemonStoreRelationship(),
+                variant: {
+                    data: {
+                    type: "variants",
+                    id: priceId
+                    }
+                }
+            } 
         }
     })
+    if (result.status !== 201)
+    {
+        if (process.env.DEVELOPMENT)
+        {
+            console.log(result)
+        }
+        reportLemonError(res.locals.uid, "Creating a checkout")
+        res.status(500).send("Something went wrong trying to start a checkout session")
+        return
+    }
 
-    if (session !== undefined) {
-        res.status(200).send({ url: session.url, id: session.id });
-    }
-    else {
-        res.status(500).send("Something went wrong trying to create checkout session");
-    }
+    const checkoutUrl = result.data.data.attributes.url
+    res.status(200).send({checkoutUrl})
 };
 
-export const validateSubscribeSessionsSchema = (body: unknown): { success: boolean; msg: string } => {
+export const validateCheckoutSessionSchema = (body: unknown): { success: boolean; msg: string } => {
     const schema = {
         type: "object",
         properties: {
             price: {
                 type: "string",
                 pattern: "^(affordable|regular|pif)$"
-            },
+            }
         },
         nullable: false,
         additionalProperties: false,
@@ -59,3 +82,4 @@ export const validateSubscribeSessionsSchema = (body: unknown): { success: boole
 
     return validateSchema(schema, body);
 };
+

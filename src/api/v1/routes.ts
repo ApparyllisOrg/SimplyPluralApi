@@ -25,12 +25,15 @@ import * as board from "./board";
 import * as chats from "./chats";
 import * as auth from "./auth";
 import * as event from "./events";
-import { getStripe } from "./subscriptions/subscriptions.core";
-import { generateSubscribeSession, validateSubscribeSessionsSchema } from "./subscriptions/subscriptions.checkout";
+import { isLemonSetup } from "./subscriptions/subscriptions.core";
 import { cancelSubscription } from "./subscriptions/subscriptions.cancel";
 import { getSubscription } from "./subscriptions/subscriptions.get";
 import { reactivateSubscription } from "./subscriptions/subscriptions.reactivate";
 import { getInvoices } from "./subscriptions/subscriptions.invoices";
+import { changeSubscription, validateChangeSubscriptionSchema } from "./subscriptions/subscriptions.change";
+import { getManagementLink } from "./subscriptions/subscriptions.manage";
+import { startCheckoutSession } from "./subscriptions/subscriptions.checkout";
+import { getSubscriptionOptions } from "./subscriptions/subscriptions.options";
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
@@ -226,11 +229,13 @@ export const setupV1routes = (app: core.Express) => {
 		app.post("/v1/event/open", isUserAppJwtAuthenticated, event.openEvent);
 	}
 
-	if (getStripe() != undefined) {
-		app.post("/v1/subscription/create", isUserAppJwtAuthenticated, validateBody(validateSubscribeSessionsSchema), generateSubscribeSession)
+	if (isLemonSetup()) {
+		app.post("/v1/subscription/checkout", isUserAppJwtAuthenticated, startCheckoutSession)
 		app.post("/v1/subscription/cancel", isUserAppJwtAuthenticated, cancelSubscription)
+		app.post("/v1/subscription/change", isUserAppJwtAuthenticated, validateBody(validateChangeSubscriptionSchema), changeSubscription)
 		app.post("/v1/subscription/reactivate", isUserAppJwtAuthenticated, reactivateSubscription)
 		app.get("/v1/subscription/get", isUserAppJwtAuthenticated, getSubscription)
 		app.get("/v1/subscription/invoices", isUserAppJwtAuthenticated, getInvoices)
+		app.get("/v1/subscription/options", isUserAppJwtAuthenticated, getSubscriptionOptions)
 	}
 };

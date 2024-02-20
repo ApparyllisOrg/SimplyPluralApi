@@ -6,6 +6,7 @@ import admin, { ServiceAccount } from "firebase-admin";
 import * as fs from "fs";
 import { initializeServer, startServer } from "./modules/server";
 import { namedArguments } from "./util/args";
+import moment from "moment";
 
 if (namedArguments.development === true) {
 	process.env.DEVELOPMENT = "true";
