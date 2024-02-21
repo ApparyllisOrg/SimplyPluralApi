@@ -318,7 +318,7 @@ export const validateRegisterSchema = (body: unknown): { success: boolean; msg: 
 	const schema = {
 		type: "object",
 		properties: {
-			email: { type: "string", format: "email" },
+			email: { type: "string", format: "fullEmail" },
 			password: { type: "string" },
 		},
 		nullable: false,
@@ -379,7 +379,7 @@ export const validateResetPasswordRequestSchema = (body: unknown): { success: bo
 	const schema = {
 		type: "object",
 		properties: {
-			email: { type: "string", format: "email" },
+			email: { type: "string", format: "fullEmail" },
 		},
 		nullable: false,
 		additionalProperties: false,
@@ -438,9 +438,9 @@ export const validateChangeEmailSchema = (body: unknown): { success: boolean; ms
 	const schema = {
 		type: "object",
 		properties: {
-			oldEmail: { type: "string", format: "email" },
+			oldEmail: { type: "string", format: "fullEmail" },
 			password: { type: "string" },
-			newEmail: { type: "string", format: "email" },
+			newEmail: { type: "string", format: "fullEmail" },
 		},
 		nullable: false,
 		additionalProperties: false,
