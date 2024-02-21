@@ -497,7 +497,7 @@ export const validateUserReportSchema = (body: unknown): { success: boolean; msg
 			},
 			cc: {
 				type: "array",
-				items: { type: "string", format: "email" },
+				items: { type: "string", format: "fullEmail" },
 			},
 			frontHistory: {
 				nullable: true,

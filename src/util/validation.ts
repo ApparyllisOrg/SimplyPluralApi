@@ -8,6 +8,8 @@ import { ObjectId } from "mongodb";
 import moment from "moment";
 
 const ajv = new Ajv({ allErrors: true, $data: true, verbose: true });
+ajv.addFormat("fullEmail", RegExp("^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$", "i"))
+
 addFormats(ajv);
 
 export async function validateData(req: Request, res: Response, next: any) {
