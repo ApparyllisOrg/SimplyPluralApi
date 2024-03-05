@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import moment from "moment";
-import { ObjectID } from "mongodb";
+import { ObjectId } from "mongodb";
 import * as Sentry from "@sentry/node";
 import { getCollection, parseId } from "../../modules/mongo";
 import { documentObject } from "../../modules/mongo/baseTypes";
@@ -89,7 +89,7 @@ const verifyValidChannelsPayload = async (req: Request, res: Response) => {
 
 export const addChannelCategory = async (req: Request, res: Response) => {
 	const dataObj: documentObject = req.body;
-	dataObj._id = res.locals.useId ?? new ObjectID();
+	dataObj._id = res.locals.useId ?? new ObjectId();
 
 	await verifyValidChannelsPayload(req, res);
 

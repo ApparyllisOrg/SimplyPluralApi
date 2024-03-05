@@ -2,10 +2,13 @@ import { Request, Response } from "express";
 import moment from "moment";
 import { frontChange } from "../../modules/events/frontChange";
 import { getCollection, parseId } from "../../modules/mongo";
-import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security";
-import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendDocuments, updateSimpleDocument } from "../../util";
+import { canAccessDocument, canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security";
+import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendDocument, sendDocuments, updateSimpleDocument } from "../../util";
 import { getPrivacyDependency, validateSchema } from "../../util/validation";
 import { frameType } from "../types/frameType";
+import { getDefaultPrivacyBuckets } from "../v1/private";
+import { ObjectId } from "mongodb";
+import { transformBucketListToBucketIds } from "../v1/privacy/privacy.bucket.set";
 
 export const getMembers = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
@@ -53,10 +56,43 @@ export const getMembers = async (req: Request, res: Response) => {
 };
 
 export const get = async (req: Request, res: Response) => {
-	fetchSimpleDocument(req, res, "members");
+    const document = await getCollection("members").findOne({ _id: parseId(req.params.id), uid: req.params.system ?? res.locals.uid });
+
+    if (!document)
+    {
+        res.status(404).send()
+        return
+    }
+
+    if (res.locals.uid !== document.uid)
+    {
+        const fields : ObjectId[] = []
+        const info : { _id: string | ObjectId, value: string }[] =  document.info
+
+        const allowedInfo: { _id: string | ObjectId, value: string }[] = []
+        
+        for (let i = 0; i < info.length; ++i)
+        {
+            if (canAccessDocument(res.locals.uid, ))
+        }
+
+        info.forEach((infoEntry) => 
+        {
+            fields.push(parseId(infoEntry._id))
+        })
+
+        const mongoBucketIds = await transformBucketListToBucketIds(res.locals.uid, fields)
+        const buckets = await getCollection(req.body.type).updateOne({ uid: res.locals.uid, _id : parseId(req.body.id) }, { $set: { buckets: mongoBucketIds } })
+    }
+    else 
+    {
+        sendDocument(req, res, "members", document)
+    }
 };
 
 export const add = async (req: Request, res: Response) => {
+    req.body.buckets = getDefaultPrivacyBuckets(res.locals.uid, "members")
+
 	addSimpleDocument(req, res, "members");
 };
 
@@ -70,38 +106,6 @@ export const update = async (req: Request, res: Response) => {
 	}
 };
 
-export const del = async (req: Request, res: Response) => {
-	// If this member is fronting, we need to notify and update current fronters
-	const fhLive = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.params.id, live: true });
-
-	// Delete live fronts of this member
-	await getCollection("frontHistory").updateOne({ uid: res.locals.uid, member: req.params.id, live: true }, { $set: { live: false, endTime: moment.now() } });
-
-	if (fhLive) {
-		frontChange(res.locals.uid, true, req.params.id, false);
-	}
-
-	// Delete this member from any groups they're in
-	getCollection("groups")
-		.find({ uid: res.locals.uid })
-		.forEach((group: any) => {
-			const members: string[] = group.members ?? [];
-			const newMembers = members.filter((member) => member != req.params.id);
-			getCollection("groups").updateOne({ uid: res.locals.uid, _id: parseId(group._id) }, { $set: { members: newMembers } });
-		});
-
-	// @ts-ignore
-	getCollection("groups").updateMany({ uid: res.locals.uid }, { $pull: { members: req.params.id } });
-
-	// Delete notes that belong to this member
-	getCollection("notes").deleteMany({ uid: res.locals.uid, member: req.params.id });
-
-	// Delete board messages that are for to this member
-	getCollection("boardMessages").deleteMany({ uid: res.locals.uid, writtenFor: req.params.id });
-
-	deleteSimpleDocument(req, res, "members");
-};
-
 export const validateMemberSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
@@ -113,14 +117,16 @@ export const validateMemberSchema = (body: unknown): { success: boolean; msg: st
 			color: { type: "string" },
 			avatarUuid: { type: "string" },
 			avatarUrl: { type: "string" },
-			private: { type: "boolean" },
-			preventTrusted: { type: "boolean" },
 			preventsFrontNotifs: { type: "boolean" },
 			info: {
-				type: "object",
-				properties: {
-					"*": { type: "string" },
-				},
+				type: "array",
+                items: {
+                    type: "object",
+                    properties: {
+                        _id: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$"},
+                        value: { type: "string" },
+                    }
+                }
 			},
 			supportDescMarkdown: { type: "boolean" },
 			archived: { type: "boolean" },
@@ -148,14 +154,16 @@ export const validatePostMemberSchema = (body: unknown): { success: boolean; msg
 			color: { type: "string" },
 			avatarUuid: { type: "string" },
 			avatarUrl: { type: "string" },
-			private: { type: "boolean" },
-			preventTrusted: { type: "boolean" },
 			preventsFrontNotifs: { type: "boolean" },
-			info: {
-				type: "object",
-				properties: {
-					"*": { type: "string" },
-				},
+            info: {
+				type: "array",
+                items: {
+                    type: "object",
+                    properties: {
+                        _id: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$"},
+                        value: { type: "string" },
+                    }
+                }
 			},
 			supportDescMarkdown: { type: "boolean" },
 			archived: { type: "boolean" },
@@ -163,7 +171,7 @@ export const validatePostMemberSchema = (body: unknown): { success: boolean; msg
 			archivedReason: { type: "string", maxLength: 150 },
 			frame: frameType
 		},
-		required: ["name", "private", "preventTrusted"],
+		required: ["name"],
 		nullable: false,
 		additionalProperties: false,
 		dependencies: getPrivacyDependency(),

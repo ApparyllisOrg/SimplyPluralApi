@@ -6,6 +6,29 @@ import { addSimpleDocument, fetchSimpleDocument, updateSimpleDocument } from "..
 import { validateSchema } from "../../util/validation";
 import { setupNewUser } from "./user";
 import { updateUser } from "./user/updates/updateUser";
+import { NewFieldsVersion } from "./customFields";
+import { ObjectId } from "mongodb";
+
+export const getDefaultPrivacyBuckets = async (uid: string, type: "members" | "groups" | "customFields" | "customFronts" ) : Promise<ObjectId[]> =>
+{
+	const privateDocument = await getCollection("private").findOne({ uid: uid, _id: uid, latestVersion: { $gte: NewFieldsVersion } });
+	if (!privateDocument)
+	{
+		return []
+	}
+
+	switch(type)
+	{
+		case "members":
+			return privateDocument.members;
+		case "groups":
+			return privateDocument.groups;
+		case "customFields":
+			return privateDocument.customFields;
+		case "customFronts":
+			return privateDocument.customFronts;
+	}
+}
 
 export const get = async (req: Request, res: Response) => {
 	const privateDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: res.locals.uid });
@@ -67,6 +90,12 @@ export const validatePrivateSchema = (body: unknown): { success: boolean; msg: s
 			termsOfServiceAccepted: { type: "boolean", enum: [true] },
 			whatsNew: { type: "number" },
 			categories: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+			defaultPrivacy: {
+				members:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+				groups:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+				customFronts:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+				customFields:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+			}
 		},
 		nullable: false,
 		additionalProperties: false,
