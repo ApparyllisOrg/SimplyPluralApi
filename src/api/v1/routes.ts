@@ -31,9 +31,10 @@ import { getSubscription } from "./subscriptions/subscriptions.get";
 import { reactivateSubscription } from "./subscriptions/subscriptions.reactivate";
 import { getInvoices } from "./subscriptions/subscriptions.invoices";
 import { changeSubscription, validateChangeSubscriptionSchema } from "./subscriptions/subscriptions.change";
-import { getManagementLink } from "./subscriptions/subscriptions.manage";
 import { startCheckoutSession } from "./subscriptions/subscriptions.checkout";
 import { getSubscriptionOptions } from "./subscriptions/subscriptions.options";
+import { addPrivacyBucket, deletePrivacyBucket, getPrivacyBucket, getPrivacyBuckets, updatePrivacyBucket, validateBucketSchema } from "./buckets";
+import { orderBuckets, validateOrderBucketsSchema } from "./privacy/privacy.buckets.order";
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
@@ -152,6 +153,14 @@ export const setupV1routes = (app: core.Express) => {
 	app.post("/v1/chat/message/:id?", isUserAuthenticated(ApiKeyAccessType.Read), validateBody(chats.validateWriteMessageSchema), chats.writeMessage);
 	app.patch("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateUpdateMessageSchema), chats.updateMessage);
 	app.delete("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteMessage);
+
+	// Privacy buckets
+	app.get("/v1/privacyBucket/:id", isUserAuthenticated(ApiKeyAccessType.Read), getPrivacyBucket);
+	app.get("/v1/privacyBuckets", isUserAuthenticated(ApiKeyAccessType.Read), getPrivacyBuckets);
+	app.post("/v1/privacyBucket/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateBucketSchema), addPrivacyBucket);
+	app.patch("/v1/privacyBucket/order", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateOrderBucketsSchema), orderBuckets);
+	app.patch("/v1/privacyBucket/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateBucketSchema), updatePrivacyBucket);
+	app.delete("/v1/privacyBucket/:id", isUserAuthenticated(ApiKeyAccessType.Delete), deletePrivacyBucket);
 
 	// Private
 	app.get("/v1/user/private/:id", isUserAppJwtAuthenticated, priv.get);

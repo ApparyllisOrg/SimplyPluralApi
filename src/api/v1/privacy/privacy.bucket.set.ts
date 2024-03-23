@@ -2,27 +2,16 @@ import { Request, Response } from "express";
 import { validateSchema } from "../../../util/validation";
 import assert from "assert";
 import { getCollection, parseId } from "../../../modules/mongo";
+import { convertListToIds } from "../../../util";
 
-export const transformBucketListToBucketIds = async (uid: string, bucketList: string[]) => {
-    let mongoBucketIds : any[] = []
-    bucketList.forEach((bucket : string) => 
-    {
-        mongoBucketIds.push(parseId(bucket))
-    })
-
-    const foundBuckets = await getCollection("privacyBuckets").find({ uid: uid, _id: { $in: mongoBucketIds }}).toArray()
-    
-   return mongoBucketIds.filter((bucketId) => foundBuckets.indexOf((bucket : any) => bucket._id === bucketId) >= 0)
-}
-
-export const setPrivacyBucket = async (req: Request, res: Response) => 
+export const setPrivacyBuckets = async (req: Request, res: Response) => 
 {
     assert(req.body.type === "members" 
         || req.body.type === "groups"
         || req.body.type === "customFronts"
         || req.body.type === "customFields" )
 
-    const mongoBucketIds = await transformBucketListToBucketIds(res.locals.uid, req.body.buckets)
+    const mongoBucketIds = await convertListToIds(res.locals.uid, "privacyBuckets", req.body.buckets)
 
     const result = await getCollection(req.body.type).updateOne({ uid: res.locals.uid, _id : parseId(req.body.id) }, { $set: { buckets: mongoBucketIds } })
     if (result.modifiedCount > 0)
@@ -35,7 +24,7 @@ export const setPrivacyBucket = async (req: Request, res: Response) =>
     }
 }
 
-export const validateSetPrivacyBucketSchema = (body: unknown): { success: boolean; msg: string } => {
+export const validateSetPrivacyBucketsSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {

@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import moment, { Moment } from "moment";
 import { ObjectId } from "mongodb";
 import * as Mongo from "../modules/mongo";
-import { parseId } from "../modules/mongo";
+import { getCollection, parseId } from "../modules/mongo";
 import { documentObject } from "../modules/mongo/baseTypes";
 import { dispatchDelete, OperationType } from "../modules/socket";
 import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
@@ -21,15 +21,23 @@ export function transformResultForClientRead(value: documentObject, requestorUid
 }
 
 export const getDocumentAccess = async (_req: Request, res: Response, document: documentObject, collection: string): Promise<{ access: boolean; statusCode: number; message: string }> => {
-
 	if (document.uid == res.locals.uid) {
 		return { access: true, statusCode: 200, message: "" };
 	}
 
+	const buckets : ObjectId[] = document.buckets
+
 	const evaluateBuckets = document.buckets !== undefined && document.buckets !== null;
 	if (evaluateBuckets === true)
 	{
+		// Find the friend with an overlapping bucket, if this friend has any of the required buckets it will be allowed, otherwise nope
+		const friendWithBucket = Mongo.getCollection("friends").findOne({ uid: document.uid, frienduid: res.locals.uid, buckets: { $in: buckets }});
+		if (friendWithBucket === undefined || friendWithBucket === null)
+		{
+			return { access: false, statusCode: 403, message: "Access to document has been rejected." };
+		}
 
+		return { access: true, statusCode: 200, message: "" };
 	}
 	else 
 	{
@@ -229,4 +237,22 @@ export const getStartOfDay = (): Moment => {
 
 export const isPrimaryInstace = () => {
 	return process.env.NODE_APP_INSTANCE === '0';
+}
+
+export const convertListToIds = async (uid: string, collection: string, listOfIds: string[], ) : Promise<any[]> =>
+{
+	let ids : any[] = []
+
+    listOfIds.forEach((id : string) => 
+    {
+        ids.push(parseId(id))
+    })
+
+	const foundDocuments = await getCollection(collection).find({ uid: uid, _id: { $in: listOfIds }}).toArray()
+
+	const resultingIds : any[] = []
+
+	foundDocuments.forEach((document) => { resultingIds.push(document._id) })
+    
+	return resultingIds
 }

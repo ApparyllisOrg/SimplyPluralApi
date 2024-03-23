@@ -4,7 +4,6 @@ import { getCollection, parseId } from "../modules/mongo";
 import moment from "moment";
 import { auth } from "firebase-admin";
 import { Request } from "express";
-import { transformBucketListToBucketIds } from "../api/v1/privacy/privacy.bucket.set";
 
 const users = "users";
 const groups = "groups";
@@ -93,23 +92,6 @@ export const isFriend = (friendLevel: FriendLevel): boolean => !!(friendLevel ==
 export const isTrustedFriend = (friendLevel: FriendLevel): boolean => !!(friendLevel === FriendLevel.Trusted);
 
 export const canAccessDocument = async (requestor: string, owner: string, privateDoc: boolean, preventTrusted: boolean): Promise<boolean> => {
-	const friendLevel = await getFriendLevel(owner, requestor);
-	if (privateDoc === true) {
-		const trustedFriend: boolean = isTrustedFriend(friendLevel);
-		// Trusted and not prevent trusted.. give access
-		// eslint-disable-next-line sonarjs/prefer-single-boolean-return
-		if (trustedFriend && !preventTrusted) {
-			return true;
-		}
-
-		// Prevent trusted? Don't allow at all
-		// Not a trusted friend? Don't allow either
-		return false;
-	}
-	return !!(friendLevel === FriendLevel.Friends) || !!(friendLevel === FriendLevel.Trusted);
-};
-
-export const hasDocumentAccess = async (requestor: string, owner: string, _id: string, type: string): Promise<boolean> => {
 	const friendLevel = await getFriendLevel(owner, requestor);
 	if (privateDoc === true) {
 		const trustedFriend: boolean = isTrustedFriend(friendLevel);
