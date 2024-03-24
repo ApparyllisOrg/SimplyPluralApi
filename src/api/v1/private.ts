@@ -46,7 +46,15 @@ export const get = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
 	const previousDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: res.locals.uid });
 	if (previousDocument) {
-		if (previousDocument.latestVersion && previousDocument.latestVersion < req.body.latestVersion) {
+		const performUpdate = (previousDocument.latestVersion && previousDocument.latestVersion < req.body.latestVersion) 
+			||  (!previousDocument.latestVersion && req.body.latestVersion >= 300) // version 300 detected an issue where sometimes latest version was never set 
+
+		if (!previousDocument.latestVersion && req.body.latestVersion >= 300)
+		{
+			previousDocument.latestVersion = 299
+		}
+
+		if (performUpdate) {
 			await updateUser(previousDocument.latestVersion, req.body.latestVersion, res.locals.uid);
 			userLog(res.locals.uid, `Updated user account to version ${req.body.latestVersion}`);
 		}
@@ -91,10 +99,13 @@ export const validatePrivateSchema = (body: unknown): { success: boolean; msg: s
 			whatsNew: { type: "number" },
 			categories: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
 			defaultPrivacy: {
-				members:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
-				groups:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
-				customFronts:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
-				customFields:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+				type: "object",
+				properties: {
+					members:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+					groups:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+					customFronts:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+					customFields:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+				}
 			}
 		},
 		nullable: false,
