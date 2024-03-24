@@ -25,13 +25,15 @@ export const getDocumentAccess = async (_req: Request, res: Response, document: 
 		return { access: true, statusCode: 200, message: "" };
 	}
 
-	const buckets : ObjectId[] = document.buckets
-
+	// TODO: Use LRU Cache for some of this
 	const evaluateBuckets = document.buckets !== undefined && document.buckets !== null;
 	if (evaluateBuckets === true)
 	{
+		const convertedIds = await convertListToIds(document.uid, 'privacyBuckets', document.buckets);
+
 		// Find the friend with an overlapping bucket, if this friend has any of the required buckets it will be allowed, otherwise nope
-		const friendWithBucket = Mongo.getCollection("friends").findOne({ uid: document.uid, frienduid: res.locals.uid, buckets: { $in: buckets }});
+		const friendWithBucket = await Mongo.getCollection("friends").findOne({ uid: document.uid, frienduid: res.locals.uid, privacyBuckets: { $in: convertedIds }});
+
 		if (friendWithBucket === undefined || friendWithBucket === null)
 		{
 			return { access: false, statusCode: 403, message: "Access to document has been rejected." };
@@ -241,18 +243,18 @@ export const isPrimaryInstace = () => {
 
 export const convertListToIds = async (uid: string, collection: string, listOfIds: string[], ) : Promise<any[]> =>
 {
-	let ids : any[] = []
+	const ids : any[] = []
 
     listOfIds.forEach((id : string) => 
     {
         ids.push(parseId(id))
     })
 
-	const foundDocuments = await getCollection(collection).find({ uid: uid, _id: { $in: listOfIds }}).toArray()
+	const foundDocuments = await getCollection(collection).find({ uid: uid, _id: { $in: ids }}).toArray()
 
 	const resultingIds : any[] = []
 
 	foundDocuments.forEach((document) => { resultingIds.push(document._id) })
-    
+
 	return resultingIds
 }

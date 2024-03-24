@@ -31,7 +31,7 @@ export const validateSetPrivacyBucketsSchema = (body: unknown): { success: boole
 			id: { type: "string", pattern: "^[A-Za-z0-9]{0,100}$" },
             buckets: {  type: "array", uniqueItems: true,  items: 
                 { 
-                    type: "string", format: "^[A-Za-z0-9]{0,100}$" 
+                    type: "string", pattern: "^[A-Za-z0-9]{0,100}$" 
                 },
             },
 			type: { type: "string", enum : ["members", "groups", "customFronts", "customFields"] },

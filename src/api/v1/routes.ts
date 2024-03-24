@@ -36,6 +36,7 @@ import { getSubscriptionOptions } from "./subscriptions/subscriptions.options";
 import { addPrivacyBucket, deletePrivacyBucket, getPrivacyBucket, getPrivacyBuckets, updatePrivacyBucket, validateBucketSchema } from "./buckets";
 import { orderBuckets, validateOrderBucketsSchema } from "./privacy/privacy.buckets.order";
 import { assignBucketsToFriend, assignFriendsToBucket, validateAssignBucketsToFriendSchema, validateAssignFriendsToBucketSchema } from "./privacy/privacy.bucket.assign";
+import { setPrivacyBuckets, validateSetPrivacyBucketsSchema } from "./privacy/privacy.bucket.set";
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
@@ -160,6 +161,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/privacyBuckets", isUserAuthenticated(ApiKeyAccessType.Read), getPrivacyBuckets);
 	app.post("/v1/privacyBucket/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateBucketSchema), addPrivacyBucket);
 	app.patch("/v1/privacyBucket/order", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateOrderBucketsSchema), orderBuckets);
+	app.patch("/v1/privacyBucket/setbuckets", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateSetPrivacyBucketsSchema), setPrivacyBuckets);
 	app.patch("/v1/privacyBucket/assignbuckets", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateAssignBucketsToFriendSchema), assignBucketsToFriend);
 	app.patch("/v1/privacyBucket/assignfriends", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateAssignFriendsToBucketSchema), assignFriendsToBucket);
 	app.patch("/v1/privacyBucket/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateBucketSchema), updatePrivacyBucket);

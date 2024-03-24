@@ -17,11 +17,11 @@ export const update300 = async (uid: string) => {
         
         for (let i = 0; i < collectionData.length; ++i) {
             const member = collectionData[i];
-            if (member.private === true && member.preventTrusted === true)
+            if (member.private !== false && member.preventTrusted !== false)
             {
                 // Do nothing, assign no buckets
             } 
-            else if (member.private === true)
+            else if (member.private !== false)
             {
                 applyBucketsPromises.push(getCollection(collection).updateOne({uid, _id: member._id}, {$set: { buckets: [ trustedFriendData._id ]}}))
             }
@@ -45,11 +45,11 @@ export const update300 = async (uid: string) => {
     for (let i = 0; i < friends.length; ++i)
     {
         const friendEntry = friends[i]
-        if (friendEntry.seeMembers === true && friendEntry.trusted === true)
+        if (friendEntry.seeMembers !== false && friendEntry.trusted !== false)
         {
             applyFriendBucketsPromises.push(getCollection("friends").updateOne({uid, frienduid: friendEntry.frienduid}, {$set: { privacyBuckets: [ trustedFriendData._id ]}}))
         }
-        else if (friendEntry.seeMembers === true)
+        else if (friendEntry.seeMembers !== false)
         {
             applyFriendBucketsPromises.push(getCollection("friends").updateOne({uid, frienduid: friendEntry.frienduid}, {$set: { privacyBuckets: [ friendData._id ]}}))
         }
