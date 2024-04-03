@@ -21,6 +21,7 @@ import { s3 } from "./storage";
 import { frameType } from "../types/frameType";
 import { getTemplate, mailTemplate_userReport } from "../../modules/mail/mailTemplates";
 import { sendCustomizedEmailToEmail } from "../../modules/mail";
+import archiver, { Archiver } from "archiver"
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -359,27 +360,30 @@ export const exportAvatars = async (req: Request, res: Response) => {
 		return;
 	}
 
+	const filename = `Avatars_${req.query.uid}.zip`;
+
+	res.setHeader("Content-Type", "application/zip");
+	res.setHeader("Content-disposition", 'attachment; filename="' + filename + '"');
+
 	const result = await fetchAllAvatars(req.query.uid?.toString() ?? "");
 
-	const zip = new JSZip();
+	const arch = archiver('zip');
 
-	result.forEach((result) => {
-		const buffer = Buffer.isBuffer(result.data) ? result.data : Buffer.concat(result.data as Buffer[]);
-		zip.file(result.name + ".png", buffer);
-	});
+	arch.pipe(res);
+
+	for (let i = 0; i < result.length; ++i)
+	{
+		const data = result[i]
+		const buffer = Buffer.isBuffer(data.data) ? data.data : Buffer.concat(data.data as Buffer[]);
+		arch.append(buffer, { name: data.name + ".png" })
+	}
+
+	arch.finalize()
 
 	logSecurityUserEvent(res.locals.uid, "Exported user avatars", req);
 
 	res.status(200);
-
-	zip.generateAsync({ type: "nodebuffer" }).then((buffer) => {
-		const filename = `Avatars_${req.query.uid}.zip`;
-		// Send zip as a download
-		res.setHeader("Content-Type", "application/octet-stream");
-		res.setHeader("Content-disposition", 'attachment; filename="' + filename + '"');
-		res.end(buffer);
-	});
-};
+}
 
 export const setupNewUser = async (uid: string) => {
 	const fields: any = {};
