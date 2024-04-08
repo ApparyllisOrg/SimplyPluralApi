@@ -13,9 +13,7 @@ import { getEmailForUser } from "../auth/auth.core";
 //-------------------------------//
 // Fetch all avatars from a user
 //-------------------------------//
-export const fetchAllAvatars = async (uid: string): Promise<{ name: string; data: Buffer[] | S3.Body }[]> => {
-	const avatars: { name: string; data: Buffer[] | S3.Body }[] = [];
-
+export const fetchAllAvatars = async (uid: string, processAvatar: (name: String, data: S3.Body | Buffer[]) => Promise<void>) : Promise<void> => {
 	const members = await getCollection("members").find({ uid }).toArray();
 
 	for (let i = 0; i < members.length; ++i) {
@@ -23,7 +21,7 @@ export const fetchAllAvatars = async (uid: string): Promise<{ name: string; data
 		if (member.avatarUuid) {
 			const avatar = await getFileFromStorage(`avatars/${uid}/${member.avatarUuid}`);
 			if (avatar) {
-				avatars.push({ name: member._id.toString(), data: avatar });
+				await processAvatar(member._id.toString(), avatar);
 			}
 		}
 	}
@@ -34,7 +32,7 @@ export const fetchAllAvatars = async (uid: string): Promise<{ name: string; data
 		if (cf.avatarUuid) {
 			const avatar = await getFileFromStorage(`avatars/${uid}/${cf.avatarUuid}`);
 			if (avatar) {
-				avatars.push({ name: cf._id.toString(), data: avatar });
+				await processAvatar(cf._id.toString(), avatar);
 			}
 		}
 	}
@@ -43,11 +41,9 @@ export const fetchAllAvatars = async (uid: string): Promise<{ name: string; data
 	if (user.avatarUuid) {
 		const avatar = await getFileFromStorage(`avatars/${uid}/${user.avatarUuid}`);
 		if (avatar) {
-			avatars.push({ name: user._id.toString(), data: avatar });
+			await processAvatar(user._id.toString(), avatar);
 		}
 	}
-
-	return avatars;
 };
 
 //-------------------------------//
