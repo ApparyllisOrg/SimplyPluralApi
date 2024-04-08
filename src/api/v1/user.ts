@@ -22,6 +22,7 @@ import { frameType } from "../types/frameType";
 import { getTemplate, mailTemplate_userReport } from "../../modules/mail/mailTemplates";
 import { sendCustomizedEmailToEmail } from "../../modules/mail";
 import archiver, { Archiver } from "archiver"
+import { S3 } from "aws-sdk";
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -365,18 +366,15 @@ export const exportAvatars = async (req: Request, res: Response) => {
 	res.setHeader("Content-Type", "application/zip");
 	res.setHeader("Content-disposition", 'attachment; filename="' + filename + '"');
 
-	const result = await fetchAllAvatars(req.query.uid?.toString() ?? "");
-
 	const arch = archiver('zip');
 
-	arch.pipe(res);
+	arch.pipe(res)
 
-	for (let i = 0; i < result.length; ++i)
+	await fetchAllAvatars(req.query.uid?.toString() ?? "", async (name: String, data: S3.Body | Buffer[]) => 
 	{
-		const data = result[i]
-		const buffer = Buffer.isBuffer(data.data) ? data.data : Buffer.concat(data.data as Buffer[]);
-		arch.append(buffer, { name: data.name + ".png" })
-	}
+		const buffer = Buffer.isBuffer(data) ? data : Buffer.concat(data as Buffer[]);
+		arch.append(buffer, { name: name + ".png" })
+	});
 
 	arch.finalize()
 
