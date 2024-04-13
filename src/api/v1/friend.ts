@@ -70,6 +70,20 @@ export const updateFriend = async (req: Request, res: Response) => {
 		res.status(404).send();
 		return;
 	}
+	if (setBody["getFrontNotif"] === false) {
+		const friend = await getCollection("users").findOne({ uid: req.params.id });
+		const friendResult = await getCollection("friends").updateOne(
+			{
+				uid: req.params.id,
+				frienduid: res.locals.uid,
+				$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
+			},
+			{ $set: { "getTheirFrontNotif": false } }
+		);
+		if (friendResult.modifiedCount === 0) {
+			return;
+		}
+	}
 	res.status(200).send();
 };
 
