@@ -193,4 +193,23 @@ describe("validate authentication flow", () => {
 			}
 		})
 		.timeout(4000);
+
+	mocha
+		.test("Test email variations", async () => {
+
+			const testVariation = async (testEmail: string) => 
+			{
+				const result = await axios.get(getTestAxiosUrl(`v1/auth/password/reset?email=${testEmail}`)).catch((reason) => {
+					return reason.response;
+				});
+				console.log(testEmail + ": " + result.data)
+				assert(result.status == 200, "Request password reset");
+			}
+
+			testVariation("Abcc.123@apparyllis.com")
+			testVariation("user+mailbox/department=shipping@apparyllis.com")
+			testVariation("Abcc.123.dfg.hfi_-@apparyllis.com")
+			testVariation("test.Test.c123@apparyllis.com")
+		})
+		.timeout(8000 * 4);
 });

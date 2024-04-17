@@ -31,9 +31,12 @@ import { getSubscription } from "./subscriptions/subscriptions.get";
 import { reactivateSubscription } from "./subscriptions/subscriptions.reactivate";
 import { getInvoices } from "./subscriptions/subscriptions.invoices";
 import { changeSubscription, validateChangeSubscriptionSchema } from "./subscriptions/subscriptions.change";
-import { getManagementLink } from "./subscriptions/subscriptions.manage";
 import { startCheckoutSession } from "./subscriptions/subscriptions.checkout";
 import { getSubscriptionOptions } from "./subscriptions/subscriptions.options";
+import { addPrivacyBucket, deletePrivacyBucket, getPrivacyBucket, getPrivacyBuckets, updatePrivacyBucket, validateBucketSchema } from "./buckets";
+import { orderBuckets, validateOrderBucketsSchema } from "./privacy/privacy.buckets.order";
+import { assignBucketsToFriend, assignFriendsToBucket, validateAssignBucketsToFriendSchema, validateAssignFriendsToBucketSchema } from "./privacy/privacy.bucket.assign";
+import { setPrivacyBuckets, validateSetPrivacyBucketsSchema } from "./privacy/privacy.bucket.set";
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
@@ -153,6 +156,17 @@ export const setupV1routes = (app: core.Express) => {
 	app.patch("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateUpdateMessageSchema), chats.updateMessage);
 	app.delete("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteMessage);
 
+	// Privacy buckets
+	app.get("/v1/privacyBucket/:id", isUserAuthenticated(ApiKeyAccessType.Read), getPrivacyBucket);
+	app.get("/v1/privacyBuckets", isUserAuthenticated(ApiKeyAccessType.Read), getPrivacyBuckets);
+	app.post("/v1/privacyBucket/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateBucketSchema), addPrivacyBucket);
+	app.patch("/v1/privacyBucket/order", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateOrderBucketsSchema), orderBuckets);
+	app.patch("/v1/privacyBucket/setbuckets", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateSetPrivacyBucketsSchema), setPrivacyBuckets);
+	app.patch("/v1/privacyBucket/assignbuckets", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateAssignBucketsToFriendSchema), assignBucketsToFriend);
+	app.patch("/v1/privacyBucket/assignfriends", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateAssignFriendsToBucketSchema), assignFriendsToBucket);
+	app.patch("/v1/privacyBucket/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateBucketSchema), updatePrivacyBucket);
+	app.delete("/v1/privacyBucket/:id", isUserAuthenticated(ApiKeyAccessType.Delete), deletePrivacyBucket);
+
 	// Private
 	app.get("/v1/user/private/:id", isUserAppJwtAuthenticated, priv.get);
 	app.patch("/v1/user/private/:id", isUserAppJwtAuthenticated, validateBody(priv.validatePrivateSchema), priv.update);
@@ -161,6 +175,7 @@ export const setupV1routes = (app: core.Express) => {
 
 	// Friends
 	app.get("/v1/friends/", isUserAuthenticated(ApiKeyAccessType.Read), friend.getFriends);
+	app.get("/v1/friends/settings", isUserAuthenticated(ApiKeyAccessType.Read), friend.getFriendsSettings);
 	app.get("/v1/friends/requests/incoming", isUserAuthenticated(ApiKeyAccessType.Read), friend.getIngoingFriendRequests);
 	app.get("/v1/friends/requests/outgoing", isUserAuthenticated(ApiKeyAccessType.Read), friend.getOutgoingFriendRequests);
 	app.get("/v1/friends/getFrontValues", isUserAuthenticated(ApiKeyAccessType.Read), friend.getAllFriendFrontValues);

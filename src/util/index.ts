@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import moment, { Moment } from "moment";
-import { ObjectID } from "mongodb";
+import { ObjectId } from "mongodb";
 import * as Mongo from "../modules/mongo";
-import { parseId } from "../modules/mongo";
+import { getCollection, parseId } from "../modules/mongo";
 import { documentObject } from "../modules/mongo/baseTypes";
 import { dispatchDelete, OperationType } from "../modules/socket";
 import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
@@ -23,35 +23,56 @@ export function transformResultForClientRead(value: documentObject, requestorUid
 export const getDocumentAccess = async (_req: Request, res: Response, document: documentObject, collection: string): Promise<{ access: boolean; statusCode: number; message: string }> => {
 	if (document.uid == res.locals.uid) {
 		return { access: true, statusCode: 200, message: "" };
-	} else if (document.private && document.preventTrusted) {
-		return { access: false, statusCode: 403, message: "Access to document has been rejected." };
-	} else {
-		if (friendReadCollections.indexOf(collection) < 0) {
+	}
+
+	// TODO: Use LRU Cache for some of this
+	const evaluateBuckets = document.buckets !== undefined && document.buckets !== null;
+	if (evaluateBuckets === true)
+	{
+		const convertedIds = await convertListToIds(document.uid, 'privacyBuckets', document.buckets);
+
+		// Find the friend with an overlapping bucket, if this friend has any of the required buckets it will be allowed, otherwise nope
+		const friendWithBucket = await Mongo.getCollection("friends").findOne({ uid: document.uid, frienduid: res.locals.uid, privacyBuckets: { $in: convertedIds }});
+
+		if (friendWithBucket === undefined || friendWithBucket === null)
+		{
 			return { access: false, statusCode: 403, message: "Access to document has been rejected." };
 		}
 
-		const friendLevel: FriendLevel = await getFriendLevel(document.uid, res.locals.uid);
-		const isaFriend = isFriend(friendLevel);
-		if (!isaFriend) {
-			if (collection === "users" && !!(friendLevel == FriendLevel.Pending)) {
-				// Only send relevant data
-				document = { uid: document.uid, _id: document._id, username: document.username, message: document.message };
-
-				return { access: true, statusCode: 200, message: "" };
-			}
+		return { access: true, statusCode: 200, message: "" };
+	}
+	else 
+	{
+		if (document.private && document.preventTrusted) {
 			return { access: false, statusCode: 403, message: "Access to document has been rejected." };
 		} else {
-			if (document.private) {
-				const trustedFriend: boolean = await isTrustedFriend(friendLevel);
-				if (trustedFriend) {
-					return { access: document.preventTrusted !== true, statusCode: 200, message: "" };
-				} else {
-					return { access: false, statusCode: 403, message: "Access to document has been rejected." };
-				}
+			if (friendReadCollections.indexOf(collection) < 0) {
+				return { access: false, statusCode: 403, message: "Access to document has been rejected." };
 			}
-			return { access: true, statusCode: 200, message: "" };
+	
+			const friendLevel: FriendLevel = await getFriendLevel(document.uid, res.locals.uid);
+			const isaFriend = isFriend(friendLevel);
+			if (!isaFriend) {
+				if (collection === "users" && !!(friendLevel == FriendLevel.Pending)) {
+					// Only send relevant data
+					document = { uid: document.uid, _id: document._id, username: document.username, message: document.message };
+	
+					return { access: true, statusCode: 200, message: "" };
+				}
+				return { access: false, statusCode: 403, message: "Access to document has been rejected." };
+			} else {
+				if (document.private) {
+					const trustedFriend: boolean = await isTrustedFriend(friendLevel);
+					if (trustedFriend) {
+						return { access: document.preventTrusted !== true, statusCode: 200, message: "" };
+					} else {
+						return { access: false, statusCode: 403, message: "Access to document has been rejected." };
+					}
+				}
+				return { access: true, statusCode: 200, message: "" };
+			}
 		}
-	}
+	} 
 };
 
 export const sendDocuments = async (req: Request, res: Response, collection: string, documents: documentObject[]) => {
@@ -141,7 +162,7 @@ export const fetchCollection = async (req: Request, res: Response, collection: s
 
 export const addSimpleDocument = async (req: Request, res: Response, collection: string) => {
 	const dataObj: documentObject = req.body;
-	dataObj._id = parseId(res.locals.useId) ?? new ObjectID();
+	dataObj._id = parseId(res.locals.useId) ?? new ObjectId();
 	dataObj.uid = res.locals.uid;
 	dataObj.lastOperationTime = res.locals.operationTime;
 	const result = await Mongo.getCollection(collection)
@@ -218,4 +239,22 @@ export const getStartOfDay = (): Moment => {
 
 export const isPrimaryInstace = () => {
 	return process.env.NODE_APP_INSTANCE === '0';
+}
+
+export const convertListToIds = async (uid: string, collection: string, listOfIds: string[], ) : Promise<any[]> =>
+{
+	const ids : any[] = []
+
+    listOfIds.forEach((id : string) => 
+    {
+        ids.push(parseId(id))
+    })
+
+	const foundDocuments = await getCollection(collection).find({ uid: uid, _id: { $in: ids }}).toArray()
+
+	const resultingIds : any[] = []
+
+	foundDocuments.forEach((document) => { resultingIds.push(document._id) })
+
+	return resultingIds
 }

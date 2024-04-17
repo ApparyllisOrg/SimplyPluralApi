@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
 import { canAccessDocument } from "../../security";
-import { sendDocument, sendDocuments } from "../../util";
+import { fetchCollection, sendDocument, sendDocuments } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 export const getFriend = async (req: Request, res: Response) => {
@@ -22,6 +22,10 @@ export const getFriends = async (req: Request, res: Response) => {
 
 	// Send users as collection as we are sending user objects, not friend (requests)
 	sendDocuments(req, res, "users", friendValues);
+};
+
+export const getFriendsSettings = async (req: Request, res: Response) => {
+	fetchCollection(req, res, "friends", {})
 };
 
 export const getIngoingFriendRequests = async (req: Request, res: Response) => {
