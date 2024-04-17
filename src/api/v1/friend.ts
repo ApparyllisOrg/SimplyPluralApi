@@ -58,6 +58,17 @@ export const getOutgoingFriendRequests = async (req: Request, res: Response) => 
 export const updateFriend = async (req: Request, res: Response) => {
 	const setBody = req.body;
 	setBody.lastOperationTime = res.locals.operationTime;
+	if (setBody["getTheirFrontNotif"] === true) {
+		const friend = await getCollection("friends").findOne(
+			{
+				uid: req.params.id,
+				frienduid: res.locals.uid
+			}
+		);
+		if (friend["getFrontNotif"] === false) {
+			setBody["getTheirFrontNotif"] = false;
+		}
+	}
 	const result = await getCollection("friends").updateOne(
 		{
 			uid: res.locals.uid,
@@ -79,18 +90,6 @@ export const updateFriend = async (req: Request, res: Response) => {
 			},
 			{ $set: { "getTheirFrontNotif": false } }
 		);
-	}
-	if (setBody["getTheirFrontNotif"] === true) {
-		const friend = await getCollection("friends").findOne(
-			{
-				uid: req.params.id,
-				frienduid: res.locals.uid
-			}
-		);
-		if (friend["getFrontNotif"] === false) {
-			res.status(403).send("Friend does not allow receiving front notifications.");
-			return;
-		}
 	}
 	res.status(200).send();
 };
