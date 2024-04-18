@@ -5,6 +5,8 @@ import { update300 } from "./update300";
 
 const versionList = [111, 149, 150, 300];
 
+export const FIELD_MIGRATION_VERSION = 300
+
 export const updateUser = async (lastVersion: number, newVersion: number, uid: string) => {
 	if (lastVersion >= newVersion) return;
 

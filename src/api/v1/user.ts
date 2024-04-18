@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import shortUUID from "short-uuid";
 import { logger, userLog } from "../../modules/logger";
 import { db, getCollection, parseId } from "../../modules/mongo";
-import { fetchCollection, sendDocument } from "../../util";
+import { fetchCollection, getDocumentAccess, sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
 import { update122 } from "./user/updates/update112";
@@ -21,6 +21,7 @@ import { s3 } from "./storage";
 import { frameType } from "../types/frameType";
 import { getTemplate, mailTemplate_userReport } from "../../modules/mail/mailTemplates";
 import { sendCustomizedEmailToEmail } from "../../modules/mail";
+import { FIELD_MIGRATION_VERSION } from "./user/updates/updateUser";
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -163,20 +164,45 @@ export const get = async (req: Request, res: Response) => {
 
 	// Remove fields that aren't shared to the friend
 	if (req.params.id !== res.locals.uid) {
-		const friendLevel = await getFriendLevel(req.params.id, res.locals.uid);
-		const isATrustedFriends = isTrustedFriend(friendLevel);
+
 		const newFields: any = {};
 
-		if (document.fields) {
-			Object.keys(document.fields).forEach((key: string) => {
-				const field = document.fields[key];
-				if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
-					newFields[key] = field;
+		const privateUser = await getCollection("private").findOne({_id: req.params.id, uid: req.params.id})
+		if (privateUser)
+		{
+			if (privateUser.latestVersion && privateUser.latestVersion >= FIELD_MIGRATION_VERSION)
+			{
+				const userFields = await getCollection("customFields").find({uid: req.params.id}).toArray()
+
+				for (let i = 0; i < userFields.length; ++i)
+				{
+					const field = userFields[i]
+					const accessResult = await getDocumentAccess(req, res, field, "customFields")
+					if (accessResult.access === true)
+					{
+						newFields[field._id.ToString()] = { name: field.name, order: field.order, type: field.type }
+					}
 				}
-				if (field.private === false && field.preventTrusted === false) {
-					newFields[key] = field;
+				
+			}
+			else // Legacy custom fields
+			{
+				const friendLevel = await getFriendLevel(req.params.id, res.locals.uid);
+				const isATrustedFriends = isTrustedFriend(friendLevel);
+	
+				if (document.fields) {
+					Object.keys(document.fields).forEach((key: string) => {
+						const field = document.fields[key];
+						if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
+							newFields[key] = field;
+						}
+						if (field.private === false && field.preventTrusted === false) {
+							newFields[key] = field;
+						}
+					});
 				}
-			});
+			}
+		
 		}
 
 		document.fields = newFields;

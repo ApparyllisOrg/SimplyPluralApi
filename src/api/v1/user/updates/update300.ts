@@ -1,3 +1,4 @@
+import assert from "assert";
 import { getCollection } from "../../../../modules/mongo";
 
 // Create 2 new privacy buckets
@@ -6,6 +7,7 @@ export const update300 = async (uid: string) => {
     const friendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any } = {uid, name: "Friends", icon: "🔓", rank: "0|aaaaaa:", desc: "A bucket for all your friends", color: "#C99524",}
     const trustedFriendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any }  = {uid, name: "Trusted friends", icon: "🔒", rank: "0|zzzzzz:", desc: "A bucket for all your trusted friends", color: "#1998A8"}
 
+    // insertOne mutates the original object, adding _id as a valid parameter
     const friend = await getCollection("privacyBuckets").insertOne(friendData)
     const trustedFriend = await getCollection("privacyBuckets").insertOne(trustedFriendData)
 
@@ -60,4 +62,56 @@ export const update300 = async (uid: string) => {
     }
 
     await Promise.all(applyFriendBucketsPromises)
+
+    const user = await getCollection("users").findOne({ _id: uid, uid })
+    assert(user)
+
+    if (!user.fields)
+    {
+        // User has no custom fields to migrate
+        return;
+    }
+
+    const fields :  {[key: string] : {name: string, order: number, private: boolean, preventTrusted: boolean, type: number }} = user.fields
+
+    const createFieldsPromises : any[] = []
+
+    const fieldKeys = Object.keys(fields)
+
+    fieldKeys.forEach((key) =>
+    {
+        const field = fields[key]!
+
+        let bucketsToAdd : any[] = []
+
+        if (field.private !== false && field.preventTrusted !== false)
+        {
+            // Do nothing, assign no buckets
+        } 
+        else if (field.private !== false)
+        {
+            bucketsToAdd = [ trustedFriendData._id ]
+        }
+        else 
+        {
+            bucketsToAdd =  [ friendData._id ]
+        }
+
+        // oid = original id
+        createFieldsPromises.push(getCollection("customFields").insertOne({uid, name: field.name, order: field.order, type: field.type, privacyBuckets: bucketsToAdd, oid: key }))
+    });
+
+    await Promise.all(createFieldsPromises)
+
+
+    const createdFields = await getCollection("customFields").find({uid}).toArray()
+
+    const renameOperation : { [key: string] : string } = {}
+
+    createdFields.forEach((field) => 
+    {
+        renameOperation[`info.${field.oid}`] = `info.${field._id}`
+    })
+
+    getCollection("members").updateMany({uid }, { $rename: renameOperation})
 };

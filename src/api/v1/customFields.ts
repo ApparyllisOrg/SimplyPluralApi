@@ -3,8 +3,19 @@ import { getCollection, parseId } from "../../modules/mongo";
 import { fetchSimpleDocument, fetchCollection, addSimpleDocument, updateSimpleDocument, deleteSimpleDocument } from "../../util";
 import { Request, Response } from "express";
 import { validateSchema } from "../../util/validation";
+import { ObjectId } from "mongodb";
+
 
 export const NewFieldsVersion = 300
+
+export interface CustomFieldType 
+{
+	_id: string | ObjectId
+	name: string, 
+	order: number, 
+	privacyBuckets: ObjectId[], 
+	type: number 
+}
 
 export const hasMigratedToNewFields = async (uid: string) => 
 {

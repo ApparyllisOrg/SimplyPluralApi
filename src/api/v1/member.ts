@@ -3,31 +3,56 @@ import moment from "moment";
 import { frontChange } from "../../modules/events/frontChange";
 import { getCollection, parseId } from "../../modules/mongo";
 import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security";
-import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendDocuments, updateSimpleDocument } from "../../util";
+import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, getDocumentAccess, sendDocument, sendDocuments, updateSimpleDocument } from "../../util";
 import { getPrivacyDependency, validateSchema } from "../../util/validation";
 import { frameType } from "../types/frameType";
+import { FIELD_MIGRATION_VERSION } from "./user/updates/updateUser";
+import { CustomFieldType } from "./customFields";
 
-export const getMembers = async (req: Request, res: Response) => {
-	if (req.params.system != res.locals.uid) {
-		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
-		if (!canSee) {
-			res.status(403).send("You are not authorized to see members of this user");
-			return;
+const filterFieldsForPrivacy = async (req: Request, res: Response, members: any[]) : Promise<boolean> => 
+{
+	const ownerUser = await getCollection("users").findOne({ uid: req.params.system });
+	const ownerPrivateUser = await getCollection("private").findOne({_id: req.params.system, uid:req.params.system})
+
+	if (ownerPrivateUser && ownerUser)
+	{
+		if (ownerPrivateUser.latestVersion && ownerPrivateUser.latestVersion >= FIELD_MIGRATION_VERSION)
+		{
+			const userFields = await getCollection("customFields").find({uid: req.params.id}).toArray()
+
+			const allowedFields : CustomFieldType[] = []
+
+			for (let i = 0; i < userFields.length; ++i)
+			{
+				const field = userFields[i]
+				const accessResult = await getDocumentAccess(req, res, field, "customFields")
+				if (accessResult.access === true)
+				{
+					allowedFields.push(field)
+				}
+			}
+
+			members.forEach((member) => {
+				const newFields: any = {}
+
+				allowedFields.forEach((field) => 
+				{
+					newFields[field._id.toString()] = member[field._id.toString()]
+				})
+
+				member.info = newFields;
+			})
 		}
-	}
-
-	const query = getCollection("members").find({ uid: req.params.system });
-	const documents = await query.toArray();
-
-	if (req.params.system != res.locals.uid) {
-		const ownerUser = await getCollection("users").findOne({ uid: req.params.system });
-		const friendLevel = await getFriendLevel(req.params.system, res.locals.uid);
-		const isATrustedFriend = isTrustedFriend(friendLevel);
-		if (ownerUser) {
+		else // Legacy custom fields
+		{
+			const friendLevel = await getFriendLevel(req.params.system, res.locals.uid);
+			const isATrustedFriend = isTrustedFriend(friendLevel);
+	
 			const ownerFields: { [key: string]: any } = ownerUser.fields;
-			documents.forEach((member) => {
-				const newFields: any = {};
+			members.forEach((member) => {
 
+				const newFields: any = {};
+				
 				if (member.info && ownerFields) {
 					Object.keys(member.info).forEach((key) => {
 						const fieldSpec = ownerFields[key];
@@ -44,16 +69,55 @@ export const getMembers = async (req: Request, res: Response) => {
 
 				member.info = newFields;
 			});
-		} else {
-			res.status(404).send();
+		}
+	}
+	else 
+	{
+		res.status(404).send()
+		return false
+	}
+
+	return true
+}
+
+export const getMembers = async (req: Request, res: Response) => {
+	if (req.params.system != res.locals.uid) {
+		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
+		if (!canSee) {
+			res.status(403).send("You are not authorized to see members of this user");
 			return;
 		}
 	}
+
+	const query = getCollection("members").find({ uid: req.params.system });
+	const documents = await query.toArray();
+
+	if (req.params.system != res.locals.uid) {
+
+		const filterResult = await filterFieldsForPrivacy(req, res, documents)
+		if (filterResult !== true)
+		{
+			return
+		}
+	}
+
 	sendDocuments(req, res, "members", documents);
 };
 
 export const get = async (req: Request, res: Response) => {
-	fetchSimpleDocument(req, res, "members");
+
+	const document = await getCollection("members").findOne({ _id: parseId(req.params.id), uid: req.params.system ?? res.locals.uid });
+
+	if (req.params.system != res.locals.uid) {
+
+		const filterResult = await filterFieldsForPrivacy(req, res, [document])
+		if (filterResult !== true)
+		{
+			return
+		}
+	}
+
+	sendDocument(req, res, "members", document);
 };
 
 export const add = async (req: Request, res: Response) => {
