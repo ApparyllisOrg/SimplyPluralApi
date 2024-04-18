@@ -62,6 +62,17 @@ export const getOutgoingFriendRequests = async (req: Request, res: Response) => 
 export const updateFriend = async (req: Request, res: Response) => {
 	const setBody = req.body;
 	setBody.lastOperationTime = res.locals.operationTime;
+	if (setBody["getTheirFrontNotif"] === true) {
+		const friend = await getCollection("friends").findOne(
+			{
+				uid: req.params.id,
+				frienduid: res.locals.uid
+			}
+		);
+		if (friend["getFrontNotif"] === false) {
+			setBody["getTheirFrontNotif"] = false;
+		}
+	}
 	const result = await getCollection("friends").updateOne(
 		{
 			uid: res.locals.uid,
@@ -73,6 +84,16 @@ export const updateFriend = async (req: Request, res: Response) => {
 	if (result.modifiedCount === 0) {
 		res.status(404).send();
 		return;
+	}
+	if (setBody["getFrontNotif"] === false) {
+		await getCollection("friends").updateOne(
+			{
+				uid: req.params.id,
+				frienduid: res.locals.uid,
+				$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
+			},
+			{ $set: { "getTheirFrontNotif": false } }
+		);
 	}
 	res.status(200).send();
 };
