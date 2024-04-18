@@ -69,7 +69,7 @@ export const updateFriend = async (req: Request, res: Response) => {
 				frienduid: res.locals.uid
 			}
 		);
-		if (friend["getFrontNotif"] === false) {
+		if (friend && friend["getFrontNotif"] === false) {
 			setBody["getTheirFrontNotif"] = false;
 		}
 	}
