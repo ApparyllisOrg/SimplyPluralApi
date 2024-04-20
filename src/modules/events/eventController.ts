@@ -1,7 +1,7 @@
 import { logger } from "../logger";
 import { getCollection } from "../mongo";
 import { automatedRemindersDueEvent, removeDeletedReminders } from "./automatedReminder";
-import { notifyPrivateFrontDue, notifySharedFrontDue } from "./frontChange";
+import { notifyFrontDue, notifyPrivateFrontDue, notifySharedFrontDue } from "./frontChange";
 import { repeatRemindersDueEvent, repeatRemindersEvent } from "./repeatReminders";
 import promclient from "prom-client";
 import { getStartOfDay, isPrimaryInstace } from "../../util";
@@ -16,6 +16,7 @@ const bindEvents = async () => {
 	_boundEvents.set("scheduledAutomatedReminder", automatedRemindersDueEvent);
 	_boundEvents.set("frontChangeShared", notifySharedFrontDue);
 	_boundEvents.set("frontChangePrivate", notifyPrivateFrontDue);
+	_boundEvents.set("frontChange", notifyFrontDue);
 };
 
 const counter = new promclient.Gauge({
@@ -35,6 +36,7 @@ const runEvents = async () => {
 	const queuedEvents = getCollection("queuedEvents");
 	const overdueEvents = await queuedEvents.find({ due: { $lte: now } }).toArray();
 	overdueEvents.forEach((event) => {
+	
 		// Try because if one event fails, we don't want any of the others to fail..
 		try {
 			const func = _boundEvents.get(event["event"]);
@@ -67,13 +69,13 @@ const enqueueEvent = (event: string, uid: string, delay: number) => {
 };
 
 export const init = () => {
-	if (isPrimaryInstace()) {
+	if (isPrimaryInstace() || process.env.DEVELOPMENT === 'true') {
 		runEvents();
 		// Todo: Edit this so that every server can run queued events and that
 		// getting queued events is atomic, so only one server handles the documents it got returned
 		// We don't want to run runEvents twice on two servers and have it return
 		// the same events on both. It needs to return atomically.
-		if (process.env.DEVELOPMENT !== "true" && process.env.LOCALEVENTS === "true") {
+		if (process.env.LOCALEVENTS === "true") {
 			bindEvents();
 			console.log("Bound to events, started event controller");
 		}

@@ -17,17 +17,16 @@ export interface CustomFieldType
 	type: number 
 }
 
-export const hasMigratedToNewFields = async (uid: string) => 
-{
-    const privateData = await getCollection("private").findOne({ uid: uid, _id: uid })
-    return privateData.latestVersion >= NewFieldsVersion
-}
-
 export const getCustomField = async (req: Request, res: Response) => {
 	fetchSimpleDocument(req, res, "customFields");
 };
 
 export const getCustomFields = async (req: Request, res: Response) => {
+	if (!req.query.sortBy && !req.query.sortOrder)
+	{
+		req.query.sortBy = "order"
+		req.query.sortOrder = "1"
+	}
 	fetchCollection(req, res, "customFields", {});
 };
 
@@ -49,15 +48,32 @@ export const deleteCustomField = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "customFields");
 };
 
-export const validateCustomFieldSchema = (body: unknown): { success: boolean; msg: string } => {
+export const validatePostCustomFieldSchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
 		properties: {
             name: { type: "string" },
             type: { type: "number" },
+			order: { type: "string", pattern: "^0\|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
             supportMarkdown: { type: "boolean" },
         },
-        required: ["name", "supportMarkdown", "type"],
+        required: ["name", "supportMarkdown", "type", "order"],
+		nullable: false,
+		additionalProperties: false,	};
+
+	return validateSchema(schema, body);
+};
+
+export const validatePatchCustomFieldSchema = (body: unknown): { success: boolean; msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+            name: { type: "string" },
+            type: { type: "number" },
+			order: { type: "string", pattern: "^0\|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
+            supportMarkdown: { type: "boolean" },
+        },
+        required: [],
 		nullable: false,
 		additionalProperties: false,	};
 

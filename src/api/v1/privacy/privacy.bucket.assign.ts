@@ -6,7 +6,7 @@ import { validateSchema } from "../../../util/validation";
 export const assignBucketsToFriend = async (req: Request, res: Response) => {
 	let mongoBucketIds : any[] = await convertListToIds(res.locals.uid, "privacyBuckets", req.body.buckets)
 
-	const result = await getCollection("friends").updateOne({ uid: res.locals.uid, frienduid: req.body.friendUid }, { $set: { privacyBuckets: mongoBucketIds }});
+	const result = await getCollection("friends").updateOne({ uid: res.locals.uid, frienduid: req.body.friendUid }, { $set: { buckets: mongoBucketIds }});
 	if (result.modifiedCount === 1)
 	{
 		res.status(200).send()
@@ -30,7 +30,7 @@ export const assignFriendsToBucket = async (req: Request, res: Response) => {
 
 	for (let i = 0; i < allFriends.length; ++i)
 	{
-		revokeBucketForFriendsFutures.push(getCollection("friends").updateOne({ uid: res.locals.uid, frienduid: allFriends[i].frienduid }, { $pull: { privacyBuckets: bucket._id }}))
+		revokeBucketForFriendsFutures.push(getCollection("friends").updateOne({ uid: res.locals.uid, frienduid: allFriends[i].frienduid }, { $pull: { buckets: bucket._id }}))
 	}
 
 	await Promise.all(revokeBucketForFriendsFutures)
@@ -41,7 +41,7 @@ export const assignFriendsToBucket = async (req: Request, res: Response) => {
 
 	for (let i = 0; i < friends.length; ++i)
 	{
-		assignBucketForFriendsFutures.push(getCollection("friends").updateOne({ uid: res.locals.uid, frienduid: friends[i] }, { $push: { privacyBuckets: bucket._id }}))
+		assignBucketForFriendsFutures.push(getCollection("friends").updateOne({ uid: res.locals.uid, frienduid: friends[i] }, { $push: { buckets: bucket._id }}))
 	}
 
 	await Promise.all(assignBucketForFriendsFutures)
@@ -53,7 +53,7 @@ export const validateAssignBucketsToFriendSchema = (body: unknown): { success: b
 	const schema = {
 		type: "object",
 		properties: {
-			friendUid: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
+			friendUid: { type: "string", pattern: "^[A-Za-z0-9]{1,64}$" },
 			buckets: { type: "array" , items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
 		},
 		required: ["friendUid", "buckets",],
@@ -68,7 +68,7 @@ export const validateAssignFriendsToBucketSchema = (body: unknown): { success: b
 	const schema = {
 		type: "object",
 		properties: {
-			bucket: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
+			bucket: { type: "string", pattern: "^[A-Za-z0-9]{20,100}$" },
 			friends: { type: "array" , items: { type: "string", pattern: "^[a-zA-Z0-9]{1,64}$" }, uniqueItems: true },
 		},
 		required: ["bucket", "friends",],

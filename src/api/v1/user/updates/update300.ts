@@ -1,8 +1,14 @@
 import assert from "assert";
 import { getCollection } from "../../../../modules/mongo";
+import {LexoRank} from "lexorank";
 
 // Create 2 new privacy buckets
 export const update300 = async (uid: string) => {
+
+    if (process.env.DEVELOPMENT === "true")
+    {
+        await rollback300(uid)
+    }
 
     const friendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any } = {uid, name: "Friends", icon: "🔓", rank: "0|aaaaaa:", desc: "A bucket for all your friends", color: "#C99524",}
     const trustedFriendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any }  = {uid, name: "Trusted friends", icon: "🔒", rank: "0|zzzzzz:", desc: "A bucket for all your trusted friends", color: "#1998A8"}
@@ -38,7 +44,7 @@ export const update300 = async (uid: string) => {
 
     await applyBucketsToData("members")
     await applyBucketsToData("groups")
-    await applyBucketsToData("customFronts")
+    await applyBucketsToData("frontStatuses")
 
     const applyFriendBucketsPromises = []
 
@@ -49,11 +55,11 @@ export const update300 = async (uid: string) => {
         const friendEntry = friends[i]
         if (friendEntry.seeMembers !== false && friendEntry.trusted !== false)
         {
-            applyFriendBucketsPromises.push(getCollection("friends").updateOne({uid, frienduid: friendEntry.frienduid}, {$set: { privacyBuckets: [ trustedFriendData._id ]}}))
+            applyFriendBucketsPromises.push(getCollection("friends").updateOne({uid, frienduid: friendEntry.frienduid}, {$set: { buckets: [ trustedFriendData._id ]}}))
         }
         else if (friendEntry.seeMembers !== false)
         {
-            applyFriendBucketsPromises.push(getCollection("friends").updateOne({uid, frienduid: friendEntry.frienduid}, {$set: { privacyBuckets: [ friendData._id ]}}))
+            applyFriendBucketsPromises.push(getCollection("friends").updateOne({uid, frienduid: friendEntry.frienduid}, {$set: { buckets: [ friendData._id ]}}))
         }
         else 
         {
@@ -72,11 +78,32 @@ export const update300 = async (uid: string) => {
         return;
     }
 
-    const fields :  {[key: string] : {name: string, order: number, private: boolean, preventTrusted: boolean, type: number }} = user.fields
+    const fields :  {[key: string] : {name: string, order: number | string, private: boolean, preventTrusted: boolean, type: number, supportMarkdown: boolean }} = user.fields
 
     const createFieldsPromises : any[] = []
 
     const fieldKeys = Object.keys(fields)
+
+    // We can assume numbers pre-migration
+    fieldKeys.sort((a, b) => (fields[a].order as number) - (fields[b].order as number))
+
+    if (fieldKeys.length == 1)
+    {
+        fields[fieldKeys[0]].order = "0|aaaaaa:"
+    }
+    else if (fieldKeys.length >= 2)
+    {
+        fields[fieldKeys[0]].order = "0|aaaaaa:"
+        fields[fieldKeys[fieldKeys.length - 1]].order = "0|zzzzzz:"
+
+        for (let i = 1; i < fieldKeys.length - 1; ++i)
+        {
+            const parsedPrevRank = LexoRank.parse(fields[fieldKeys[i - 1]].order as string);
+            const parsedNextRank = LexoRank.parse(fields[fieldKeys[fieldKeys.length - 1]].order as string);
+
+            fields[fieldKeys[i]].order = parsedPrevRank.between(parsedNextRank).format()
+        }
+    }
 
     fieldKeys.forEach((key) =>
     {
@@ -98,7 +125,7 @@ export const update300 = async (uid: string) => {
         }
 
         // oid = original id
-        createFieldsPromises.push(getCollection("customFields").insertOne({uid, name: field.name, order: field.order, type: field.type, privacyBuckets: bucketsToAdd, oid: key }))
+        createFieldsPromises.push(getCollection("customFields").insertOne({uid, name: field.name, order: field.order, type: field.type, supportMarkdown: field.supportMarkdown ,buckets: bucketsToAdd, oid: key }))
     });
 
     await Promise.all(createFieldsPromises)
@@ -113,5 +140,26 @@ export const update300 = async (uid: string) => {
         renameOperation[`info.${field.oid}`] = `info.${field._id}`
     })
 
-    getCollection("members").updateMany({uid }, { $rename: renameOperation})
+    getCollection("members").updateMany({ uid }, { $rename: renameOperation})
 };
+
+const rollback300 = async (uid: string) =>
+{
+    const createdFields = await getCollection("customFields").find({uid}).toArray()
+
+    const renameOperation : { [key: string] : string } = {}
+
+    createdFields.forEach((field) => 
+    {
+        renameOperation[`info.${field._id.toString()}`] = `info.${field.oid}`
+    })
+
+    await getCollection("members").updateMany({ uid }, { $rename: renameOperation})
+
+    await getCollection("customFields").deleteMany({ uid })
+    await getCollection("privacyBuckets").deleteMany({ uid })
+    await getCollection("members").updateMany({ uid }, { $unset: { buckets: ""}})
+    await getCollection("frontStatuses").updateMany({ uid }, { $unset: { buckets: ""}})
+    await getCollection("groups").updateMany({ uid }, { $unset: { buckets: ""}})
+    await getCollection("friends").updateMany({ uid }, { $unset: { buckets: ""}})
+}

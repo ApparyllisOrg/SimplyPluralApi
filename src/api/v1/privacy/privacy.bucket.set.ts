@@ -8,7 +8,7 @@ export const setPrivacyBuckets = async (req: Request, res: Response) =>
 {
     assert(req.body.type === "members" 
         || req.body.type === "groups"
-        || req.body.type === "customFronts"
+        || req.body.type === "frontStatuses"
         || req.body.type === "customFields" )
 
     const mongoBucketIds = await convertListToIds(res.locals.uid, "privacyBuckets", req.body.buckets)
@@ -34,7 +34,7 @@ export const validateSetPrivacyBucketsSchema = (body: unknown): { success: boole
                     type: "string", pattern: "^[A-Za-z0-9]{0,100}$" 
                 },
             },
-			type: { type: "string", enum : ["members", "groups", "customFronts", "customFields"] },
+			type: { type: "string", enum : ["members", "groups", "frontStatuses", "customFields"] },
 		},
 		nullable: false,
 		additionalProperties: false,

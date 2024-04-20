@@ -25,6 +25,7 @@ import * as board from "./board";
 import * as chats from "./chats";
 import * as auth from "./auth";
 import * as event from "./events";
+import * as customFields from "./customFields";
 import { isLemonSetup } from "./subscriptions/subscriptions.core";
 import { cancelSubscription } from "./subscriptions/subscriptions.cancel";
 import { getSubscription } from "./subscriptions/subscriptions.get";
@@ -59,6 +60,13 @@ export const setupV1routes = (app: core.Express) => {
 	app.post("/v1/customFront/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFront.validatePostCustomFrontSchema), validateId, customFront.add);
 	app.patch("/v1/customFront/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFront.validateCustomFrontSchema), customFront.update);
 	app.delete("/v1/customFront/:id", isUserAuthenticated(ApiKeyAccessType.Delete), customFront.del);
+
+	// Custom Fields
+	app.get("/v1/customField/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), customFields.getCustomField);
+	app.get("/v1/customFields/:system", isUserAuthenticated(ApiKeyAccessType.Read), customFields.getCustomFields);
+	app.post("/v1/customField/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFields.validatePostCustomFieldSchema), validateId, customFields.addCustomField);
+	app.patch("/v1/customField/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFields.validatePatchCustomFieldSchema), customFields.updateCustomField);
+	app.delete("/v1/customField/:id", isUserAuthenticated(ApiKeyAccessType.Delete), customFields.deleteCustomField);
 
 	// Comments
 	app.get("/v1/comments/:type/:id", isUserAuthenticated(ApiKeyAccessType.Read), comment.getCommentsForDocument);

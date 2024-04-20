@@ -6,46 +6,50 @@ import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security";
 import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, getDocumentAccess, sendDocument, sendDocuments, updateSimpleDocument } from "../../util";
 import { getPrivacyDependency, validateSchema } from "../../util/validation";
 import { frameType } from "../types/frameType";
-import { FIELD_MIGRATION_VERSION } from "./user/updates/updateUser";
+import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
 import { CustomFieldType } from "./customFields";
 
-const filterFieldsForPrivacy = async (req: Request, res: Response, members: any[]) : Promise<boolean> => 
+const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]) : Promise<boolean> => 
 {
-	const ownerUser = await getCollection("users").findOne({ uid: req.params.system });
-	const ownerPrivateUser = await getCollection("private").findOne({_id: req.params.system, uid:req.params.system})
-
-	if (ownerPrivateUser && ownerUser)
+	const hasMigrated = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION)
+	if (hasMigrated)
 	{
-		if (ownerPrivateUser.latestVersion && ownerPrivateUser.latestVersion >= FIELD_MIGRATION_VERSION)
+		const userFields = await getCollection("customFields").find({uid}).toArray()
+
+		const allowedFields : CustomFieldType[] = []
+
+		for (let i = 0; i < userFields.length; ++i)
 		{
-			const userFields = await getCollection("customFields").find({uid: req.params.id}).toArray()
+			const field = userFields[i]
+			const accessResult = await getDocumentAccess(res.locals.uid, field, "customFields")
 
-			const allowedFields : CustomFieldType[] = []
-
-			for (let i = 0; i < userFields.length; ++i)
+			if (accessResult.access === true)
 			{
-				const field = userFields[i]
-				const accessResult = await getDocumentAccess(req, res, field, "customFields")
-				if (accessResult.access === true)
-				{
-					allowedFields.push(field)
-				}
+				allowedFields.push(field)
 			}
+		}
 
-			members.forEach((member) => {
+		members.forEach((member) => {
+			if (member.info)
+			{
 				const newFields: any = {}
 
 				allowedFields.forEach((field) => 
 				{
-					newFields[field._id.toString()] = member[field._id.toString()]
+					newFields[field._id.toString()] = member.info[field._id.toString()]
 				})
 
 				member.info = newFields;
-			})
-		}
-		else // Legacy custom fields
+			}
+		})
+	}
+	else // Legacy custom fields
+	{
+		const ownerUser = await getCollection("users").findOne({ _id: uid , uid });
+
+		if (ownerUser)
 		{
-			const friendLevel = await getFriendLevel(req.params.system, res.locals.uid);
+			const friendLevel = await getFriendLevel(uid, res.locals.uid);
 			const isATrustedFriend = isTrustedFriend(friendLevel);
 	
 			const ownerFields: { [key: string]: any } = ownerUser.fields;
@@ -71,11 +75,6 @@ const filterFieldsForPrivacy = async (req: Request, res: Response, members: any[
 			});
 		}
 	}
-	else 
-	{
-		res.status(404).send()
-		return false
-	}
 
 	return true
 }
@@ -94,7 +93,7 @@ export const getMembers = async (req: Request, res: Response) => {
 
 	if (req.params.system != res.locals.uid) {
 
-		const filterResult = await filterFieldsForPrivacy(req, res, documents)
+		const filterResult = await filterFieldsForPrivacy(req, res, req.params.system, documents)
 		if (filterResult !== true)
 		{
 			return
@@ -110,7 +109,7 @@ export const get = async (req: Request, res: Response) => {
 
 	if (req.params.system != res.locals.uid) {
 
-		const filterResult = await filterFieldsForPrivacy(req, res, [document])
+		const filterResult = await filterFieldsForPrivacy(req, res, req.params.system, [document])
 		if (filterResult !== true)
 		{
 			return

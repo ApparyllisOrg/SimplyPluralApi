@@ -21,7 +21,7 @@ import { s3 } from "./storage";
 import { frameType } from "../types/frameType";
 import { getTemplate, mailTemplate_userReport } from "../../modules/mail/mailTemplates";
 import { sendCustomizedEmailToEmail } from "../../modules/mail";
-import { FIELD_MIGRATION_VERSION } from "./user/updates/updateUser";
+import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -166,43 +166,37 @@ export const get = async (req: Request, res: Response) => {
 	if (req.params.id !== res.locals.uid) {
 
 		const newFields: any = {};
-
-		const privateUser = await getCollection("private").findOne({_id: req.params.id, uid: req.params.id})
-		if (privateUser)
+		const hasMigrated = await doesUserHaveVersion(req.params.id, FIELD_MIGRATION_VERSION)
+		if (hasMigrated)
 		{
-			if (privateUser.latestVersion && privateUser.latestVersion >= FIELD_MIGRATION_VERSION)
-			{
-				const userFields = await getCollection("customFields").find({uid: req.params.id}).toArray()
+			const userFields = await getCollection("customFields").find({uid: req.params.id}).toArray()
 
-				for (let i = 0; i < userFields.length; ++i)
-				{
-					const field = userFields[i]
-					const accessResult = await getDocumentAccess(req, res, field, "customFields")
-					if (accessResult.access === true)
-					{
-						newFields[field._id.ToString()] = { name: field.name, order: field.order, type: field.type }
-					}
-				}
-				
-			}
-			else // Legacy custom fields
+			for (let i = 0; i < userFields.length; ++i)
 			{
-				const friendLevel = await getFriendLevel(req.params.id, res.locals.uid);
-				const isATrustedFriends = isTrustedFriend(friendLevel);
-	
-				if (document.fields) {
-					Object.keys(document.fields).forEach((key: string) => {
-						const field = document.fields[key];
-						if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
-							newFields[key] = field;
-						}
-						if (field.private === false && field.preventTrusted === false) {
-							newFields[key] = field;
-						}
-					});
+				const field = userFields[i]
+				const accessResult = await getDocumentAccess(res.locals.uid, field, "customFields")
+				if (accessResult.access === true)
+				{
+					newFields[field._id.ToString()] = { name: field.name, order: field.order, type: field.type }
 				}
 			}
-		
+		}
+		else // Legacy custom fields
+		{
+			const friendLevel = await getFriendLevel(req.params.id, res.locals.uid);
+			const isATrustedFriends = isTrustedFriend(friendLevel);
+
+			if (document.fields) {
+				Object.keys(document.fields).forEach((key: string) => {
+					const field = document.fields[key];
+					if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
+						newFields[key] = field;
+					}
+					if (field.private === false && field.preventTrusted === false) {
+						newFields[key] = field;
+					}
+				});
+			}
 		}
 
 		document.fields = newFields;

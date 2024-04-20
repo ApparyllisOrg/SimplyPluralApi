@@ -13,8 +13,9 @@ const sharedFront = "sharedFront";
 const privateFront = "privateFront";
 const friends = "friends";
 const front = "front";
+const customFields = "customFields";
 
-export const friendReadCollections = [users, members, frontStatuses, groups, sharedFront, privateFront, friends, front];
+export const friendReadCollections = [users, members, frontStatuses, groups, sharedFront, privateFront, friends, front, customFields];
 
 export enum FriendLevel {
 	None = 0,
@@ -25,7 +26,6 @@ export enum FriendLevel {
 
 const friendLevelLRU = new LRU<string, FriendLevel>({ max: 10000, ttl: 1000 * 5 });
 const seeMembersLRU = new LRU<string, boolean>({ max: 10000, ttl: 1000 * 5 });
-const privacyBucketsLRU = new LRU<string, string[]>({ max: 10000, ttl: 1000 * 5 });
 
 export const getFriendLevel = async (owner: string, requestor: string): Promise<FriendLevel> => {
 	const cacheLevel = friendLevelLRU.get(owner + requestor);
@@ -60,17 +60,6 @@ export const getFriendLevel = async (owner: string, requestor: string): Promise<
 	return friendLevel;
 };
 
-const getFriendsInBuckets = async (buckets : string[]) => 
-{
-	let mongoBucketIds : any[] = []
-    buckets.forEach((bucket : string) => 
-    {
-        mongoBucketIds.push(parseId(bucket))
-    })
-
-	await getCollection("privacyBuckets").aggregate([{ $match: { _id: { $in: mongoBucketIds } } }, { $mergeObjects: { }}])
-}
-
 export const canSeeMembers = async (owner: string, requestor: string): Promise<boolean> => {
 	const seeMembers = seeMembersLRU.get(owner + requestor);
 	if (seeMembers) {
@@ -90,23 +79,6 @@ export const canSeeMembers = async (owner: string, requestor: string): Promise<b
 export const isPendingFriend = (friendLevel: FriendLevel): boolean => !!(friendLevel === FriendLevel.Pending);
 export const isFriend = (friendLevel: FriendLevel): boolean => !!(friendLevel === FriendLevel.Friends) || !!(friendLevel === FriendLevel.Trusted);
 export const isTrustedFriend = (friendLevel: FriendLevel): boolean => !!(friendLevel === FriendLevel.Trusted);
-
-export const canAccessDocument = async (requestor: string, owner: string, privateDoc: boolean, preventTrusted: boolean): Promise<boolean> => {
-	const friendLevel = await getFriendLevel(owner, requestor);
-	if (privateDoc === true) {
-		const trustedFriend: boolean = isTrustedFriend(friendLevel);
-		// Trusted and not prevent trusted.. give access
-		// eslint-disable-next-line sonarjs/prefer-single-boolean-return
-		if (trustedFriend && !preventTrusted) {
-			return true;
-		}
-
-		// Prevent trusted? Don't allow at all
-		// Not a trusted friend? Don't allow either
-		return false;
-	}
-	return !!(friendLevel === FriendLevel.Friends) || !!(friendLevel === FriendLevel.Trusted);
-};
 
 export const logSecurityUserEvent = async (uid: string, action: string, request: Request) => {
 	await getCollection("securityLogs").insertOne({ uid: uid, at: moment.now(), action, ip: request.header("x-forwarded-for") ?? request.ip });

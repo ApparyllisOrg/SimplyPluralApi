@@ -9,7 +9,7 @@ import { updateUser } from "./user/updates/updateUser";
 import { NewFieldsVersion } from "./customFields";
 import { ObjectId } from "mongodb";
 
-export const getDefaultPrivacyBuckets = async (uid: string, type: "members" | "groups" | "customFields" | "customFronts" ) : Promise<ObjectId[]> =>
+export const getDefaultPrivacyBuckets = async (uid: string, type: "members" | "groups" | "customFields" | "frontStatuses" ) : Promise<ObjectId[]> =>
 {
 	const privateDocument = await getCollection("private").findOne({ uid: uid, _id: uid, latestVersion: { $gte: NewFieldsVersion } });
 	if (!privateDocument)
@@ -25,7 +25,7 @@ export const getDefaultPrivacyBuckets = async (uid: string, type: "members" | "g
 			return privateDocument.groups;
 		case "customFields":
 			return privateDocument.customFields;
-		case "customFronts":
+		case "frontStatuses":
 			return privateDocument.customFronts;
 	}
 }
