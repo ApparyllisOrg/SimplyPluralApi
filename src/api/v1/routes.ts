@@ -128,7 +128,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/board/unread", isUserAuthenticated(ApiKeyAccessType.Read), board.getUnreadMessages);
 	app.get("/v1/board/:id", isUserAuthenticated(ApiKeyAccessType.Read), board.get);
 	app.get("/v1/board/member/:id", isUserAuthenticated(ApiKeyAccessType.Read), board.getBoardMessagesForMember);
-	app.post("/v1/board/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(board.validateBoardMessageSchema), board.add);
+	app.post("/v1/board/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(board.validateBoardMessageSchema), board.add);
 	app.patch("/v1/board/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(board.validateCommentPatchSchema), board.update);
 	app.delete("/v1/board/:id", isUserAuthenticated(ApiKeyAccessType.Delete), board.del);
 
