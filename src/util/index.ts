@@ -99,7 +99,7 @@ export const getDocumentAccess = async (requestor: string, document: documentObj
 
 		return { access: true, statusCode: 200, message: "" };
 	}
-	else 
+	else // Legacy support
 	{
 		if (document.private && document.preventTrusted) {
 			return { access: false, statusCode: 403, message: "Access to document has been rejected." };
@@ -321,4 +321,9 @@ export const convertListToIds = async (uid: string, collection: string, listOfId
 	foundDocuments.forEach((document) => { resultingIds.push(document._id) })
 
 	return resultingIds
+}
+
+export const intersects = (a: any[], b: any[]) => 
+{
+	return a.findIndex((value: string | ObjectId) => b.findIndex((cachedId: string | ObjectId) => (parseId(value) as ObjectId).equals(cachedId)) != -1) != -1
 }

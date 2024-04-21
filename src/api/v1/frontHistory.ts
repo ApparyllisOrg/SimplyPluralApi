@@ -138,8 +138,8 @@ export const validatefrontHistoryPostSchema = (body: unknown): { success: boolea
 		properties: {
 			custom: { type: "boolean" },
 			live: { type: "boolean" },
-			startTime: { type: "number" },
-			endTime: { type: "number" },
+			startTime: { type: "number", format: "int64" },
+			endTime: { type: "number", format: "int64" },
 			member: { type: "string" },
 			customStatus: { type: "string", maxLength: 50 },
 		},
@@ -157,8 +157,8 @@ export const validatefrontHistoryPatchSchema = (body: unknown): { success: boole
 		properties: {
 			custom: { type: "boolean" },
 			live: { type: "boolean" },
-			startTime: { type: "number" },
-			endTime: { type: "number" },
+			startTime: { type: "number", format: "int64" },
+			endTime: { type: "number", format: "int64" },
 			member: { type: "string" },
 			customStatus: { type: "string", maxLength: 50 },
 		},

@@ -7,6 +7,7 @@ import { addPendingRequest, PkRequest, PkRequestType } from "./controller";
 import * as Sentry from "@sentry/node";
 import moment from "moment";
 import validUrl from "valid-url";
+import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "../../../api/v1/user/updates/updateUser";
 export interface syncOptions {
 	name: boolean;
 	avatar: boolean;
@@ -228,12 +229,16 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 		memberDataToSync.uid = userId;
 		memberDataToSync.pkId = pkMemberId;
 
-		if (memberData.privacy?.visibility === "private" || privateByDefault) {
-			memberDataToSync.private = true;
-			memberDataToSync.preventTrusted = true;
-		} else {
-			memberDataToSync.private = false;
-			memberDataToSync.preventTrusted = false;
+		const migratedToBuckets = await doesUserHaveVersion(userId, FIELD_MIGRATION_VERSION) 
+		if (migratedToBuckets === false)
+		{
+			if (memberData.privacy?.visibility === "private" || privateByDefault) {
+				memberDataToSync.private = true;
+				memberDataToSync.preventTrusted = true;
+			} else {
+				memberDataToSync.private = false;
+				memberDataToSync.preventTrusted = false;
+			}
 		}
 
 		memberDataToSync.preventsFrontNotifs = false;
@@ -242,7 +247,7 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 			batch.push({ insertOne: { document: memberDataToSync } });
 		} else {
 			await getCollection("members").insertOne(memberDataToSync);
-		}
+		} 
 
 		return { success: true, msg: `${memberData.name} added to Simply Plural` };
 	}

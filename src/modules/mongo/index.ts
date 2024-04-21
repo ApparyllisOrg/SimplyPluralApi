@@ -12,7 +12,7 @@ let _db: MongoDb.Db | undefined = undefined;
 
 export const db = () => _db;
 export const getCollection = (target: string): MongoDb.Collection<any> => _db!.collection(target);
-export const parseId = (id: string): string | ObjectId => {
+export const parseId = (id: string | ObjectId): string | ObjectId => {
 	if (typeof id === "string" && id.match(/^[0-9a-fA-F]{24}$/) && ObjectId.isValid(id)) {
 		return new MongoDb.ObjectId(id);
 	}
