@@ -4,6 +4,8 @@ import { fetchSimpleDocument, fetchCollection, addSimpleDocument, updateSimpleDo
 import { Request, Response } from "express";
 import { validateSchema } from "../../util/validation";
 import { ObjectId } from "mongodb";
+import { DiffProcessor } from "../../util/diff";
+import { Diff } from "deep-diff";
 
 
 export const NewFieldsVersion = 300
@@ -35,7 +37,19 @@ export const addCustomField = async (req: Request, res: Response) => {
 };
 
 export const updateCustomField= async (req: Request, res: Response) => {
-	updateSimpleDocument(req, res, "customFields");
+
+	const differenceProcessor : DiffProcessor = async (uid: string, difference: Diff<any, any>, lhs: any, rhs: any) =>
+	{
+		if (difference.path![0] === "order")
+		{
+			return { processed: true, result: undefined, ignore: true }
+		}
+
+
+		return { processed: false, result: undefined }
+	}
+
+	updateSimpleDocument(req, res, "customFields", differenceProcessor);
 };
 
 export const deleteCustomField = async (req: Request, res: Response) => {

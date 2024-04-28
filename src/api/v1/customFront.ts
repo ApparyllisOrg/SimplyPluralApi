@@ -85,7 +85,7 @@ export const validatePostCustomFrontSchema = (body: unknown): { success: boolean
 			supportDescMarkdown: { type: "boolean" },
 			frame: frameType
 		},
-		required: ["name", "private", "preventTrusted"],
+		required: ["name"],
 		nullable: false,
 		additionalProperties: false,
 		dependencies: getPrivacyDependency(),

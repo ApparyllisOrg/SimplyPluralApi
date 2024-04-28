@@ -8,6 +8,9 @@ import { getPrivacyDependency, validateSchema } from "../../util/validation";
 import { frameType } from "../types/frameType";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
 import { CustomFieldType } from "./customFields";
+import { Diff } from "deep-diff";
+import { DiffProcessor, DiffResult } from "../../util/diff";
+import { limitStringLength } from "../../util/string";
 
 const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]) : Promise<boolean> => 
 {
@@ -124,7 +127,46 @@ export const add = async (req: Request, res: Response) => {
 };
 
 export const update = async (req: Request, res: Response) => {
-	updateSimpleDocument(req, res, "members");
+
+	const differenceProcessor : DiffProcessor = async (uid: string, difference: Diff<any, any>, lhs: any, rhs: any) =>
+	{
+		if (difference.kind === "E" && difference.path![0] === "info")
+		{
+			const fieldId = difference.path![1]
+			const field = await getCollection("customFields").findOne({uid, _id: parseId(fieldId)})
+
+			if (field)
+			{
+				const originalValue = difference.lhs
+				return { processed: true, result: {o: originalValue, n: limitStringLength(difference.rhs, 50, true) ?? '', p: field.name, cn: true}}	
+			}
+		}
+
+		if (difference.kind === "N" && difference.path![0] === "info" && difference.path?.length === 1)
+		{
+			const newFields = difference.rhs;
+			const newFieldsKeys = Object.keys(newFields);
+
+			const newInfo : DiffResult[] = []
+
+			for (let i = 0; i < newFieldsKeys.length; ++i)
+			{
+				const newFieldValue : string = newFields[newFieldsKeys[i]]
+				if (newFieldValue && newFieldValue.length > 0)
+				{
+					const fieldId = parseId(newFieldsKeys[i])
+					const field = await getCollection("customFields").findOne({uid, _id: fieldId})
+					newInfo.push({o: "", n: limitStringLength(newFieldValue, 50, true) ?? '', p: field.name, cn: true})
+				}
+			}
+
+			return {processed: true, result: newInfo}
+		}
+
+		return {processed: false, result: undefined}
+	}
+
+	updateSimpleDocument(req, res, "members", differenceProcessor);
 
 	// If this member is fronting, we need to notify and update current fronters
 	const fhLive = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.params.id, live: true });
@@ -226,7 +268,7 @@ export const validatePostMemberSchema = (body: unknown): { success: boolean; msg
 			archivedReason: { type: "string", maxLength: 150 },
 			frame: frameType
 		},
-		required: ["name", "private", "preventTrusted"],
+		required: ["name"],
 		nullable: false,
 		additionalProperties: false,
 		dependencies: getPrivacyDependency(),

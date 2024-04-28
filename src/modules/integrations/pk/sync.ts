@@ -8,6 +8,7 @@ import * as Sentry from "@sentry/node";
 import moment from "moment";
 import validUrl from "valid-url";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "../../../api/v1/user/updates/updateUser";
+import { limitStringLength } from "../../../util/string";
 export interface syncOptions {
 	name: boolean;
 	avatar: boolean;
@@ -47,17 +48,6 @@ const spColorToPkColor = (color: string | undefined): string | undefined => {
 	return undefined;
 };
 
-const limitStringLength = (value: string | undefined, length: number) => {
-	let newValue = null;
-	if (value != null && value != undefined) {
-		if (value.length > length) {
-			newValue = value.substring(0, length);
-		} else {
-			newValue = value;
-		}
-	}
-	return newValue;
-};
 
 const cleanURLs = (url: string | undefined | null) : string | null => 
 {	

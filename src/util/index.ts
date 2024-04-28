@@ -9,6 +9,8 @@ import { dispatchDelete, OperationType } from "../modules/socket";
 import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
 import { parseForAllowedReadValues } from "../security/readRules";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "../api/v1/user/updates/updateUser";
+import { diff } from "deep-diff";
+import { DiffProcessor, logAudit, logCreatedAudit, logDeleteAudit } from "./diff";
 
 export function transformResultForClientRead(value: documentObject, requestorUid: string) {
 	parseForAllowedReadValues(value, requestorUid);
@@ -162,12 +164,21 @@ export const fetchSimpleDocument = async (req: Request, res: Response, collectio
 };
 
 export const deleteSimpleDocument = async (req: Request, res: Response, collection: string) => {
-	const result = await Mongo.getCollection(collection).deleteOne({
+
+	const query = {
 		_id: parseId(req.params.id),
 		uid: res.locals.uid,
 		$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
-	});
+	}
+
+	const originalDocument = await Mongo.getCollection(collection).findOne(query)
+
+	const result = await Mongo.getCollection(collection).deleteOne(query);
+
 	if (result.deletedCount && result.deletedCount > 0) {
+		
+		logDeleteAudit(res.locals.uid, collection, res.locals.operationTime, originalDocument)
+
 		dispatchDelete({
 			operationType: OperationType.Delete,
 			uid: res.locals.uid,
@@ -229,6 +240,7 @@ export const addSimpleDocument = async (req: Request, res: Response, collection:
 	dataObj._id = parseId(res.locals.useId) ?? new ObjectId();
 	dataObj.uid = res.locals.uid;
 	dataObj.lastOperationTime = res.locals.operationTime;
+
 	const result = await Mongo.getCollection(collection)
 		.insertOne(dataObj)
 		.catch(() => {
@@ -243,21 +255,33 @@ export const addSimpleDocument = async (req: Request, res: Response, collection:
 		return;
 	}
 
+	logCreatedAudit(res.locals.uid,  parseId(result.insertedId).toString(), collection, res.locals.operationTime, dataObj)
+
 	res.status(200).send(result.insertedId);
 };
 
-export const updateSimpleDocument = async (req: Request, res: Response, collection: string) => {
+export const updateSimpleDocument = async (req: Request, res: Response, collection: string, auditProcessor: DiffProcessor | undefined = undefined) => {
 	const dataObj: documentObject = req.body;
 	dataObj.uid = res.locals.uid;
 	dataObj.lastOperationTime = res.locals.operationTime;
-	await Mongo.getCollection(collection).updateOne(
-		{
-			_id: parseId(req.params.id),
-			uid: res.locals.uid,
-			$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
-		},
+
+	const query = {
+		_id: parseId(req.params.id),
+		uid: res.locals.uid,
+		$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
+	}
+
+	const originalDocument = await Mongo.getCollection(collection).findOne(query)
+
+	const updateResult = await Mongo.getCollection(collection).updateOne(
+		query,
 		{ $set: dataObj }
 	);
+
+	if (originalDocument && updateResult.modifiedCount === 1)
+	{
+		logAudit(res.locals.uid, query._id, collection, dataObj.lastOperationTime, originalDocument, dataObj, auditProcessor)
+	}
 
 	res.status(200).send();
 };

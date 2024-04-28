@@ -38,6 +38,7 @@ import { addPrivacyBucket, deletePrivacyBucket, getPrivacyBucket, getPrivacyBuck
 import { orderBuckets, validateOrderBucketsSchema } from "./privacy/privacy.buckets.order";
 import { assignBucketsToFriend, assignFriendsToBucket, validateAssignBucketsToFriendSchema, validateAssignFriendsToBucketSchema } from "./privacy/privacy.bucket.assign";
 import { setPrivacyBuckets, validateSetPrivacyBucketsSchema } from "./privacy/privacy.bucket.set";
+import { getAuditHistory, validateGetAuditHistorySchema } from "./audit";
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
@@ -118,6 +119,9 @@ export const setupV1routes = (app: core.Express) => {
 
 	// Analytics
 	app.get("/v1/user/analytics", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(analytics.validatGetAnalyticsSchema), analytics.get);
+
+	// Audit
+	app.get("/v1/audit", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(validateGetAuditHistorySchema), getAuditHistory);
 
 	// User
 	app.get("/v1/me", isUserAuthenticated(ApiKeyAccessType.Read), user.getMe);
