@@ -40,6 +40,11 @@ export const validateQuery = (func: schemavalidation) => {
 
 export const validateBody = (func: schemavalidation) => {
 	return async (req: Request, res: Response, next: any) => {
+		if(req.body.constructor === Object && Object.keys(req.body).length === 0) {
+			res.status(400).send("You need to send at least one valid property.\nPossible causes:\n*No content-type was provided\n*No properties were sent");
+			return;
+		  }
+
 		const result = func(req.body);
 		if (!result.success) {
 			if (process.env.UNITTEST === "true") {
