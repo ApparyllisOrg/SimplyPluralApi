@@ -281,9 +281,11 @@ export const updateSimpleDocument = async (req: Request, res: Response, collecti
 	if (originalDocument && updateResult.modifiedCount === 1)
 	{
 		logAudit(res.locals.uid, query._id, collection, dataObj.lastOperationTime, originalDocument, dataObj, auditProcessor)
+		res.status(200).send()
+		return
 	}
 
-	res.status(200).send();
+	res.status(404).send();
 };
 
 export const isMember = async (uid: string, id: string) => {

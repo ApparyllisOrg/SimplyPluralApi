@@ -1,6 +1,6 @@
 import assert from "assert";
 import { getCollection, parseId } from "../../modules/mongo";
-import { fetchSimpleDocument, fetchCollection, addSimpleDocument, updateSimpleDocument, deleteSimpleDocument, convertListToIds } from "../../util";
+import { fetchSimpleDocument, fetchCollection, addSimpleDocument, updateSimpleDocument, deleteSimpleDocument } from "../../util";
 import { Request, Response } from "express";
 import { validateSchema } from "../../util/validation";
 
