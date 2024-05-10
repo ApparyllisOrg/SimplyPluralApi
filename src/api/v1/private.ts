@@ -97,6 +97,9 @@ export const validatePrivateSchema = (body: unknown): { success: boolean; msg: s
 			location: { type: "string" },
 			termsOfServiceAccepted: { type: "boolean", enum: [true] },
 			whatsNew: { type: "number" },
+			auditContentChanges: { type: "boolean" },
+			hideAudits: { type: "boolean" },
+			auditRetention: { type: "number", minimum: 1, maximum: 31 },
 			categories: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
 			defaultPrivacy: {
 				type: "object",

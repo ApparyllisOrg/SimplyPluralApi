@@ -4,11 +4,11 @@ import { fetchCollection } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 export const getAuditHistory = async (req: Request, res: Response) => {
-	const query: any = { channel: req.params.id };
+	const query: any = { };
 
-    if (req.params.target)
+    if (req.query.target)
     {
-        query.id = parseId(req.params.target) 
+        query.id = parseId(req.query.target.toString()) 
     }
 
 	fetchCollection(req, res, "audit", query);
@@ -18,7 +18,7 @@ export const validateGetAuditHistorySchema = (body: unknown): { success: boolean
 	const schema = {
 		type: "object",
 		properties: {
-			target: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
+			target: { type: "string", pattern: "^[A-Za-z0-9]{5,50}$" },
             sortBy: { type: "string" },
             sortOrder: { type: "string", pattern: "^-1$|^1$" },
             limit: { type: "string", pattern: "^[0-9]" },

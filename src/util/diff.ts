@@ -2,6 +2,7 @@ import { Diff, diff } from "deep-diff"
 import { ObjectId } from "mongodb"
 import { getCollection } from "../modules/mongo"
 import { limitStringLength } from "./string"
+import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "../api/v1/user/updates/updateUser"
 
 const auditCollections = ['members', 'groups', 'customFields', 'frontStatuses', 'channels', 'channelCategories']
 
@@ -17,7 +18,13 @@ export const logAudit = async (uid: string, _id: string | ObjectId, collection: 
 {
     if (auditCollections.indexOf(collection) === -1)
     {
-        return;
+        return
+    }
+
+    const hasVersion = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION);
+    if (!hasVersion)
+    {
+        return
     }
 
     const name = lhs.name ?? rhs.name
@@ -32,6 +39,13 @@ export const logAudit = async (uid: string, _id: string | ObjectId, collection: 
         // path, old, new
         const changes : DiffResult[] = []
 
+        const privateDoc = await getCollection("private").findOne({uid, _id: uid})
+        if (!privateDoc)
+        {
+            return
+        }
+
+    
         for (let i = 0; i < difference.length; ++i)
         {
             const diff = difference[i]
@@ -74,7 +88,7 @@ export const logAudit = async (uid: string, _id: string | ObjectId, collection: 
                             changes.push(processorResult.result)
                         }
                     }
-                  
+                    
                     continue
                 }
             }
@@ -111,18 +125,35 @@ export const logAudit = async (uid: string, _id: string | ObjectId, collection: 
             }
         }
 
+        // We record/diff changes to figure out if we actually changed something, an update call that changes nothing shouldn't be logged
         if (changes.length > 0)
         {
-           getCollection("audit").insertOne({uid, t, changes, name, coll: collection, id: _id, a: "u"})
+            const retentionDays =  privateDoc.auditRetention ?? 31
+            const expiry = Date.now() + (retentionDays * 1000 * 60 * 60 * 24)
+
+            if (privateDoc.auditContentChanges === true)
+            {
+                getCollection("audit").insertOne({uid, t, changes, name, coll: collection, id: _id, a: "u", exp: expiry})
+            }
+            else 
+            {
+                getCollection("audit").insertOne({uid, t, changes: [], name, coll: collection, id: _id, a: "u", exp: expiry})
+            }
         }
     }
 }
 
-export const logCreatedAudit = (uid: string, _id: string | ObjectId, collection: string, t: number, newDocument: any) =>
+export const logCreatedAudit = async (uid: string, _id: string | ObjectId, collection: string, t: number, newDocument: any) =>
 {
     if (auditCollections.indexOf(collection) === -1)
     {
         return;
+    }
+
+    const hasVersion = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION);
+    if (!hasVersion)
+    {
+        return
     }
 
     if (newDocument && newDocument.name)
@@ -130,17 +161,29 @@ export const logCreatedAudit = (uid: string, _id: string | ObjectId, collection:
         const name = newDocument.name
         if (typeof name === "string" && name.length > 0) // Don't log audits of nameless things, that just confuses people
         {
-            getCollection("audit").insertOne({uid, t, changes: [], name: newDocument.name, coll: collection, id: _id, a: "a" })
+            const privateDoc = await getCollection("private").findOne({uid, _id: uid})
+            if (privateDoc)
+            {
+                const retentionDays =  privateDoc.auditRetention ?? 31
+                const expiry = Date.now() + (retentionDays * 1000 * 60 * 60 * 24)
+                getCollection("audit").insertOne({uid, t, changes: [], name: newDocument.name, coll: collection, id: _id, a: "a", exp: expiry })
+            }
         }
     }
    
 }
 
-export const logDeleteAudit = (uid: string, collection: string, t: number, originalDocument: any) =>
+export const logDeleteAudit = async (uid: string, collection: string, t: number, originalDocument: any) =>
 {
     if (auditCollections.indexOf(collection) === -1)
     {
         return;
+    }
+
+    const hasVersion = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION);
+    if (!hasVersion)
+    {
+        return
     }
 
     if (originalDocument && originalDocument.name)
@@ -148,7 +191,13 @@ export const logDeleteAudit = (uid: string, collection: string, t: number, origi
         const name = originalDocument.name
         if (typeof name === "string" && name.length > 0) // Don't log audits of nameless things, that just confuses people
         {
-            getCollection("audit").insertOne({uid, t, changes: [], name: originalDocument.name, coll: collection, id: '', a: "d" })
+            const privateDoc = await getCollection("private").findOne({uid, _id: uid})
+            if (privateDoc)
+            {
+                const retentionDays =  privateDoc.auditRetention ?? 31
+                const expiry = Date.now() + (retentionDays * 1000 * 60 * 60 * 24)
+                getCollection("audit").insertOne({uid, t, changes: [], name: originalDocument.name, coll: collection, id: '', a: "d", exp: expiry })
+            }
         }
     }
    

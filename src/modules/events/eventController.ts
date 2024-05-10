@@ -5,6 +5,7 @@ import { notifyFrontDue, notifyPrivateFrontDue, notifySharedFrontDue } from "./f
 import { repeatRemindersDueEvent, repeatRemindersEvent } from "./repeatReminders";
 import promclient from "prom-client";
 import { getStartOfDay, isPrimaryInstace } from "../../util";
+import { expireDocuments } from "./expirationController";
 
 type bindFunc = (uid: string, event: any) => void;
 const _boundEvents = new Map<string, bindFunc>();
@@ -53,10 +54,6 @@ const runEvents = async () => {
 	setTimeout(runEvents, 300);
 };
 
-export const performDelete = (target: string, uid: any, delay: number) => {
-	if (_boundEvents.has(target)) enqueueEvent(target, uid, delay);
-};
-
 export const performEvent = (target: string, uid: string, delay: number) => {
 	enqueueEvent(target, uid, delay);
 };
@@ -71,6 +68,7 @@ const enqueueEvent = (event: string, uid: string, delay: number) => {
 export const init = () => {
 	if (isPrimaryInstace() || process.env.DEVELOPMENT === 'true') {
 		runEvents();
+		expireDocuments();
 		// Todo: Edit this so that every server can run queued events and that
 		// getting queued events is atomic, so only one server handles the documents it got returned
 		// We don't want to run runEvents twice on two servers and have it return
