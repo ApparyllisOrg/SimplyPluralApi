@@ -4,7 +4,7 @@ import { getCollection } from "../modules/mongo"
 import { limitStringLength } from "./string"
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "../api/v1/user/updates/updateUser"
 
-const auditCollections = ['members', 'groups', 'customFields', 'frontStatuses', 'channels', 'channelCategories']
+const auditCollections = ['members', 'groups', 'customFields', 'frontStatuses']
 
 export type DiffResult = { p: string, o: string, n: string, cn: boolean }
 export type DiffReturn = Promise<

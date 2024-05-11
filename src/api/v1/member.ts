@@ -11,6 +11,7 @@ import { CustomFieldType } from "./customFields";
 import { Diff } from "deep-diff";
 import { DiffProcessor, DiffResult } from "../../util/diff";
 import { limitStringLength } from "../../util/string";
+import { ObjectId } from "mongodb";
 
 const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]) : Promise<boolean> => 
 {
@@ -126,53 +127,99 @@ export const add = async (req: Request, res: Response) => {
 	addSimpleDocument(req, res, "members");
 };
 
-export const update = async (req: Request, res: Response) => {
-
-	const differenceProcessor : DiffProcessor = async (uid: string, difference: Diff<any, any>, lhs: any, rhs: any) =>
+const updateDiffProcessor : DiffProcessor = async (uid: string, difference: Diff<any, any>, lhs: any, rhs: any) =>
+{
+	if (difference.kind === "E" && difference.path![0] === "info")
 	{
-		if (difference.kind === "E" && difference.path![0] === "info")
+		const fieldId = difference.path![1]
+		const field = await getCollection("customFields").findOne({uid, _id: parseId(fieldId)})
+
+		if (field)
 		{
-			const fieldId = difference.path![1]
-			const field = await getCollection("customFields").findOne({uid, _id: parseId(fieldId)})
-
-			if (field)
-			{
-				const originalValue = difference.lhs
-				return { processed: true, result: {o: originalValue, n: limitStringLength(difference.rhs, 50, true) ?? '', p: field.name, cn: true}}	
-			}
+			const originalValue = difference.lhs
+			return { processed: true, result: {o: originalValue, n: limitStringLength(difference.rhs, 50, true) ?? '', p: field.name, cn: true}}	
 		}
-
-		if (difference.kind === "N" && difference.path![0] === "info" && difference.path?.length === 1)
-		{
-			const newFields = difference.rhs;
-			const newFieldsKeys = Object.keys(newFields);
-
-			const newInfo : DiffResult[] = []
-
-			for (let i = 0; i < newFieldsKeys.length; ++i)
-			{
-				const newFieldValue : string = newFields[newFieldsKeys[i]]
-				if (newFieldValue && newFieldValue.length > 0)
-				{
-					const fieldId = parseId(newFieldsKeys[i])
-					const field = await getCollection("customFields").findOne({uid, _id: fieldId})
-					newInfo.push({o: "", n: limitStringLength(newFieldValue, 50, true) ?? '', p: field.name, cn: true})
-				}
-			}
-
-			return {processed: true, result: newInfo}
-		}
-
-		return {processed: false, result: undefined}
 	}
 
-	updateSimpleDocument(req, res, "members", differenceProcessor);
+	if (difference.kind === "N" && difference.path![0] === "info" && difference.path?.length === 1)
+	{
+		const newFields = difference.rhs;
+		const newFieldsKeys = Object.keys(newFields);
+
+		const newInfo : DiffResult[] = []
+
+		for (let i = 0; i < newFieldsKeys.length; ++i)
+		{
+			const newFieldValue : string = newFields[newFieldsKeys[i]]
+			if (newFieldValue && newFieldValue.length > 0)
+			{
+				const fieldId = parseId(newFieldsKeys[i])
+				const field = await getCollection("customFields").findOne({uid, _id: fieldId})
+				newInfo.push({o: "", n: limitStringLength(newFieldValue, 50, true) ?? '', p: field.name, cn: true})
+			}
+		}
+
+		return {processed: true, result: newInfo}
+	}
+
+	return {processed: false, result: undefined}
+}
+
+export const update = async (req: Request, res: Response) => {
+
+	// If user passes in info, but we migrated to FIELD_MIGRATION_VERSION we need to reject this, as 1.11+ has its own dedicated fields update route
+	if (!!req.body.info)
+	{
+		const hasMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+		if (hasMigrated)
+		{
+			delete req.body.info 
+		}
+	}
+
+	updateSimpleDocument(req, res, "members", updateDiffProcessor);
 
 	// If this member is fronting, we need to notify and update current fronters
 	const fhLive = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.params.id, live: true });
 	if (fhLive) {
 		frontChange(res.locals.uid, false, req.params.id, false);
 	}
+};
+
+export const updateInfo = async (req: Request, res: Response) => {
+
+	const hasMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+	if (!hasMigrated)
+	{
+		res.status(400).send("This route is only available for users who have updated to 1.11")
+		return
+	}
+
+	const userFields = await getCollection("customFields").find({uid: res.locals.uid}).toArray()
+
+	let infoFieldsKeys = Object.keys(req.body.info);
+	infoFieldsKeys = infoFieldsKeys.filter((fieldKey) => userFields.findIndex((userField) => {
+		const userFieldId = parseId(userField._id);
+		const infoFieldId = parseId(fieldKey);
+
+		if (ObjectId.isValid(userFieldId) && ObjectId.isValid(infoFieldId))
+		{
+			return (infoFieldId as ObjectId).equals(userFieldId)
+		}
+
+		return false;
+	}) !== -1)
+
+	const originalBody = req.body.info
+
+	req.body = {}
+
+	infoFieldsKeys.forEach((fieldKey) =>
+	{
+		req.body[`info.${fieldKey}`] = originalBody[fieldKey];
+	})
+	
+	updateSimpleDocument(req, res, "members", updateDiffProcessor);
 };
 
 export const del = async (req: Request, res: Response) => {
@@ -272,6 +319,25 @@ export const validatePostMemberSchema = (body: unknown): { success: boolean; msg
 		nullable: false,
 		additionalProperties: false,
 		dependencies: getPrivacyDependency(),
+	};
+
+	return validateSchema(schema, body);
+};
+
+export const validateUpdateMemberFieldsSchema = (body: unknown): { success: boolean; msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			info: {
+				type: "object",
+				properties: {
+					"*": { type: "string" },
+				},
+			},
+		},
+		nullable: false,
+		additionalProperties: false,
+		required: ["info"]
 	};
 
 	return validateSchema(schema, body);

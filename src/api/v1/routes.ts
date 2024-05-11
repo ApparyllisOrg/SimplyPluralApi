@@ -46,6 +46,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/members/:system", isUserAuthenticated(ApiKeyAccessType.Read), member.getMembers);
 	app.post("/v1/member/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(member.validatePostMemberSchema), validateId, member.add);
 	app.patch("/v1/member/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(member.validateMemberSchema), member.update);
+	app.patch("/v1/member/fields/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(member.validateUpdateMemberFieldsSchema), member.updateInfo);
 	app.delete("/v1/member/:id", isUserAuthenticated(ApiKeyAccessType.Delete), member.del);
 
 	// Notes
