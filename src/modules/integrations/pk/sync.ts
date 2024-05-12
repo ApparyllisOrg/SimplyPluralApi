@@ -116,7 +116,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 		}
 
 		const pkId: string | undefined | null = spMemberResult.pkId;
-		if (pkId && pkId.length === 5) {
+		if (pkId && ( pkId.length === 5 || pkId.length === 6 ) ) {
 			const getRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${spMemberResult.pkId}`, token, response: null, data: undefined, type: PkRequestType.Get, id: "" };
 			const pkMemberResult = memberData ?? (await addPendingRequest(getRequest));
 
