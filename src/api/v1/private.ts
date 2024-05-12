@@ -9,7 +9,7 @@ import { updateUser } from "./user/updates/updateUser";
 import { NewFieldsVersion } from "./customFields";
 import { ObjectId } from "mongodb";
 
-export const getDefaultPrivacyBuckets = async (uid: string, type: "members" | "groups" | "customFields" | "customFronts" ) : Promise<ObjectId[]> =>
+export const getDefaultPrivacyBuckets = async (uid: string, type: "members" | "groups" | "customFields" | "frontStatuses" ) : Promise<ObjectId[]> =>
 {
 	const privateDocument = await getCollection("private").findOne({ uid: uid, _id: uid, latestVersion: { $gte: NewFieldsVersion } });
 	if (!privateDocument)
@@ -25,7 +25,7 @@ export const getDefaultPrivacyBuckets = async (uid: string, type: "members" | "g
 			return privateDocument.groups;
 		case "customFields":
 			return privateDocument.customFields;
-		case "customFronts":
+		case "frontStatuses":
 			return privateDocument.customFronts;
 	}
 }
@@ -97,6 +97,9 @@ export const validatePrivateSchema = (body: unknown): { success: boolean; msg: s
 			location: { type: "string" },
 			termsOfServiceAccepted: { type: "boolean", enum: [true] },
 			whatsNew: { type: "number" },
+			auditContentChanges: { type: "boolean" },
+			hideAudits: { type: "boolean" },
+			auditRetention: { type: "number", minimum: 1, maximum: 31 },
 			categories: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
 			defaultPrivacy: {
 				type: "object",

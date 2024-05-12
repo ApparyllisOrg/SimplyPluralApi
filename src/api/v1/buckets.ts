@@ -1,6 +1,6 @@
 import assert from "assert";
 import { getCollection, parseId } from "../../modules/mongo";
-import { fetchSimpleDocument, fetchCollection, addSimpleDocument, updateSimpleDocument, deleteSimpleDocument, convertListToIds } from "../../util";
+import { fetchSimpleDocument, fetchCollection, addSimpleDocument, updateSimpleDocument, deleteSimpleDocument } from "../../util";
 import { Request, Response } from "express";
 import { validateSchema } from "../../util/validation";
 
@@ -27,11 +27,11 @@ export const deletePrivacyBucket = async (req: Request, res: Response) => {
 	//@ts-ignore
 	await getCollection("members").updateMany({ uid: res.locals.uid }, { $pull: { buckets: parseId(req.params.id) }});
 	//@ts-ignore
-	await getCollection("customFronts").updateMany({ uid: res.locals.uid }, { $pull: { buckets: parseId(req.params.id) }});
+	await getCollection("frontStatuses").updateMany({ uid: res.locals.uid }, { $pull: { buckets: parseId(req.params.id) }});
 	//@ts-ignore
 	await getCollection("groups").updateMany({ uid: res.locals.uid }, { $pull: { buckets: parseId(req.params.id) }});
 	//@ts-ignore
-	await getCollection("friends").updateMany({ uid: res.locals.uid }, { $pull: { privacyBuckets: parseId(req.params.id) }});
+	await getCollection("friends").updateMany({ uid: res.locals.uid }, { $pull: { buckets: parseId(req.params.id) }});
 
 	deleteSimpleDocument(req, res, "privacyBuckets");
 };
