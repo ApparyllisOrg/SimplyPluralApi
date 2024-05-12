@@ -31,7 +31,7 @@ export const notifyOfFrontChange = async (uid: string, removed: boolean, memberI
 };
 
 export const scheduleAutomatedReminder = async (uid: string, data: any) => {
-	if (!data.enabled) return;
+	if (data.enabled === false) return;
 
 	const queuedEvents = getCollection("queuedEvents");
 
