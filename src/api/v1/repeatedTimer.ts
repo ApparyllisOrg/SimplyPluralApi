@@ -82,7 +82,7 @@ export const validateRepeatedTimerSchema = (body: unknown): { success: boolean; 
 		},
 		nullable: false,
 		additionalProperties: false,
-		required: ["name", "message", "dayInterval", "time", "startTime", "enabled"],
+		required: ["name", "message", "dayInterval", "time", "startTime"],
 	};
 
 	return validateSchema(schema, body);
