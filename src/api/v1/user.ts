@@ -1,12 +1,10 @@
 import { Request, Response } from "express";
-import shortUUID from "short-uuid";
 import { logger, userLog } from "../../modules/logger";
 import { db, getCollection, parseId } from "../../modules/mongo";
 import { fetchCollection, getDocumentAccess, sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
 import { update122 } from "./user/updates/update112";
-import { nanoid } from "nanoid";
 import { auth } from "firebase-admin";
 import { getFriendLevel, isTrustedFriend, logSecurityUserEvent } from "../../security";
 import moment from "moment";
@@ -15,14 +13,14 @@ import * as Sentry from "@sentry/node";
 import { ERR_FUNCTIONALITY_EXPECTED_VALID } from "../../modules/errors";
 import { createUser } from "./user/migrate";
 import { exportData, fetchAllAvatars } from "./user/export";
-import JSZip from "jszip";
 import { getEmailForUser } from "./auth/auth.core";
 import { s3 } from "./storage";
 import { frameType } from "../types/frameType";
-import { getTemplate, mailTemplate_userReport } from "../../modules/mail/mailTemplates";
-import { sendCustomizedEmailToEmail } from "../../modules/mail";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
 import { canGenerateReport, decrementGenerationsLeft, reportBaseUrl, reportBaseUrl_V2, sendReport } from "../base/user";
+import archiver, { Archiver } from "archiver"
+import { S3 } from "aws-sdk";
+
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -322,27 +320,27 @@ export const exportAvatars = async (req: Request, res: Response) => {
 		return;
 	}
 
-	const result = await fetchAllAvatars(req.query.uid?.toString() ?? "");
+	const filename = `Avatars_${req.query.uid}.zip`;
 
-	const zip = new JSZip();
+	res.setHeader("Content-Type", "application/zip");
+	res.setHeader("Content-disposition", 'attachment; filename="' + filename + '"');
 
-	result.forEach((result) => {
-		const buffer = Buffer.isBuffer(result.data) ? result.data : Buffer.concat(result.data as Buffer[]);
-		zip.file(result.name + ".png", buffer);
+	const arch = archiver('zip');
+
+	arch.pipe(res)
+
+	await fetchAllAvatars(req.query.uid?.toString() ?? "", async (name: String, data: S3.Body | Buffer[]) => 
+	{
+		const buffer = Buffer.isBuffer(data) ? data : Buffer.concat(data as Buffer[]);
+		arch.append(buffer, { name: name + ".png" })
 	});
+
+	arch.finalize()
 
 	logSecurityUserEvent(res.locals.uid, "Exported user avatars", req);
 
 	res.status(200);
-
-	zip.generateAsync({ type: "nodebuffer" }).then((buffer) => {
-		const filename = `Avatars_${req.query.uid}.zip`;
-		// Send zip as a download
-		res.setHeader("Content-Type", "application/octet-stream");
-		res.setHeader("Content-disposition", 'attachment; filename="' + filename + '"');
-		res.end(buffer);
-	});
-};
+}
 
 export const setupNewUser = async (uid: string) => {
 
