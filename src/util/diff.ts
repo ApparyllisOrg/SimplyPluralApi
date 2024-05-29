@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb"
 import { getCollection } from "../modules/mongo"
 import { limitStringLength } from "./string"
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "../api/v1/user/updates/updateUser"
+import moment from "moment"
 
 const auditCollections = ['members', 'groups', 'customFields', 'frontStatuses']
 
@@ -129,7 +130,7 @@ export const logAudit = async (uid: string, _id: string | ObjectId, collection: 
         if (changes.length > 0)
         {
             const retentionDays =  privateDoc.auditRetention ?? 31
-            const expiry = Date.now() + (retentionDays * 1000 * 60 * 60 * 24)
+            const expiry = moment.now() + (retentionDays * 1000 * 60 * 60 * 24)
 
             if (privateDoc.auditContentChanges === true)
             {
@@ -165,7 +166,7 @@ export const logCreatedAudit = async (uid: string, _id: string | ObjectId, colle
             if (privateDoc)
             {
                 const retentionDays =  privateDoc.auditRetention ?? 31
-                const expiry = Date.now() + (retentionDays * 1000 * 60 * 60 * 24)
+                const expiry = moment.now() + (retentionDays * 1000 * 60 * 60 * 24)
                 getCollection("audit").insertOne({uid, t, changes: [], name: newDocument.name, coll: collection, id: _id, a: "a", exp: expiry })
             }
         }
@@ -195,7 +196,7 @@ export const logDeleteAudit = async (uid: string, collection: string, t: number,
             if (privateDoc)
             {
                 const retentionDays =  privateDoc.auditRetention ?? 31
-                const expiry = Date.now() + (retentionDays * 1000 * 60 * 60 * 24)
+                const expiry = moment.now() + (retentionDays * 1000 * 60 * 60 * 24)
                 getCollection("audit").insertOne({uid, t, changes: [], name: originalDocument.name, coll: collection, id: '', a: "d", exp: expiry })
             }
         }

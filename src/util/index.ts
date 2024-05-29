@@ -171,13 +171,13 @@ export const deleteSimpleDocument = async (req: Request, res: Response, collecti
 		$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
 	}
 
-	const originalDocument = await Mongo.getCollection(collection).findOne(query)
+	//const originalDocument = await Mongo.getCollection(collection).findOne(query)
 
 	const result = await Mongo.getCollection(collection).deleteOne(query);
 
 	if (result.deletedCount && result.deletedCount > 0) {
 		
-		logDeleteAudit(res.locals.uid, collection, res.locals.operationTime, originalDocument)
+		//logDeleteAudit(res.locals.uid, collection, res.locals.operationTime, originalDocument)
 
 		dispatchDelete({
 			operationType: OperationType.Delete,
@@ -255,7 +255,7 @@ export const addSimpleDocument = async (req: Request, res: Response, collection:
 		return;
 	}
 
-	logCreatedAudit(res.locals.uid,  parseId(result.insertedId).toString(), collection, res.locals.operationTime, dataObj)
+	//logCreatedAudit(res.locals.uid,  parseId(result.insertedId).toString(), collection, res.locals.operationTime, dataObj)
 
 	res.status(200).send(result.insertedId);
 };
@@ -271,16 +271,16 @@ export const updateSimpleDocument = async (req: Request, res: Response, collecti
 		$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
 	}
 
-	const originalDocument = await Mongo.getCollection(collection).findOne(query)
+	//const originalDocument = await Mongo.getCollection(collection).findOne(query)
 
 	const updateResult = await Mongo.getCollection(collection).updateOne(
 		query,
 		{ $set: dataObj }
 	);
 
-	if (originalDocument && updateResult.modifiedCount === 1)
+	if (/*originalDocument &&*/ updateResult.modifiedCount === 1)
 	{
-		logAudit(res.locals.uid, query._id, collection, dataObj.lastOperationTime, originalDocument, dataObj, auditProcessor)
+		//logAudit(res.locals.uid, query._id, collection, dataObj.lastOperationTime, originalDocument, dataObj, auditProcessor)
 		res.status(200).send()
 		return
 	}

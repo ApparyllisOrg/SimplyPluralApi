@@ -142,7 +142,7 @@ export const update300 = async (uid: string) => {
 
     getCollection("members").updateMany({ uid }, { $rename: renameOperation})
 
-    getCollection("private").updateOne({uid, _id: uid}, { $set: { auditContentChanges: true, auditRetention: 31, hideAudits: false } })
+    getCollection("private").updateOne({uid, _id: uid}, { $set: { auditContentChanges: true, auditRetention: 7, hideAudits: false } })
 };
 
 const rollback300 = async (uid: string) =>

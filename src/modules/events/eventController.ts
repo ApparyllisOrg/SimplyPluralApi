@@ -1,11 +1,11 @@
 import { logger } from "../logger";
-import { getCollection } from "../mongo";
+import { db, getCollection } from "../mongo";
 import { automatedRemindersDueEvent, removeDeletedReminders } from "./automatedReminder";
 import { notifyFrontDue, notifyPrivateFrontDue, notifySharedFrontDue } from "./frontChange";
 import { repeatRemindersDueEvent, repeatRemindersEvent } from "./repeatReminders";
 import promclient from "prom-client";
 import { getStartOfDay, isPrimaryInstace } from "../../util";
-import { expireDocuments } from "./expirationController";
+import * as MongoDb from "mongodb";
 
 type bindFunc = (uid: string, event: any) => void;
 const _boundEvents = new Map<string, bindFunc>();
@@ -34,6 +34,7 @@ const runDailyUserCounter = async () => {
 
 const runEvents = async () => {
 	const now = Date.now();
+
 	const queuedEvents = getCollection("queuedEvents");
 	const overdueEvents = await queuedEvents.find({ due: { $lte: now } }).toArray();
 	overdueEvents.forEach((event) => {
@@ -68,7 +69,6 @@ const enqueueEvent = (event: string, uid: string, delay: number) => {
 export const init = () => {
 	if (isPrimaryInstace() || process.env.DEVELOPMENT === 'true') {
 		runEvents();
-		expireDocuments();
 		// Todo: Edit this so that every server can run queued events and that
 		// getting queued events is atomic, so only one server handles the documents it got returned
 		// We don't want to run runEvents twice on two servers and have it return

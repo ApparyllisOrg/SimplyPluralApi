@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import { parseId } from "../../modules/mongo";
-import { fetchCollection } from "../../util";
+import { getCollection, parseId } from "../../modules/mongo";
+import { deleteSimpleDocument, fetchCollection } from "../../util";
 import { validateSchema } from "../../util/validation";
+import { OperationType, dispatchDelete } from "../../modules/socket";
 
 export const getAuditHistory = async (req: Request, res: Response) => {
 	const query: any = { };
@@ -12,6 +13,46 @@ export const getAuditHistory = async (req: Request, res: Response) => {
     }
 
 	fetchCollection(req, res, "audit", query);
+};
+
+export const deleteExpiredAuditEntries = async (req: Request, res: Response) => {
+	const query = {
+		uid: res.locals.uid,
+		exp : { $lte: res.locals.operationTime },
+		$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
+	}
+
+	const result = await getCollection('audit').deleteMany(query);
+
+	if (result.deletedCount && result.deletedCount > 0) {
+		res.status(200).send();
+	} else {
+		res.status(404).send();
+	}
+};
+
+
+export const deleteAuditEntry = async (req: Request, res: Response) => {
+	const query = {
+		_id: parseId(req.params.id),
+		uid: res.locals.uid,
+		exp : { $lte: res.locals.operationTime },
+		$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
+	}
+
+	const result = await getCollection('audit').deleteOne(query);
+
+	if (result.deletedCount && result.deletedCount > 0) {
+		dispatchDelete({
+			operationType: OperationType.Delete,
+			uid: res.locals.uid,
+			documentId: req.params.id,
+			collection: 'audit',
+		});
+		res.status(200).send();
+	} else {
+		res.status(404).send();
+	}
 };
 
 export const validateGetAuditHistorySchema = (body: unknown): { success: boolean; msg: string } => {

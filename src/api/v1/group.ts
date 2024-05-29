@@ -90,7 +90,7 @@ export const del = async (req: Request, res: Response) => {
 
 	await delGroupRecursive(req.params.id, res.locals.uid);
 
-	logDeleteAudit(res.locals.uid, "groups", res.locals.operationTime, originalDocument)
+	//logDeleteAudit(res.locals.uid, "groups", res.locals.operationTime, originalDocument)
 
 	res.status(200).send();
 };
