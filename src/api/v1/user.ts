@@ -149,6 +149,13 @@ export const get = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
 	const setBody = req.body;
 	setBody.lastOperationTime = res.locals.operationTime;
+
+	const userMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION);
+	if (userMigrated)
+	{
+		delete setBody.fields;
+	}
+
 	await getCollection("users").updateOne(
 		{
 			uid: res.locals.uid,
