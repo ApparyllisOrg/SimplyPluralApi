@@ -1,13 +1,16 @@
 import { Request, Response } from "express";
 import moment, { Moment } from "moment";
-import { ObjectID } from "mongodb";
+import { ObjectId } from "mongodb";
 import * as Mongo from "../modules/mongo";
-import { parseId } from "../modules/mongo";
+import { getCollection, parseId } from "../modules/mongo";
+import LRU from "lru-cache";
 import { documentObject } from "../modules/mongo/baseTypes";
 import { dispatchDelete, OperationType } from "../modules/socket";
 import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
 import { parseForAllowedReadValues } from "../security/readRules";
-import { client_result } from "./types";
+import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "../api/v1/user/updates/updateUser";
+import { diff } from "deep-diff";
+import { DiffProcessor, logAudit, logCreatedAudit, logDeleteAudit } from "./diff";
 
 export function transformResultForClientRead(value: documentObject, requestorUid: string) {
 	parseForAllowedReadValues(value, requestorUid);
@@ -20,45 +23,119 @@ export function transformResultForClientRead(value: documentObject, requestorUid
 	};
 }
 
-export const getDocumentAccess = async (_req: Request, res: Response, document: documentObject, collection: string): Promise<{ access: boolean; statusCode: number; message: string }> => {
-	if (document.uid == res.locals.uid) {
-		return { access: true, statusCode: 200, message: "" };
-	} else if (document.private && document.preventTrusted) {
-		return { access: false, statusCode: 403, message: "Access to document has been rejected." };
-	} else {
-		if (friendReadCollections.indexOf(collection) < 0) {
+const isFriendsLRU = new LRU<string, boolean>({ max: 10000, ttl: 1000 * 5 });
+const friendBucketsLRU = new LRU<string, (ObjectId)[]>({ max: 10000, ttl: 1000 * 5 });
+
+export const getDocumentAccess = async (requestor: string, document: documentObject, collection: string): Promise<{ access: boolean; statusCode: number; message: string }> => {
+	if (document.uid == requestor) {
+		return { access: true, statusCode: 200, message: "" }
+	}
+
+	const migratedUser = await doesUserHaveVersion(document.uid, FIELD_MIGRATION_VERSION)
+	if (migratedUser)
+	{
+		if (collection === "friends")
+		{
+			if ( document.frienduid == requestor)
+			{
+				return { access: true, statusCode: 200, message: "" }
+			}
+
+			return { access: false, statusCode: 403, message: "Access to document has been rejected." }
+		}
+
+		if (collection === "users")
+		{
+			const friendsString = `${document.uid}${requestor}`
+			const isFriends = isFriendsLRU.get(friendsString)
+			if (isFriends === true)
+			{
+				return { access: true, statusCode: 200, message: "" }
+			}
+			else if (isFriends === false)
+			{
+				return { access: false, statusCode: 403, message: "Access to document has been rejected." }
+			}
+
+			const friendDoc = await getCollection("friends").findOne({uid: document.uid, frienduid: requestor})
+			
+			if (friendDoc)
+			{
+				isFriendsLRU.set(friendsString, true)
+				return { access: true, statusCode: 200, message: "" }
+			}
+			else 
+			{
+				isFriendsLRU.set(friendsString, false)
+				return { access: false, statusCode: 403, message: "Access to document has been rejected." }
+			}
+		}
+
+		if (!document.buckets || document.buckets.length === 0)
+		{
+			return { access: false, statusCode: 403, message: "Access to document has been rejected." }
+		}
+
+		const friendBucketsKey = `${document.uid}${requestor}`
+
+		let cachedBuckets = friendBucketsLRU.get(friendBucketsKey)
+		if (cachedBuckets === undefined)
+		{
+			const friendDoc = await Mongo.getCollection("friends").findOne({ uid: document.uid, frienduid: requestor })
+			cachedBuckets = friendDoc.buckets
+
+			if (!cachedBuckets)
+			{
+				cachedBuckets = []
+			}
+
+			friendBucketsLRU.set(friendBucketsKey, cachedBuckets)
+		}
+
+		const intersects = document.buckets.findIndex((value: ObjectId) => cachedBuckets!.findIndex((cachedId: ObjectId) =>	value.equals(cachedId)) != -1) != -1
+
+		if (intersects !== true)
+		{
 			return { access: false, statusCode: 403, message: "Access to document has been rejected." };
 		}
 
-		const friendLevel: FriendLevel = await getFriendLevel(document.uid, res.locals.uid);
-		const isaFriend = isFriend(friendLevel);
-		if (!isaFriend) {
-			if (collection === "users" && !!(friendLevel == FriendLevel.Pending)) {
-				// Only send relevant data
-				document = { uid: document.uid, _id: document._id, username: document.username, message: document.message };
-
-				return { access: true, statusCode: 200, message: "" };
-			}
+		return { access: true, statusCode: 200, message: "" };
+	}
+	else // Legacy support
+	{
+		if (document.private && document.preventTrusted) {
 			return { access: false, statusCode: 403, message: "Access to document has been rejected." };
 		} else {
-			if (document.private) {
-				const trustedFriend: boolean = await isTrustedFriend(friendLevel);
-				if (trustedFriend) {
-					return { access: document.preventTrusted !== true, statusCode: 200, message: "" };
-				} else {
-					return { access: false, statusCode: 403, message: "Access to document has been rejected." };
+			const friendLevel: FriendLevel = await getFriendLevel(document.uid, requestor);
+			const isaFriend = isFriend(friendLevel);
+			if (!isaFriend) {
+				if (collection === "users" && !!(friendLevel == FriendLevel.Pending)) {
+					// Only send relevant data
+					document = { uid: document.uid, _id: document._id, username: document.username, message: document.message };
+	
+					return { access: true, statusCode: 200, message: "" };
 				}
+				return { access: false, statusCode: 403, message: "Access to document has been rejected." };
+			} else {
+				if (document.private) {
+					const trustedFriend: boolean = await isTrustedFriend(friendLevel);
+					if (trustedFriend) {
+						return { access: document.preventTrusted !== true, statusCode: 200, message: "" };
+					} else {
+						return { access: false, statusCode: 403, message: "Access to document has been rejected." };
+					}
+				}
+				return { access: true, statusCode: 200, message: "" };
 			}
-			return { access: true, statusCode: 200, message: "" };
 		}
-	}
+	} 
 };
 
 export const sendDocuments = async (req: Request, res: Response, collection: string, documents: documentObject[]) => {
 	const returnDocuments: any[] = [];
 
 	for (let i = 0; i < documents.length; ++i) {
-		const access = await getDocumentAccess(req, res, documents[i], collection);
+		const access = await getDocumentAccess(res.locals.uid, documents[i], collection);
 		if (access.access === true) {
 			returnDocuments.push(transformResultForClientRead(documents[i], res.locals.uid));
 		}
@@ -73,7 +150,7 @@ export const sendDocument = async (req: Request, res: Response, collection: stri
 		return;
 	}
 
-	const access = await getDocumentAccess(req, res, document, collection);
+	const access = await getDocumentAccess(res.locals.uid, document, collection);
 	if (access.access === true) {
 		res.status(200).send(transformResultForClientRead(document, res.locals.uid));
 		return;
@@ -87,12 +164,21 @@ export const fetchSimpleDocument = async (req: Request, res: Response, collectio
 };
 
 export const deleteSimpleDocument = async (req: Request, res: Response, collection: string) => {
-	const result = await Mongo.getCollection(collection).deleteOne({
+
+	const query = {
 		_id: parseId(req.params.id),
 		uid: res.locals.uid,
 		$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
-	});
+	}
+
+	//const originalDocument = await Mongo.getCollection(collection).findOne(query)
+
+	const result = await Mongo.getCollection(collection).deleteOne(query);
+
 	if (result.deletedCount && result.deletedCount > 0) {
+		
+		//logDeleteAudit(res.locals.uid, collection, res.locals.operationTime, originalDocument)
+
 		dispatchDelete({
 			operationType: OperationType.Delete,
 			uid: res.locals.uid,
@@ -108,7 +194,17 @@ export const deleteSimpleDocument = async (req: Request, res: Response, collecti
 export type forEachDocument = (document: any) => Promise<void>;
 
 export const fetchCollection = async (req: Request, res: Response, collection: string, findQuery: { [key: string]: any }, forEach?: forEachDocument) => {
+
 	findQuery.uid = req.params.system ?? res.locals.uid;
+
+	// Pre-flight check access to collection of others
+	if (findQuery.uid != res.locals.uid) {
+		if (friendReadCollections.indexOf(collection) < 0) {
+			res.status(401).send()
+			return
+		}
+	}
+
 	const query = Mongo.getCollection(collection).find(findQuery);
 
 	if (req.query.limit) {
@@ -141,9 +237,10 @@ export const fetchCollection = async (req: Request, res: Response, collection: s
 
 export const addSimpleDocument = async (req: Request, res: Response, collection: string) => {
 	const dataObj: documentObject = req.body;
-	dataObj._id = parseId(res.locals.useId) ?? new ObjectID();
+	dataObj._id = parseId(res.locals.useId) ?? new ObjectId();
 	dataObj.uid = res.locals.uid;
 	dataObj.lastOperationTime = res.locals.operationTime;
+
 	const result = await Mongo.getCollection(collection)
 		.insertOne(dataObj)
 		.catch(() => {
@@ -158,23 +255,37 @@ export const addSimpleDocument = async (req: Request, res: Response, collection:
 		return;
 	}
 
+	//logCreatedAudit(res.locals.uid,  parseId(result.insertedId).toString(), collection, res.locals.operationTime, dataObj)
+
 	res.status(200).send(result.insertedId);
 };
 
-export const updateSimpleDocument = async (req: Request, res: Response, collection: string) => {
+export const updateSimpleDocument = async (req: Request, res: Response, collection: string, auditProcessor: DiffProcessor | undefined = undefined) => {
 	const dataObj: documentObject = req.body;
 	dataObj.uid = res.locals.uid;
 	dataObj.lastOperationTime = res.locals.operationTime;
-	await Mongo.getCollection(collection).updateOne(
-		{
-			_id: parseId(req.params.id),
-			uid: res.locals.uid,
-			$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
-		},
+
+	const query = {
+		_id: parseId(req.params.id),
+		uid: res.locals.uid,
+		$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
+	}
+
+	//const originalDocument = await Mongo.getCollection(collection).findOne(query)
+
+	const updateResult = await Mongo.getCollection(collection).updateOne(
+		query,
 		{ $set: dataObj }
 	);
 
-	res.status(200).send();
+	if (/*originalDocument &&*/ updateResult.modifiedCount === 1)
+	{
+		//logAudit(res.locals.uid, query._id, collection, dataObj.lastOperationTime, originalDocument, dataObj, auditProcessor)
+		res.status(200).send()
+		return
+	}
+
+	res.status(404).send();
 };
 
 export const isMember = async (uid: string, id: string) => {
@@ -218,4 +329,27 @@ export const getStartOfDay = (): Moment => {
 
 export const isPrimaryInstace = () => {
 	return process.env.NODE_APP_INSTANCE === '0';
+}
+
+export const convertListToIds = async (uid: string, collection: string, listOfIds: string[], ) : Promise<any[]> =>
+{
+	const ids : any[] = []
+
+    listOfIds.forEach((id : string) => 
+    {
+        ids.push(parseId(id))
+    })
+
+	const foundDocuments = await getCollection(collection).find({ uid: uid, _id: { $in: ids }}).toArray()
+
+	const resultingIds : any[] = []
+
+	foundDocuments.forEach((document) => { resultingIds.push(document._id) })
+
+	return resultingIds
+}
+
+export const intersects = (a: any[], b: any[]) => 
+{
+	return a.findIndex((value: string | ObjectId) => b.findIndex((cachedId: string | ObjectId) => (parseId(value) as ObjectId).equals(cachedId)) != -1) != -1
 }

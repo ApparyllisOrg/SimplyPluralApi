@@ -1,10 +1,11 @@
 import { logger } from "../logger";
-import { getCollection } from "../mongo";
+import { db, getCollection } from "../mongo";
 import { automatedRemindersDueEvent, removeDeletedReminders } from "./automatedReminder";
-import { notifyPrivateFrontDue, notifySharedFrontDue } from "./frontChange";
+import { notifyFrontDue, notifyPrivateFrontDue, notifySharedFrontDue } from "./frontChange";
 import { repeatRemindersDueEvent, repeatRemindersEvent } from "./repeatReminders";
 import promclient from "prom-client";
 import { getStartOfDay, isPrimaryInstace } from "../../util";
+import * as MongoDb from "mongodb";
 
 type bindFunc = (uid: string, event: any) => void;
 const _boundEvents = new Map<string, bindFunc>();
@@ -16,6 +17,7 @@ const bindEvents = async () => {
 	_boundEvents.set("scheduledAutomatedReminder", automatedRemindersDueEvent);
 	_boundEvents.set("frontChangeShared", notifySharedFrontDue);
 	_boundEvents.set("frontChangePrivate", notifyPrivateFrontDue);
+	_boundEvents.set("frontChange", notifyFrontDue);
 };
 
 const counter = new promclient.Gauge({
@@ -32,9 +34,11 @@ const runDailyUserCounter = async () => {
 
 const runEvents = async () => {
 	const now = Date.now();
+
 	const queuedEvents = getCollection("queuedEvents");
 	const overdueEvents = await queuedEvents.find({ due: { $lte: now } }).toArray();
 	overdueEvents.forEach((event) => {
+	
 		// Try because if one event fails, we don't want any of the others to fail..
 		try {
 			const func = _boundEvents.get(event["event"]);
@@ -51,10 +55,6 @@ const runEvents = async () => {
 	setTimeout(runEvents, 300);
 };
 
-export const performDelete = (target: string, uid: any, delay: number) => {
-	if (_boundEvents.has(target)) enqueueEvent(target, uid, delay);
-};
-
 export const performEvent = (target: string, uid: string, delay: number) => {
 	enqueueEvent(target, uid, delay);
 };
@@ -67,13 +67,13 @@ const enqueueEvent = (event: string, uid: string, delay: number) => {
 };
 
 export const init = () => {
-	if (isPrimaryInstace()) {
+	if (isPrimaryInstace() || process.env.DEVELOPMENT === 'true') {
 		runEvents();
 		// Todo: Edit this so that every server can run queued events and that
 		// getting queued events is atomic, so only one server handles the documents it got returned
 		// We don't want to run runEvents twice on two servers and have it return
 		// the same events on both. It needs to return atomically.
-		if (process.env.DEVELOPMENT !== "true" && process.env.LOCALEVENTS === "true") {
+		if (process.env.LOCALEVENTS === "true") {
 			bindEvents();
 			console.log("Bound to events, started event controller");
 		}

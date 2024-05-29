@@ -1,12 +1,10 @@
 import { Request, Response } from "express";
-import shortUUID from "short-uuid";
 import { logger, userLog } from "../../modules/logger";
 import { db, getCollection, parseId } from "../../modules/mongo";
-import { fetchCollection, sendDocument } from "../../util";
+import { fetchCollection, getDocumentAccess, sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
 import { update122 } from "./user/updates/update112";
-import { nanoid } from "nanoid";
 import { auth } from "firebase-admin";
 import { getFriendLevel, isTrustedFriend, logSecurityUserEvent } from "../../security";
 import moment from "moment";
@@ -15,14 +13,14 @@ import * as Sentry from "@sentry/node";
 import { ERR_FUNCTIONALITY_EXPECTED_VALID } from "../../modules/errors";
 import { createUser } from "./user/migrate";
 import { exportData, fetchAllAvatars } from "./user/export";
-import JSZip from "jszip";
 import { getEmailForUser } from "./auth/auth.core";
 import { s3 } from "./storage";
 import { frameType } from "../types/frameType";
-import { getTemplate, mailTemplate_userReport } from "../../modules/mail/mailTemplates";
-import { sendCustomizedEmailToEmail } from "../../modules/mail";
+import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
+import { canGenerateReport, decrementGenerationsLeft, reportBaseUrl, reportBaseUrl_V2, sendReport } from "../base/user";
 import archiver, { Archiver } from "archiver"
 import { S3 } from "aws-sdk";
+
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -42,68 +40,10 @@ export const generateReport = async (req: Request, res: Response) => {
 	}
 };
 
-const decrementGenerationsLeft = async (uid: string) => {
-	const user: any | null = await getCollection("users").findOne({ uid, _id: uid });
-	const patron: boolean = user?.patron ?? false;
-
-	const privateDoc = await getCollection("private").findOne({ uid, _id: uid });
-	if (privateDoc.generationsLeft) {
-		await getCollection("private").updateOne({ uid, _id: uid }, { $inc: { generationsLeft: -1 } });
-	} else {
-		await getCollection("private").updateOne({ uid, _id: uid }, { $set: { generationsLeft: patron ? 10 : 3 } });
-	}
-};
-
-const canGenerateReport = async (res: Response): Promise<boolean> => {
-	const privateDoc = await getCollection("private").findOne({ uid: res.locals.uid, _id: res.locals.uid });
-	if (privateDoc) {
-		if ((privateDoc.generationsLeft && privateDoc.generationsLeft > 0) || !privateDoc.generationsLeft) {
-			return true;
-		}
-		return privateDoc.bypassGenerationLimit === true;
-	}
-
-	return true;
-};
-
-const reportBaseUrl = "https://simply-plural.sfo3.digitaloceanspaces.com/";
-const reportBaseUrl_V2 = "https://serve.apparyllis.com/";
 
 const performReportGeneration = async (req: Request, res: Response) => {
 	const htmlFile = await generateUserReport(req.body, res.locals.uid);
-
-	const randomId = await nanoid(32);
-	const randomId2 = await nanoid(32);
-	const randomId3 = await nanoid(32);
-
-	const path = `reports/${res.locals.uid}/${randomId}/${randomId2}/${randomId3}.html`;
-
-	const reportUrl = reportBaseUrl_V2 + path;
-
-	let emailTemplate = await getTemplate(mailTemplate_userReport())
-
-	emailTemplate = emailTemplate.replace("{{reportUrl}}", reportUrl);
-
-	sendCustomizedEmailToEmail(req.body.sendTo, emailTemplate, "Your user report", req.body.cc)
-
-	getCollection("reports").insertOne({ uid: res.locals.uid, url: reportUrl, createdAt: moment.now(), usedSettings: req.body });
-
-	const params = {
-		Bucket: "simply-plural",
-		Key: path,
-		Body: htmlFile,
-		ACL: "public-read",
-	};
-
-	s3.putObject(params, function (err) {
-		if (err) {
-			logger.error(err);
-			console.log(err);
-			res.status(500).send("Error uploading report");
-		} else {
-			res.status(200).send({ success: true, msg: reportUrl });
-		}
-	});
+	sendReport(req, res, htmlFile)
 };
 
 export const getReports = async (req: Request, res: Response) => {
@@ -165,20 +105,39 @@ export const get = async (req: Request, res: Response) => {
 
 	// Remove fields that aren't shared to the friend
 	if (req.params.id !== res.locals.uid) {
-		const friendLevel = await getFriendLevel(req.params.id, res.locals.uid);
-		const isATrustedFriends = isTrustedFriend(friendLevel);
-		const newFields: any = {};
 
-		if (document.fields) {
-			Object.keys(document.fields).forEach((key: string) => {
-				const field = document.fields[key];
-				if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
-					newFields[key] = field;
+		const newFields: any = {};
+		const hasMigrated = await doesUserHaveVersion(req.params.id, FIELD_MIGRATION_VERSION)
+		if (hasMigrated)
+		{
+			const userFields = await getCollection("customFields").find({uid: req.params.id}).toArray()
+
+			for (let i = 0; i < userFields.length; ++i)
+			{
+				const field = userFields[i]
+				const accessResult = await getDocumentAccess(res.locals.uid, field, "customFields")
+				if (accessResult.access === true)
+				{
+					newFields[field._id.ToString()] = { name: field.name, order: field.order, type: field.type }
 				}
-				if (field.private === false && field.preventTrusted === false) {
-					newFields[key] = field;
-				}
-			});
+			}
+		}
+		else // Legacy custom fields
+		{
+			const friendLevel = await getFriendLevel(req.params.id, res.locals.uid);
+			const isATrustedFriends = isTrustedFriend(friendLevel);
+
+			if (document.fields) {
+				Object.keys(document.fields).forEach((key: string) => {
+					const field = document.fields[key];
+					if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
+						newFields[key] = field;
+					}
+					if (field.private === false && field.preventTrusted === false) {
+						newFields[key] = field;
+					}
+				});
+			}
 		}
 
 		document.fields = newFields;
@@ -384,24 +343,12 @@ export const exportAvatars = async (req: Request, res: Response) => {
 }
 
 export const setupNewUser = async (uid: string) => {
-	const fields: any = {};
-	fields[shortUUID.generate().toString() + "0"] = { name: "Birthday", order: 0, private: false, preventTrusted: false, type: 5 };
-	fields[shortUUID.generate().toString() + "1"] = { name: "Favorite Color", order: 1, private: false, preventTrusted: false, type: 1 };
-	fields[shortUUID.generate().toString() + "2"] = { name: "Favorite Food", order: 2, private: false, preventTrusted: false, type: 0 };
-	fields[shortUUID.generate().toString() + "3"] = { name: "System Role", order: 3, private: false, preventTrusted: false, type: 0 };
-	fields[shortUUID.generate().toString() + "4"] = { name: "Likes", order: 4, private: false, preventTrusted: false, type: 0 };
-	fields[shortUUID.generate().toString() + "5"] = { name: "Dislikes", order: 5, private: false, preventTrusted: false, type: 0 };
-	fields[shortUUID.generate().toString() + "6"] = { name: "Age", order: 6, private: false, preventTrusted: false, type: 0 };
 
-	await getCollection("users").updateOne(
-		{
-			_id: uid,
-			uid: uid,
-			fields: { $exists: false },
-		},
-		{ $set: { fields: fields } },
-		{ upsert: true }
-	);
+	const friendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any } = {uid, name: "Friends", icon: "🔓", rank: "0|aaaaaa:", desc: "A bucket for all your friends", color: "#C99524",}
+    const trustedFriendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any }  = {uid, name: "Trusted friends", icon: "🔒", rank: "0|zzzzzz:", desc: "A bucket for all your trusted friends", color: "#1998A8"}
+
+    await getCollection("privacyBuckets").insertOne(friendData)
+    await getCollection("privacyBuckets").insertOne(trustedFriendData)
 
 	userLog(uid, "Setup new user account");
 };

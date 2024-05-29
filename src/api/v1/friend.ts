@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
-import { canAccessDocument } from "../../security";
-import { sendDocument, sendDocuments } from "../../util";
+import { fetchCollection, getDocumentAccess, sendDocument, sendDocuments } from "../../util";
 import { validateSchema } from "../../util/validation";
+import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
 
 export const getFriend = async (req: Request, res: Response) => {
 	const document = await getCollection("friends").findOne({ uid: req.params.system, frienduid: req.params.id });
@@ -22,6 +22,10 @@ export const getFriends = async (req: Request, res: Response) => {
 
 	// Send users as collection as we are sending user objects, not friend (requests)
 	sendDocuments(req, res, "users", friendValues);
+};
+
+export const getFriendsSettings = async (req: Request, res: Response) => {
+	fetchCollection(req, res, "friends", {})
 };
 
 export const getIngoingFriendRequests = async (req: Request, res: Response) => {
@@ -58,6 +62,17 @@ export const getOutgoingFriendRequests = async (req: Request, res: Response) => 
 export const updateFriend = async (req: Request, res: Response) => {
 	const setBody = req.body;
 	setBody.lastOperationTime = res.locals.operationTime;
+	if (setBody["getTheirFrontNotif"] === true) {
+		const friend = await getCollection("friends").findOne(
+			{
+				uid: req.params.id,
+				frienduid: res.locals.uid
+			}
+		);
+		if (friend && friend["getFrontNotif"] === false) {
+			setBody["getTheirFrontNotif"] = false;
+		}
+	}
 	const result = await getCollection("friends").updateOne(
 		{
 			uid: res.locals.uid,
@@ -70,10 +85,41 @@ export const updateFriend = async (req: Request, res: Response) => {
 		res.status(404).send();
 		return;
 	}
+	if (setBody["getFrontNotif"] === false) {
+		await getCollection("friends").updateOne(
+			{
+				uid: req.params.id,
+				frienduid: res.locals.uid,
+				$or: [{ lastOperationTime: null }, { lastOperationTime: { $lte: res.locals.operationTime } }],
+			},
+			{ $set: { "getTheirFrontNotif": false } }
+		);
+	}
 	res.status(200).send();
 };
 
 export const getFriendFrontValues = async (req: Request, res: Response) => {
+	const hasMigrated = await doesUserHaveVersion(req.params.id, FIELD_MIGRATION_VERSION)
+	if (hasMigrated)
+	{
+		const friendDoc = await getCollection("friends").findOne({ uid: req.params.id, frienduid: res.locals.uid });
+		if (!friendDoc)
+		{
+			res.status(404).send()
+			return
+		}
+
+		const friendSettingsDoc = await getCollection("friends").findOne({ frienduid: res.locals.uid, uid: req.params.system });
+
+		if (friendSettingsDoc.seeFront === true) {
+			res.status(200).send({ frontString: friendDoc.frontString , customFrontString: friendDoc.customFrontString ?? "" });
+		}
+	
+		return
+	}
+
+	// legacy support
+
 	const friends = getCollection("friends");
 
 	const sharedFront = getCollection("sharedFront");
@@ -107,22 +153,35 @@ export const getAllFriendFrontValues = async (_req: Request, res: Response) => {
 	for (let i = 0; i < friendSettings.length; ++i) {
 		const friendSettingsDoc = friendSettings[i];
 
-		if (friendSettingsDoc.seeFront === true) {
-			if (friendSettingsDoc.trusted === true) {
-				const front = await privateFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
-				if (front) {
-					friendFrontValues.push({ uid: front.uid, customFrontString: front.customFrontString, frontString: front.frontString });
+		const hasMigrated = await doesUserHaveVersion(friendSettingsDoc.uid, FIELD_MIGRATION_VERSION)
+		if (hasMigrated)
+		{
+			const friendDoc = await getCollection("friends").findOne({ uid: friendSettingsDoc.uid, frienduid: res.locals.uid });
+			if (friendDoc)
+			{
+				if (friendSettingsDoc.seeFront === true) {
+					friendFrontValues.push({ uid: friendDoc.uid, customFrontString: friendDoc.customFrontString, frontString: friendDoc.frontString });
 				}
-			} else {
-				const front = await sharedFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
-				if (front) {
-					friendFrontValues.push({ uid: front.uid, customFrontString: front.customFrontString, frontString: front.frontString });
+			}
+		}
+		else 
+		{
+			if (friendSettingsDoc.seeFront === true) {
+				if (friendSettingsDoc.trusted === true) {
+					const front = await privateFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
+					if (front) {
+						friendFrontValues.push({ uid: front.uid, customFrontString: front.customFrontString, frontString: front.frontString });
+					}
+				} else {
+					const front = await sharedFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
+					if (front) {
+						friendFrontValues.push({ uid: front.uid, customFrontString: front.customFrontString, frontString: front.frontString });
+					}
 				}
 			}
 		}
 	}
 
-	// TODO: Only send uid, frontString and customFrontString
 	res.status(200).send({ results: friendFrontValues });
 };
 
@@ -137,10 +196,8 @@ export const getFriendFront = async (req: Request, res: Response) => {
 		const memberDoc = await getCollection("members").findOne({ _id: parseId(member) });
 
 		if (memberDoc) {
-			const { preventTrusted } = memberDoc;
-
-			const canAccess = await canAccessDocument(res.locals.uid, req.params.id, memberDoc.private, preventTrusted);
-			if (canAccess === true) {
+			const canAccess = await getDocumentAccess(res.locals.uid, memberDoc, "members");
+			if (canAccess.access === true) {
 				frontingList.push(member);
 				if (customStatus) {
 					frontingStatuses[member] = customStatus;
@@ -149,10 +206,8 @@ export const getFriendFront = async (req: Request, res: Response) => {
 		}
 		const customFrontDoc = await getCollection("frontStatuses").findOne({ _id: parseId(member) });
 		if (customFrontDoc) {
-			const { preventTrusted } = customFrontDoc;
-
-			const canAccess = await canAccessDocument(res.locals.uid, req.params.id, customFrontDoc.private, preventTrusted);
-			if (canAccess === true) {
+			const canAccess = await getDocumentAccess(res.locals.uid, customFrontDoc, "frontStatuses");
+			if (canAccess.access === true) {
 				frontingList.push(member);
 				if (customStatus) {
 					frontingStatuses[member] = customStatus;

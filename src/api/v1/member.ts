@@ -3,31 +3,64 @@ import moment from "moment";
 import { frontChange } from "../../modules/events/frontChange";
 import { getCollection, parseId } from "../../modules/mongo";
 import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security";
-import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendDocuments, updateSimpleDocument } from "../../util";
+import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, getDocumentAccess, sendDocument, sendDocuments, updateSimpleDocument } from "../../util";
 import { getPrivacyDependency, validateSchema } from "../../util/validation";
 import { frameType } from "../types/frameType";
+import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
+import { CustomFieldType } from "./customFields";
+import { Diff } from "deep-diff";
+import { DiffProcessor, DiffResult } from "../../util/diff";
+import { limitStringLength } from "../../util/string";
+import { ObjectId } from "mongodb";
 
-export const getMembers = async (req: Request, res: Response) => {
-	if (req.params.system != res.locals.uid) {
-		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
-		if (!canSee) {
-			res.status(403).send("You are not authorized to see members of this user");
-			return;
+const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]) : Promise<boolean> => 
+{
+	const hasMigrated = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION)
+	if (hasMigrated)
+	{
+		const userFields = await getCollection("customFields").find({uid}).toArray()
+
+		const allowedFields : CustomFieldType[] = []
+
+		for (let i = 0; i < userFields.length; ++i)
+		{
+			const field = userFields[i]
+			const accessResult = await getDocumentAccess(res.locals.uid, field, "customFields")
+
+			if (accessResult.access === true)
+			{
+				allowedFields.push(field)
+			}
 		}
+
+		members.forEach((member) => {
+			if (member.info)
+			{
+				const newFields: any = {}
+
+				allowedFields.forEach((field) => 
+				{
+					newFields[field._id.toString()] = member.info[field._id.toString()]
+				})
+
+				member.info = newFields;
+			}
+		})
 	}
+	else // Legacy custom fields
+	{
+		const ownerUser = await getCollection("users").findOne({ _id: uid , uid });
 
-	const query = getCollection("members").find({ uid: req.params.system });
-	const documents = await query.toArray();
-
-	if (req.params.system != res.locals.uid) {
-		const ownerUser = await getCollection("users").findOne({ uid: req.params.system });
-		const friendLevel = await getFriendLevel(req.params.system, res.locals.uid);
-		const isATrustedFriend = isTrustedFriend(friendLevel);
-		if (ownerUser) {
+		if (ownerUser)
+		{
+			const friendLevel = await getFriendLevel(uid, res.locals.uid);
+			const isATrustedFriend = isTrustedFriend(friendLevel);
+	
 			const ownerFields: { [key: string]: any } = ownerUser.fields;
-			documents.forEach((member) => {
-				const newFields: any = {};
+			members.forEach((member) => {
 
+				const newFields: any = {};
+				
 				if (member.info && ownerFields) {
 					Object.keys(member.info).forEach((key) => {
 						const fieldSpec = ownerFields[key];
@@ -44,30 +77,149 @@ export const getMembers = async (req: Request, res: Response) => {
 
 				member.info = newFields;
 			});
-		} else {
-			res.status(404).send();
+		}
+	}
+
+	return true
+}
+
+export const getMembers = async (req: Request, res: Response) => {
+	if (req.params.system != res.locals.uid) {
+		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
+		if (!canSee) {
+			res.status(403).send("You are not authorized to see members of this user");
 			return;
 		}
 	}
+
+	const query = getCollection("members").find({ uid: req.params.system });
+	const documents = await query.toArray();
+
+	if (req.params.system != res.locals.uid) {
+
+		const filterResult = await filterFieldsForPrivacy(req, res, req.params.system, documents)
+		if (filterResult !== true)
+		{
+			return
+		}
+	}
+
 	sendDocuments(req, res, "members", documents);
 };
 
 export const get = async (req: Request, res: Response) => {
-	fetchSimpleDocument(req, res, "members");
+
+	const document = await getCollection("members").findOne({ _id: parseId(req.params.id), uid: req.params.system ?? res.locals.uid });
+
+	if (req.params.system != res.locals.uid) {
+
+		const filterResult = await filterFieldsForPrivacy(req, res, req.params.system, [document])
+		if (filterResult !== true)
+		{
+			return
+		}
+	}
+
+	sendDocument(req, res, "members", document);
 };
 
 export const add = async (req: Request, res: Response) => {
 	addSimpleDocument(req, res, "members");
 };
 
+const updateDiffProcessor : DiffProcessor = async (uid: string, difference: Diff<any, any>, lhs: any, rhs: any) =>
+{
+	if (difference.kind === "E" && difference.path![0] === "info")
+	{
+		const fieldId = difference.path![1]
+		const field = await getCollection("customFields").findOne({uid, _id: parseId(fieldId)})
+
+		if (field)
+		{
+			const originalValue = difference.lhs
+			return { processed: true, result: {o: originalValue, n: limitStringLength(difference.rhs, 50, true) ?? '', p: field.name, cn: true}}	
+		}
+	}
+
+	if (difference.kind === "N" && difference.path![0] === "info" && difference.path?.length === 1)
+	{
+		const newFields = difference.rhs;
+		const newFieldsKeys = Object.keys(newFields);
+
+		const newInfo : DiffResult[] = []
+
+		for (let i = 0; i < newFieldsKeys.length; ++i)
+		{
+			const newFieldValue : string = newFields[newFieldsKeys[i]]
+			if (newFieldValue && newFieldValue.length > 0)
+			{
+				const fieldId = parseId(newFieldsKeys[i])
+				const field = await getCollection("customFields").findOne({uid, _id: fieldId})
+				newInfo.push({o: "", n: limitStringLength(newFieldValue, 50, true) ?? '', p: field.name, cn: true})
+			}
+		}
+
+		return {processed: true, result: newInfo}
+	}
+
+	return {processed: false, result: undefined}
+}
+
 export const update = async (req: Request, res: Response) => {
-	updateSimpleDocument(req, res, "members");
+
+	// If user passes in info, but we migrated to FIELD_MIGRATION_VERSION we need to reject this, as 1.11+ has its own dedicated fields update route
+	if (!!req.body.info)
+	{
+		const hasMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+		if (hasMigrated)
+		{
+			delete req.body.info 
+		}
+	}
+
+	updateSimpleDocument(req, res, "members", updateDiffProcessor);
 
 	// If this member is fronting, we need to notify and update current fronters
 	const fhLive = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.params.id, live: true });
 	if (fhLive) {
 		frontChange(res.locals.uid, false, req.params.id, false);
 	}
+};
+
+export const updateInfo = async (req: Request, res: Response) => {
+
+	const hasMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+	if (!hasMigrated)
+	{
+		res.status(400).send("This route is only available for users who have updated to 1.11")
+		return
+	}
+
+	const userFields = await getCollection("customFields").find({uid: res.locals.uid}).toArray()
+
+	let infoFieldsKeys = Object.keys(req.body.info);
+	infoFieldsKeys = infoFieldsKeys.filter((fieldKey) => userFields.findIndex((userField) => {
+		const userFieldId = parseId(userField._id);
+		const infoFieldId = parseId(fieldKey);
+
+		if (ObjectId.isValid(userFieldId) && ObjectId.isValid(infoFieldId))
+		{
+			return (infoFieldId as ObjectId).equals(userFieldId)
+		}
+
+		return false;
+	}) !== -1)
+
+	const originalBody = req.body.info
+
+	req.body = {}
+
+	infoFieldsKeys.forEach((fieldKey) =>
+	{
+		req.body[`info.${fieldKey}`] = originalBody[fieldKey];
+	})
+	
+	updateSimpleDocument(req, res, "members", updateDiffProcessor);
 };
 
 export const del = async (req: Request, res: Response) => {
@@ -90,8 +242,8 @@ export const del = async (req: Request, res: Response) => {
 			getCollection("groups").updateOne({ uid: res.locals.uid, _id: parseId(group._id) }, { $set: { members: newMembers } });
 		});
 
-	// Commented out due to typescript/mongodb error
-	//getCollection("groups").updateMany({ uid: res.locals.uid }, { $pull: { members: req.params.id } });
+	// @ts-ignore
+	getCollection("groups").updateMany({ uid: res.locals.uid }, { $pull: { members: req.params.id } });
 
 	// Delete notes that belong to this member
 	getCollection("notes").deleteMany({ uid: res.locals.uid, member: req.params.id });
@@ -163,10 +315,29 @@ export const validatePostMemberSchema = (body: unknown): { success: boolean; msg
 			archivedReason: { type: "string", maxLength: 150 },
 			frame: frameType
 		},
-		required: ["name", "private", "preventTrusted"],
+		required: ["name"],
 		nullable: false,
 		additionalProperties: false,
 		dependencies: getPrivacyDependency(),
+	};
+
+	return validateSchema(schema, body);
+};
+
+export const validateUpdateMemberFieldsSchema = (body: unknown): { success: boolean; msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			info: {
+				type: "object",
+				properties: {
+					"*": { type: "string" },
+				},
+			},
+		},
+		nullable: false,
+		additionalProperties: false,
+		required: ["info"]
 	};
 
 	return validateSchema(schema, body);

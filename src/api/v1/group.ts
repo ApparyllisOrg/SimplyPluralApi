@@ -3,6 +3,7 @@ import { getCollection, parseId } from "../../modules/mongo";
 import { dispatchDelete, OperationType } from "../../modules/socket";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, isMemberOrCustomFront, isMember } from "../../util";
 import { getPrivacyDependency, validateSchema } from "../../util/validation";
+import { logDeleteAudit } from "../../util/diff";
 
 export const getGroups = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "groups", {});
@@ -89,7 +90,17 @@ export const update = async (req: Request, res: Response) => {
 };
 
 export const del = async (req: Request, res: Response) => {
+	const originalDocument = await getCollection("groups").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) })
+	if (!originalDocument)
+	{
+		res.status(404).send()
+		return
+	}
+
 	await delGroupRecursive(req.params.id, res.locals.uid);
+
+	//logDeleteAudit(res.locals.uid, "groups", res.locals.operationTime, originalDocument)
+
 	res.status(200).send();
 };
 
@@ -167,7 +178,7 @@ export const validatePostGroupSchema = (body: unknown): { success: boolean; msg:
 			members: { type: "array", items: { type: "string" }, uniqueItems: true },
 			supportDescMarkdown: { type: "boolean" },
 		},
-		required: ["parent", "color", "private", "preventTrusted", "name", "desc", "emoji", "members"],
+		required: ["parent", "color", "name", "desc", "emoji", "members"],
 		nullable: false,
 		additionalProperties: false,
 		dependencies: getPrivacyDependency(),

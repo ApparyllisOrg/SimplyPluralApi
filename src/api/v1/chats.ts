@@ -1,12 +1,14 @@
 import { Request, Response } from "express";
 import moment from "moment";
-import { ObjectID } from "mongodb";
+import { ObjectId } from "mongodb";
 import * as Sentry from "@sentry/node";
 import { getCollection, parseId } from "../../modules/mongo";
 import { documentObject } from "../../modules/mongo/baseTypes";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, deleteSimpleDocument, fetchCollection, sendDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 import { decryptMessage, encryptMessage } from "./chat/chat.core";
+import { DiffProcessor } from "../../util/diff";
+import { Diff } from "deep-diff";
 
 export const getChannelHistory = async (req: Request, res: Response) => {
 	const query: any = { channel: req.params.id };
@@ -89,7 +91,7 @@ const verifyValidChannelsPayload = async (req: Request, res: Response) => {
 
 export const addChannelCategory = async (req: Request, res: Response) => {
 	const dataObj: documentObject = req.body;
-	dataObj._id = res.locals.useId ?? new ObjectID();
+	dataObj._id = res.locals.useId ?? new ObjectId();
 
 	await verifyValidChannelsPayload(req, res);
 
@@ -102,7 +104,18 @@ export const addChannelCategory = async (req: Request, res: Response) => {
 export const updateChannelCategory = async (req: Request, res: Response) => {
 	await verifyValidChannelsPayload(req, res);
 
-	updateSimpleDocument(req, res, "channelCategories");
+	const differenceProcessor : DiffProcessor = async (uid: string, difference: Diff<any, any>, lhs: any, rhs: any) =>
+	{
+		if (difference.path![0] === "channels")
+		{
+			return { processed: true, result: undefined, ignore: true}
+		}
+
+
+		return {processed: false, result: undefined}
+	}
+
+	updateSimpleDocument(req, res, "channelCategories", differenceProcessor);
 };
 
 export const deleteChannelCategory = async (req: Request, res: Response) => {

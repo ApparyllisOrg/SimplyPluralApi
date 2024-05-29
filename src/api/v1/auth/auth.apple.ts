@@ -1,7 +1,7 @@
 import { getCollection } from "../../../modules/mongo";
 import * as Sentry from "@sentry/node";
 import { auth } from "firebase-admin";
-import { getNewUid } from "./auth.core";
+import { getEmailRegex, getNewUid } from "./auth.core";
 import { decode, JwtPayload, verify } from "jsonwebtoken";
 import jwksClient from "jwks-rsa";
 import { migrateAccountFromFirebase } from "./auth.migrate";
@@ -38,8 +38,8 @@ export const loginWithApple = async (credential: string): Promise<{ success: boo
 		return { success: false, uid: "", email: "" };
 	}
 
-	const googleUserId = payload["sub"];
-	const account = await getCollection("accounts").findOne({ sub: googleUserId });
+	const email = payload["email"];
+	const account = await getCollection("accounts").findOne({ email : getEmailRegex(payload.email ?? "") });
 
 	if (!account) {
 		const result = await registerSub(payload);
@@ -48,10 +48,10 @@ export const loginWithApple = async (credential: string): Promise<{ success: boo
 			return { success: false, uid: "", email: "" };
 		}
 
-		const registeredAccount = await getCollection("accounts").findOne({ sub: googleUserId });
+		const registeredAccount = await getCollection("accounts").findOne({ email : getEmailRegex(payload.email ?? "") });
 
 		if (!registeredAccount) {
-			Sentry.captureMessage("Unable to register account of sub " + googleUserId);
+			Sentry.captureMessage("Unable to register account of email " + email);
 			return { success: false, uid: "", email: "" };
 		}
 

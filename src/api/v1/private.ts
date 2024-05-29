@@ -6,6 +6,29 @@ import { addSimpleDocument, fetchSimpleDocument, updateSimpleDocument } from "..
 import { validateSchema } from "../../util/validation";
 import { setupNewUser } from "./user";
 import { updateUser } from "./user/updates/updateUser";
+import { NewFieldsVersion } from "./customFields";
+import { ObjectId } from "mongodb";
+
+export const getDefaultPrivacyBuckets = async (uid: string, type: "members" | "groups" | "customFields" | "frontStatuses" ) : Promise<ObjectId[]> =>
+{
+	const privateDocument = await getCollection("private").findOne({ uid: uid, _id: uid, latestVersion: { $gte: NewFieldsVersion } });
+	if (!privateDocument)
+	{
+		return []
+	}
+
+	switch(type)
+	{
+		case "members":
+			return privateDocument.members;
+		case "groups":
+			return privateDocument.groups;
+		case "customFields":
+			return privateDocument.customFields;
+		case "frontStatuses":
+			return privateDocument.customFronts;
+	}
+}
 
 export const get = async (req: Request, res: Response) => {
 	const privateDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: res.locals.uid });
@@ -23,7 +46,15 @@ export const get = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
 	const previousDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: res.locals.uid });
 	if (previousDocument) {
-		if (previousDocument.latestVersion && previousDocument.latestVersion < req.body.latestVersion) {
+		const performUpdate = (previousDocument.latestVersion && previousDocument.latestVersion < req.body.latestVersion) 
+			||  (!previousDocument.latestVersion && req.body.latestVersion >= 300) // version 300 detected an issue where sometimes latest version was never set 
+
+		if (!previousDocument.latestVersion && req.body.latestVersion >= 300)
+		{
+			previousDocument.latestVersion = 299
+		}
+
+		if (performUpdate) {
 			await updateUser(previousDocument.latestVersion, req.body.latestVersion, res.locals.uid);
 			userLog(res.locals.uid, `Updated user account to version ${req.body.latestVersion}`);
 		}
@@ -66,7 +97,19 @@ export const validatePrivateSchema = (body: unknown): { success: boolean; msg: s
 			location: { type: "string" },
 			termsOfServiceAccepted: { type: "boolean", enum: [true] },
 			whatsNew: { type: "number" },
+			auditContentChanges: { type: "boolean" },
+			hideAudits: { type: "boolean" },
+			auditRetention: { type: "number", minimum: 1, maximum: 31 },
 			categories: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+			defaultPrivacy: {
+				type: "object",
+				properties: {
+					members:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+					groups:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+					customFronts:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+					customFields:  { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+				}
+			}
 		},
 		nullable: false,
 		additionalProperties: false,

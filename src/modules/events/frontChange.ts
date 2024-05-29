@@ -1,13 +1,29 @@
+import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "../../api/v1/user/updates/updateUser";
 import { logger } from "../logger";
 import { getCollection, parseId } from "../mongo";
 import { notifyUser } from "../notifications/notifications";
 import { notifyOfFrontChange } from "./automatedReminder";
+import { ObjectId } from "mongodb";
 import { performEvent } from "./eventController";
+import { getDocumentAccess } from "../../util";
+
+const getFronterString = (entries: Array<string>) => {
+	return entries.join(", ");
+};
 
 export const frontChange = async (uid: string, removed: boolean, memberId: string, notifyReminders: boolean) => {
 	if (notifyReminders === true) {
 		notifyOfFrontChange(uid, removed, memberId);
 	}
+
+	const hasMigrated = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION)
+	if (hasMigrated)
+	{
+		performEvent("frontChange", uid, 10 * 1000);
+		return;
+	}
+
+	// Legacy compatibility
 
 	const sharedCollection = getCollection("sharedFront");
 	const privateCollection = getCollection("privateFront");
@@ -78,9 +94,6 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 	privateFronterNames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 	privateFronterNotificationNames.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
 
-	const getFronterString = (entries: Array<string>) => {
-		return entries.join(", ");
-	};
 
 	sharedCollection.updateOne(
 		{ uid: uid, _id: uid },
@@ -151,6 +164,85 @@ export const notifyPrivateFrontDue = async (uid: string, _event: any) => {
 	const privateCollection = getCollection("privateFront");
 	const privateData = await privateCollection.findOne({ uid: uid, _id: uid });
 	notifyFront(privateData.frontNotificationString, privateData.customFrontString, uid, true);
+};
+
+export const notifyFrontDue = async (uid: string, _event: any) => {
+	const userDoc = await getCollection("users").findOne({ uid: uid });
+
+	const liveFrontingEntries = await getCollection("frontHistory").find({uid, live: true}).toArray();
+
+	const liveFrontingEntriesIds : (string|ObjectId)[] = []
+
+	liveFrontingEntries.forEach((entry) => liveFrontingEntriesIds.push(parseId(entry.member)))
+
+	const members = await getCollection("members").find({uid, _id: { $in : liveFrontingEntriesIds }}).sort({name: 1}).toArray();
+	const frontStatuses = await getCollection("frontStatuses").find({uid, _id: { $in: liveFrontingEntriesIds }}).sort({name: 1}).toArray();
+
+
+	const friends = await getCollection("friends").find({uid}).toArray();
+	friends.forEach(async (friend) => 
+	{
+		const fronterNames: Array<string> = [];
+		const fronterNotificationNames: Array<string> = [];
+		const customFronterNames: Array<string> = [];
+
+		for (let i = 0; i < members.length; ++i)
+		{
+			const member = members[i]
+			const accessResult = await getDocumentAccess(friend.frienduid, member, "members")
+			if (accessResult.access === true)
+			{
+				fronterNames.push(member.name)
+				if (member.preventsFrontNotifs !== true)
+				{
+					fronterNotificationNames.push(member.name)
+				}
+			}
+		}
+
+		for (let i = 0; i < frontStatuses.length; ++i)
+		{
+			const frontStatus = frontStatuses[i]
+			const accessResult = await getDocumentAccess(friend.frienduid, frontStatus, "frontStatuses")
+			if (accessResult.access === true)
+			{
+				customFronterNames.push(frontStatus.name)
+				if (frontStatus.preventsFrontNotifs !== true)
+				{
+					fronterNotificationNames.push(frontStatus.name)
+				}
+			}
+		}
+
+		const frontString = getFronterString(fronterNames)
+		const customFrontString = getFronterString(customFronterNames)
+		const frontNotificationString = getFronterString(fronterNotificationNames)
+
+		if (frontString !== friend.frontString || customFrontString !== friend.customFrontString)
+		{
+			let message = ""
+
+			if (frontString.length > 0) {
+				if (customFrontString.length > 0) {
+					message = "Fronting: " + frontString + " \n" + "Custom fronting: " + customFrontString;
+				} else {
+					message = "Fronting: " + frontString;
+				}
+			} else if (customFrontString.length > 0) {
+				message = "Custom fronting: " + customFrontString;
+			}
+		
+			if (message.length > 0) {
+				notifyUser(uid, friend.uid, userDoc.username, message);
+			}
+		}
+
+		const result = await getCollection("friends").updateOne({uid: uid, frienduid: friend.frienduid}, {$set: {
+			frontString,
+			customFrontString,
+			frontNotificationString,
+		}})
+	})
 };
 
 const notifyFront = async (frontNotificationString: string, customFrontString: string, uid: string, trusted: boolean) => {

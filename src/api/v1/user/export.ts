@@ -77,9 +77,7 @@ export const exportData = async (uid: string): Promise<{ success: boolean; code:
 			allData[actualName] = collectionData;
 		}
 	}
-
-	const email = await getEmailForUser(uid)
-
+	
 	const getFile = promisify(readFile);
 	let emailTemplate = await getFile("./templates/exportEmailTemplate.html", "utf-8");
 

@@ -17,6 +17,7 @@ import cors from "cors";
 import cluster from "cluster";
 import { setupLemon } from "../api/v1/subscriptions/subscriptions.core";
 import { loadTemplates } from "./mail/mailTemplates";
+import { setupV2routes } from "../api/v2/routes";
 
 export const initializeServer = async () => {
 	const app = express();
@@ -68,6 +69,7 @@ export const initializeServer = async () => {
 	app.use(validateOperationTime);
 
 	setupV1routes(app);
+	setupV2routes(app);
 	setupBaseRoutes(app);
 
 	// Has to be *after* all controllers

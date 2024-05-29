@@ -25,15 +25,20 @@ import * as board from "./board";
 import * as chats from "./chats";
 import * as auth from "./auth";
 import * as event from "./events";
+import * as customFields from "./customFields";
 import { isLemonSetup } from "./subscriptions/subscriptions.core";
 import { cancelSubscription } from "./subscriptions/subscriptions.cancel";
 import { getSubscription } from "./subscriptions/subscriptions.get";
 import { reactivateSubscription } from "./subscriptions/subscriptions.reactivate";
 import { getInvoices } from "./subscriptions/subscriptions.invoices";
 import { changeSubscription, validateChangeSubscriptionSchema } from "./subscriptions/subscriptions.change";
-import { getManagementLink } from "./subscriptions/subscriptions.manage";
 import { startCheckoutSession } from "./subscriptions/subscriptions.checkout";
 import { getSubscriptionOptions } from "./subscriptions/subscriptions.options";
+import { addPrivacyBucket, deletePrivacyBucket, getPrivacyBucket, getPrivacyBuckets, updatePrivacyBucket, validateBucketSchema } from "./buckets";
+import { orderBuckets, validateOrderBucketsSchema } from "./privacy/privacy.buckets.order";
+import { assignBucketsToFriend, assignFriendsToBucket, validateAssignBucketsToFriendSchema, validateAssignFriendsToBucketSchema } from "./privacy/privacy.bucket.assign";
+import { setPrivacyBuckets, validateSetPrivacyBucketsSchema } from "./privacy/privacy.bucket.set";
+import { deleteAuditEntry, deleteExpiredAuditEntries, getAuditHistory, validateGetAuditHistorySchema } from "./audit";
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
@@ -41,6 +46,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/members/:system", isUserAuthenticated(ApiKeyAccessType.Read), member.getMembers);
 	app.post("/v1/member/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(member.validatePostMemberSchema), validateId, member.add);
 	app.patch("/v1/member/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(member.validateMemberSchema), member.update);
+	app.patch("/v1/member/fields/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(member.validateUpdateMemberFieldsSchema), member.updateInfo);
 	app.delete("/v1/member/:id", isUserAuthenticated(ApiKeyAccessType.Delete), member.del);
 
 	// Notes
@@ -56,6 +62,13 @@ export const setupV1routes = (app: core.Express) => {
 	app.post("/v1/customFront/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFront.validatePostCustomFrontSchema), validateId, customFront.add);
 	app.patch("/v1/customFront/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFront.validateCustomFrontSchema), customFront.update);
 	app.delete("/v1/customFront/:id", isUserAuthenticated(ApiKeyAccessType.Delete), customFront.del);
+
+	// Custom Fields
+	app.get("/v1/customField/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), customFields.getCustomField);
+	app.get("/v1/customFields/:system", isUserAuthenticated(ApiKeyAccessType.Read), customFields.getCustomFields);
+	app.post("/v1/customField/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFields.validatePostCustomFieldSchema), validateId, customFields.addCustomField);
+	app.patch("/v1/customField/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFields.validatePatchCustomFieldSchema), customFields.updateCustomField);
+	app.delete("/v1/customField/:id", isUserAuthenticated(ApiKeyAccessType.Delete), customFields.deleteCustomField);
 
 	// Comments
 	app.get("/v1/comments/:type/:id", isUserAuthenticated(ApiKeyAccessType.Read), comment.getCommentsForDocument);
@@ -108,6 +121,11 @@ export const setupV1routes = (app: core.Express) => {
 	// Analytics
 	app.get("/v1/user/analytics", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(analytics.validatGetAnalyticsSchema), analytics.get);
 
+	// Audit
+	//app.get("/v1/audit", isUserAuthenticated(ApiKeyAccessType.Read), validateQuery(validateGetAuditHistorySchema), getAuditHistory);
+	//app.delete("/v1/audits", isUserAuthenticated(ApiKeyAccessType.Delete), deleteExpiredAuditEntries);
+	//app.delete("/v1/audit/:id", isUserAuthenticated(ApiKeyAccessType.Delete), deleteAuditEntry);
+
 	// User
 	app.get("/v1/me", isUserAuthenticated(ApiKeyAccessType.Read), user.getMe);
 	app.get("/v1/user/:id", isUserAuthenticated(ApiKeyAccessType.Read), user.get);
@@ -153,6 +171,17 @@ export const setupV1routes = (app: core.Express) => {
 	app.patch("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(chats.validateUpdateMessageSchema), chats.updateMessage);
 	app.delete("/v1/chat/message/:id", isUserAuthenticated(ApiKeyAccessType.Delete), chats.deleteMessage);
 
+	// Privacy buckets
+	app.get("/v1/privacyBucket/:id", isUserAuthenticated(ApiKeyAccessType.Read), getPrivacyBucket);
+	app.get("/v1/privacyBuckets", isUserAuthenticated(ApiKeyAccessType.Read), getPrivacyBuckets);
+	app.post("/v1/privacyBucket/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateBucketSchema), addPrivacyBucket);
+	app.patch("/v1/privacyBucket/order", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateOrderBucketsSchema), orderBuckets);
+	app.patch("/v1/privacyBucket/setbuckets", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateSetPrivacyBucketsSchema), setPrivacyBuckets);
+	app.patch("/v1/privacyBucket/assignbuckets", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateAssignBucketsToFriendSchema), assignBucketsToFriend);
+	app.patch("/v1/privacyBucket/assignfriends", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateAssignFriendsToBucketSchema), assignFriendsToBucket);
+	app.patch("/v1/privacyBucket/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateBucketSchema), updatePrivacyBucket);
+	app.delete("/v1/privacyBucket/:id", isUserAuthenticated(ApiKeyAccessType.Delete), deletePrivacyBucket);
+
 	// Private
 	app.get("/v1/user/private/:id", isUserAppJwtAuthenticated, priv.get);
 	app.patch("/v1/user/private/:id", isUserAppJwtAuthenticated, validateBody(priv.validatePrivateSchema), priv.update);
@@ -161,6 +190,7 @@ export const setupV1routes = (app: core.Express) => {
 
 	// Friends
 	app.get("/v1/friends/", isUserAuthenticated(ApiKeyAccessType.Read), friend.getFriends);
+	app.get("/v1/friends/settings", isUserAuthenticated(ApiKeyAccessType.Read), friend.getFriendsSettings);
 	app.get("/v1/friends/requests/incoming", isUserAuthenticated(ApiKeyAccessType.Read), friend.getIngoingFriendRequests);
 	app.get("/v1/friends/requests/outgoing", isUserAuthenticated(ApiKeyAccessType.Read), friend.getOutgoingFriendRequests);
 	app.get("/v1/friends/getFrontValues", isUserAuthenticated(ApiKeyAccessType.Read), friend.getAllFriendFrontValues);
