@@ -37,7 +37,7 @@ export const repeatRemindersEvent = async (uid: string) => {
 	const repeatReminders = getCollection("repeatedReminders");
 	const foundReminders = await repeatReminders.find({ uid: uid }).toArray();
 
-	const privateUserData = await getCollection("private").findOne({ uid: uid });
+	const privateUserData = await getCollection("private").findOne({ uid: uid, _id: uid });
 
 	// Remove all scheduled repeat reminders
 	const queuedEvents = getCollection("queuedEvents");
@@ -48,7 +48,7 @@ export const repeatRemindersEvent = async (uid: string) => {
 };
 
 export const repeatRemindersDueEvent = async (uid: string, event: any) => {
-	const privateUserData = await getCollection("private").findOne({ uid: uid });
+	const privateUserData = await getCollection("private").findOne({ uid: uid, _id: uid });
 	if (privateUserData) {
 		notifyUser(uid, uid, "Reminder", event.message);
 		const repeatReminders = getCollection("repeatedReminders");

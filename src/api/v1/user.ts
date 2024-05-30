@@ -313,7 +313,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 
 	const email = await getEmailForUser(res.locals.uid)
 
-	await getCollection("private").updateOne({ uid: res.locals.uid, _id: parseId(res.locals.uid) }, { $set: { lastExport: moment.now() } });
+	await getCollection("private").updateOne({ uid: res.locals.uid, _id: res.locals.uid }, { $set: { lastExport: moment.now() } });
 	logSecurityUserEvent(res.locals.uid, "Exported user account", _req);
 
 	res.status(200).send({ success: true });
