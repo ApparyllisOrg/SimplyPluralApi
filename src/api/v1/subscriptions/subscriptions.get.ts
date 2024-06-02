@@ -11,5 +11,13 @@ export const getSubscription = async (req: Request, res: Response) => {
     }
 
     const subscriber = await getCollection("subscribers").findOne({ uid: res.locals.uid })
-    res.status(200).send(transformResultForClientRead(subscriber, res.locals.uid))
+    if (subscriber)
+    {
+        res.status(200).send(transformResultForClientRead(subscriber, res.locals.uid))
+    }
+    else 
+    {
+        res.status(404).send()
+    }
+  
 };

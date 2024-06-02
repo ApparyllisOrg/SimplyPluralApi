@@ -5,6 +5,7 @@ import { notifyUser } from "../../modules/notifications/notifications";
 import { FriendLevel, getFriendLevel } from "../../security";
 
 import { validateSchema } from "../../util/validation";
+import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
 
 // Todo: Add schema
 export const AddFriend = async (req: Request, res: Response) => {
@@ -93,6 +94,31 @@ export const validatAddFrienqRequestSchema = (body: unknown): { success: boolean
 	return validateSchema(schema, body);
 };
 
+export const validatAddFrienqRequestV2Schema = (body: unknown): { success: boolean; msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			settings: {
+				type: "object",
+				properties: {
+					seeMembers: { type: "boolean" },
+					seeFront: { type: "boolean" },
+					getFrontNotif: { type: "boolean" },
+					message: { type: "string" },
+				},
+				nullable: false,
+				additionalProperties: false,
+				required: ["seeMembers", "seeFront", "getFrontNotif"],
+			},
+		},
+		nullable: false,
+		additionalProperties: false,
+		required: ["settings"],
+	};
+
+	return validateSchema(schema, body);
+};
+
 export const validateRespondToFrienqRequestQuerySchema = (body: unknown): { success: boolean; msg: string } => {
 	const schema = {
 		type: "object",
@@ -132,17 +158,55 @@ export const validateRespondToFrienqRequestSchema = (body: unknown): { success: 
 	};
 
 	return validateSchema(schema, body);
+}
+
+export const validateRespondToFrienqRequestV2Schema = (body: unknown): { success: boolean; msg: string } => {
+	const schema = {
+		type: "object",
+		properties: {
+			settings: {
+				type: "object",
+				properties: {
+					seeMembers: { type: "boolean" },
+					seeFront: { type: "boolean" },
+					getFrontNotif: { type: "boolean" },
+				},
+				nullable: false,
+				additionalProperties: false,
+				required: ["seeMembers", "seeFront", "getFrontNotif"],
+			},
+		},
+		nullable: false,
+		additionalProperties: false,
+		required: ["settings"],
+	};
+
+	return validateSchema(schema, body);
 };
 
 export const RespondToFriendRequest = async (req: Request, res: Response) => {
 	const accept = req.query.accepted === "true";
 
 	if (accept) {
-		const validation = validateRespondToFrienqRequestSchema(req.body);
-		if (!validation.success) {
-			res.status(400).send(validation.msg);
-			return;
+		const migrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+
+		if (migrated)
+		{
+			const validation = validateRespondToFrienqRequestV2Schema(req.body);
+			if (!validation.success) {
+				res.status(400).send(validation.msg);
+				return;
+			}
 		}
+		else 
+		{
+			const validation = validateRespondToFrienqRequestSchema(req.body);
+			if (!validation.success) {
+				res.status(400).send(validation.msg);
+				return;
+			}
+		}
+		
 	}
 
 	const target = req.params.usernameOrId;
