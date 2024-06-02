@@ -4,7 +4,7 @@ import { frontChange } from "../../modules/events/frontChange";
 import { getCollection } from "../../modules/mongo";
 import { canSeeMembers } from "../../security";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
-import { getPrivacyDependency, validateSchema } from "../../util/validation";
+import { getAvatarUuidSchema, getPrivacyDependency, validateSchema } from "../../util/validation";
 import { frameType } from "../types/frameType";
 
 export const getCustomFronts = async (req: Request, res: Response) => {
@@ -56,7 +56,7 @@ export const validateCustomFrontSchema = (body: unknown): { success: boolean; ms
 			name: { type: "string" },
 			desc: { type: "string" },
 			avatarUrl: { type: "string" },
-			avatarUuid: { type: "string" },
+			avatarUuid: getAvatarUuidSchema(),
 			color: { type: "string" },
 			preventTrusted: { type: "boolean" },
 			private: { type: "boolean" },
@@ -78,7 +78,7 @@ export const validatePostCustomFrontSchema = (body: unknown): { success: boolean
 			name: { type: "string" },
 			desc: { type: "string" },
 			avatarUrl: { type: "string" },
-			avatarUuid: { type: "string" },
+			avatarUuid: getAvatarUuidSchema(),
 			color: { type: "string" },
 			preventTrusted: { type: "boolean" },
 			private: { type: "boolean" },

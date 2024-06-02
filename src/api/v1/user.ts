@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { logger, userLog } from "../../modules/logger";
 import { db, getCollection, parseId } from "../../modules/mongo";
 import { fetchCollection, getDocumentAccess, sendDocument } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { getAvatarUuidSchema, validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
 import { update122 } from "./user/updates/update112";
 import { auth } from "firebase-admin";
@@ -379,11 +379,9 @@ export const validateUserSchema = (body: unknown): { success: boolean; msg: stri
 	const schema = {
 		type: "object",
 		properties: {
-			shownMigration: { type: "boolean" },
 			desc: { type: "string" },
-			fromFirebase: { type: "boolean" },
 			isAsystem: { type: "boolean" },
-			avatarUuid: { type: "string" },
+			avatarUuid: getAvatarUuidSchema(),
 			avatarUrl: { type: "string" },
 			color: { type: "string" },
 			supportDescMarkdown: { type: "boolean" },
