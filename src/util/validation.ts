@@ -196,3 +196,7 @@ export const getPrivacyDependency = () => ({
 	private: { required: ["preventTrusted"] },
 	preventTrusted: { required: ["private"] },
 });
+
+export const getAvatarUuidSchema = () => (
+	{ type: "string", pattern: "^([a-zA-Z0-9\-]{0,128})$"}
+);

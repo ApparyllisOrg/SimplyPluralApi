@@ -32,7 +32,7 @@ export const validatGetAnalyticsSchema = (body: unknown): { success: boolean; ms
 };
 
 export const get = async (req: Request, res: Response) => {
-	const privateDocument = await getCollection("private").findOne({ uid: res.locals.uid });
+	const privateDocument = await getCollection("private").findOne({ uid: res.locals.uid, _id: res.locals.uid });
 	const results: {
 		timings: { morningFronters: frontAnalyticValueType[]; dayFronters: frontAnalyticValueType[]; eveningFronters: frontAnalyticValueType[]; nightFronters: frontAnalyticValueType[] };
 		values: { sums: frontAnalyticValueType[]; averages: frontAnalyticValueType[]; maxes: frontAnalyticValueType[]; mins: frontAnalyticValueType[]; nums: frontAnalyticValueType[] };

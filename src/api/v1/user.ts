@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { logger, userLog } from "../../modules/logger";
 import { db, getCollection, parseId } from "../../modules/mongo";
 import { fetchCollection, getDocumentAccess, sendDocument } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { getAvatarUuidSchema, validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
 import { update122 } from "./user/updates/update112";
 import { auth } from "firebase-admin";
@@ -149,6 +149,13 @@ export const get = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
 	const setBody = req.body;
 	setBody.lastOperationTime = res.locals.operationTime;
+
+	const userMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION);
+	if (userMigrated)
+	{
+		delete setBody.fields;
+	}
+
 	await getCollection("users").updateOne(
 		{
 			uid: res.locals.uid,
@@ -306,7 +313,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 
 	const email = await getEmailForUser(res.locals.uid)
 
-	await getCollection("private").updateOne({ uid: res.locals.uid, _id: parseId(res.locals.uid) }, { $set: { lastExport: moment.now() } });
+	await getCollection("private").updateOne({ uid: res.locals.uid, _id: res.locals.uid }, { $set: { lastExport: moment.now() } });
 	logSecurityUserEvent(res.locals.uid, "Exported user account", _req);
 
 	res.status(200).send({ success: true });
@@ -372,11 +379,9 @@ export const validateUserSchema = (body: unknown): { success: boolean; msg: stri
 	const schema = {
 		type: "object",
 		properties: {
-			shownMigration: { type: "boolean" },
 			desc: { type: "string" },
-			fromFirebase: { type: "boolean" },
 			isAsystem: { type: "boolean" },
-			avatarUuid: { type: "string" },
+			avatarUuid: getAvatarUuidSchema(),
 			avatarUrl: { type: "string" },
 			color: { type: "string" },
 			supportDescMarkdown: { type: "boolean" },

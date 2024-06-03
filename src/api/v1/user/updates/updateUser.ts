@@ -25,7 +25,7 @@ export const doesUserHaveVersion = async (uid: string, version: number) : Promis
 		return false
 	}
 
-	const privateDoc = await getCollection("private").findOne({uid})
+	const privateDoc = await getCollection("private").findOne({uid, _id: uid})
 	if (privateDoc)
 	{
 		const hasVersion = privateDoc.latestVersion && privateDoc.latestVersion >= version

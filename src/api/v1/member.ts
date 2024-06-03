@@ -13,7 +13,7 @@ import { DiffProcessor, DiffResult } from "../../util/diff";
 import { limitStringLength } from "../../util/string";
 import { ObjectId } from "mongodb";
 
-const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]) : Promise<boolean> => 
+export const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]) : Promise<boolean> => 
 {
 	const hasMigrated = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION)
 	if (hasMigrated)

@@ -56,8 +56,9 @@ export const deleteCustomField = async (req: Request, res: Response) => {
 
     assert(req.params.id);
 
-	//@ts-ignore
-	await getCollection("members").updateMany({ uid: res.locals.uid }, { info: { $pull: { _id : parseId(req.params.id) }}});
+	const fieldName = `info.${req.params.id}`
+
+	await getCollection("members").updateMany({ uid: res.locals.uid }, { $unset : {[fieldName]: ''}});
 
 	deleteSimpleDocument(req, res, "customFields");
 };
