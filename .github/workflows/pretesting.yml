@@ -24,7 +24,4 @@ jobs:
           ref: pretesting
       - run: npm i
       - run: npm run build
-      - run: cp /home/actions_runner_pretesting/.env ./dist/.env
-      - run: cp /home/actions_runner_pretesting/spGoogle.json ./dist/spGoogle.json
-      - run: cp -R ./templates ./dist/templates
-      - run: pm2 restart pretesting
+      - run: /home/actions_runner_pretesting/start_server.sh

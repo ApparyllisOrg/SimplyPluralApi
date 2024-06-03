@@ -18,7 +18,7 @@ if (process.env.DEVELOPMENT === "true") {
 	process.on("unhandledRejection", console.error);
 }
 
-const accJson = JSON.parse(fs.readFileSync("./spGoogle.json").toString());
+const accJson = JSON.parse(process.env.SPGOOGLE!);
 const acc: ServiceAccount = {};
 acc.projectId = accJson.project_id;
 acc.privateKey = accJson.private_key;
