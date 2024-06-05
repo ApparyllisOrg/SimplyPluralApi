@@ -8,7 +8,7 @@ export const getStartupData = async (req: Request, res: Response) => {
     getPromises.push(getCollection("members").find({ uid: res.locals.uid }).toArray())
     getPromises.push(getCollection("groups").find({ uid: res.locals.uid }).toArray())
     getPromises.push(getCollection("frontStatuses").find({ uid: res.locals.uid }).toArray())
-    getPromises.push(getCollection("fronters").find({ uid: res.locals.uid }).toArray())
+    getPromises.push(getCollection("frontHistory").find({ uid: res.locals.uid, live: true }).toArray())
     getPromises.push(getCollection("channels").find({ uid: res.locals.uid }).toArray())
 
     const promiseResults = await Promise.all(getPromises)

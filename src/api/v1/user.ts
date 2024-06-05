@@ -370,9 +370,7 @@ export const initializeCustomFields = async (uid: string) => {
 	const memberWithFields = await getCollection("members").findOne({ uid: uid, info: { $exists: true } });
 	if (memberWithFields) {
 		update122(uid);
-	} else {
-		setupNewUser(uid);
-	}
+	} 
 };
 
 export const validateUserSchema = (body: unknown): { success: boolean; msg: string } => {
