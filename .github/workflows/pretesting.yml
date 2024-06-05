@@ -24,6 +24,4 @@ jobs:
           ref: pretesting
       - run: npm i
       - run: npm run build
-      - run: cp /home/actions_runner_pretesting/.env ./dist/.env
-      - run: cp -R ./templates ./dist/templates
       - run: /home/actions_runner_pretesting/start_server.sh
