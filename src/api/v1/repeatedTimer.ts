@@ -78,6 +78,7 @@ export const validateRepeatedTimerSchema = (body: unknown): { success: boolean; 
 				additionalProperties: false,
 				required: ["year", "month", "day"],
 			},
+			enabled: { type: "boolean" },
 		},
 		nullable: false,
 		additionalProperties: false,

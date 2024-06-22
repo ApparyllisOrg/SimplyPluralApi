@@ -31,6 +31,7 @@ export const validateAutomatedTimerSchema = (body: unknown): { success: boolean;
 			action: { type: "number" },
 			delayInHours: { type: "number" },
 			type: { type: "number" },
+			enabled: { type: "boolean" },
 		},
 		nullable: false,
 		additionalProperties: false,

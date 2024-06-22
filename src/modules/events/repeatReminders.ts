@@ -3,6 +3,8 @@ import { getCollection } from "../mongo";
 import { notifyUser } from "../notifications/notifications";
 
 const scheduleReminder = async (uid: string, data: any, userData: any) => {
+	if (data.enabled === false) return;
+
 	const queuedEvents = getCollection("queuedEvents");
 
 	const now = moment();
