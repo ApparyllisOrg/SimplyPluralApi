@@ -78,8 +78,8 @@
 		"url-value-parser": "^2.1.0",
 		"valid-url": "^1.0.9",
 		"vhost": "^3.0.2",
-		"winston": "^3.7.2",
-		"winston-daily-rotate-file": "^4.7.1",
+		"winston": "^3.13.0",
+		"winston-daily-rotate-file": "^5.0.0",
 		"ws": "^8.8.0",
 		"xss": "^1.0.13",
 		"yargs": "^17.6.0"
