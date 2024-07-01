@@ -47,7 +47,6 @@ export const addPendingRequest = (request: PkRequest): Promise<AxiosResponse<any
 };
 
 export const startPkController = () => {
-	reportActiveQueueSize();
 	tick();
 	resetRequestCounter();
 };
@@ -57,10 +56,6 @@ export const resetRequestCounter = () => {
 	setTimeout(resetRequestCounter, 1000);
 };
 
-export const reportActiveQueueSize = () => {
-	console.log("Active pk controller queue size: " + pendingRequests.length.toString());
-	setTimeout(reportActiveQueueSize, 10000);
-};
 
 const handleError = (reason: AxiosError) => {
 	if (reason.response) {
@@ -79,7 +74,6 @@ export const tick = async () => {
 			}
 		}
 	} catch (e) {
-		console.log(e);
 		logger.error("Pk sync error: " + e);
 		Sentry.captureException(e);
 	}

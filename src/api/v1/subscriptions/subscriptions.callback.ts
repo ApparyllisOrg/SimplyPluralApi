@@ -62,8 +62,6 @@ export const lemonCallback = async (req: Request, res: Response) => {
             {
                 const subData : any = event.data.attributes
                 const custom_data : {uid: string} = event.meta.custom_data;
-
-                console.log(subData)
         
                 if (!custom_data.uid)
                 {

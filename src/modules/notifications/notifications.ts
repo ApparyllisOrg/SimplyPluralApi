@@ -5,6 +5,7 @@ import { messaging } from "firebase-admin";
 import moment from "moment";
 import { notify as socketNotify } from "../../modules/socket";
 import { isUserSuspended } from "../../security";
+import { logger } from "../logger";
 
 export interface Notification {
 	// Token this notification is addressed to
@@ -65,7 +66,7 @@ const sendNotification = async (notification: Notification) => {
 				if (error.code === "messaging/registration-token-not-registered") {
 					getCollection("private").updateOne({ uid: notification.instigator, _id: notification.instigator }, { $pull: { notificationToken: notification.token } });
 				} else {
-					console.log(error);
+					logger.log("error", error)
 				}
 			});
 	}

@@ -1,6 +1,7 @@
 import * as minio from "minio";
 import * as AWS from "aws-sdk";
 import { S3 } from "aws-sdk";
+import { logger } from "./logger";
 
 const objectEndpoint = new AWS.Endpoint(process.env.OBJECT_HOST ?? "");
 const s3 = new AWS.S3({
@@ -51,7 +52,7 @@ export const getFileFromStorage = async (path: string): Promise<Buffer[] | null 
 				resolve(null);
 			});
 		} catch (e) {
-			console.log(e);
+			logger.log("error", e)
 			resolve(null);
 		}
 	});

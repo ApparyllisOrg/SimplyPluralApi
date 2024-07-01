@@ -28,9 +28,7 @@ const collectUsage = () => {
 	});
 
 	collectedUsage.clear();
-
-	console.log(`Dumped ${collectedUsageCount} actions to the usage logs`);
-
+	
 	collectedUsageCount = 0;
 
 	setTimeout(collectUsage, 1000 * 10);

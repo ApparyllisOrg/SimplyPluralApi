@@ -98,7 +98,6 @@ const performReportGeneration = async (req: Request, res: Response) => {
 	s3.putObject(params, function (err) {
 		if (err) {
 			logger.error(err);
-			console.log(err);
 			res.status(500).send("Error uploading report");
 		} else {
 			res.status(200).send({ success: true, msg: reportUrl });
@@ -252,7 +251,7 @@ const deleteUploadedUserFolder = async (uid: string, prefix: string) => {
 				}
 			}
 			catch (e) {
-				console.log(e)
+				logger.log("error", e)
 			}
 		};
 

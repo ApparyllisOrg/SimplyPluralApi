@@ -57,7 +57,7 @@ export const Store = async (req: Request, res: Response) => {
 
 	s3.putObject(params, function (err) {
 		if (err) {
-			console.log(err)
+			logger.log("error", err)
 			res.status(500).send("Error uploading avatar");
 		} else {
 			res.status(200).send({ success: true, msg: { url: "https://serve.apparyllis.com/avatars/" + path } });
