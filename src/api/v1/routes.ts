@@ -165,7 +165,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/friends/requests/outgoing", isUserAuthenticated(ApiKeyAccessType.Read), friend.getOutgoingFriendRequests);
 	app.get("/v1/friends/getFrontValues", isUserAuthenticated(ApiKeyAccessType.Read), friend.getAllFriendFrontValues);
 	app.get("/v1/friend/:system/getFrontValue", isUserAuthenticated(ApiKeyAccessType.Read), friend.getFriendFrontValues);
-	app.post("/v1/friends/request/add/:usernameOrId", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(friendActions.validatAddFrienqRequestSchema), friendActions.AddFriend);
+	app.post("/v1/friends/request/add/:usernameOrId", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(friendActions.validateAddFrienqRequestSchema), friendActions.AddFriend);
 	app.post("/v1/friends/request/respond/:usernameOrId", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(friendActions.validateRespondToFrienqRequestQuerySchema), friendActions.RespondToFriendRequest);
 	app.delete("/v1/friends/request/:id", isUserAuthenticated(ApiKeyAccessType.Delete), friendActions.CancelFriendRequest);
 	app.delete("/v1/friends/remove/:id", isUserAuthenticated(ApiKeyAccessType.Delete), friendActions.RemoveFriend);
