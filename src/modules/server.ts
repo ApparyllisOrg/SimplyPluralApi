@@ -4,6 +4,7 @@ import { logger } from "../modules/logger";
 import * as socket from "../modules/socket";
 import * as Mongo from "../modules/mongo";
 import * as Sentry from "@sentry/node";
+const { nodeProfilingIntegration } = require("@sentry/profiling-node");
 import { setupV1routes } from "../api/v1/routes";
 import setupBaseRoutes from "../api/routes";
 import helmet from "helmet";
@@ -27,9 +28,9 @@ export const initializeServer = async () => {
 
 	if (!process.env.DEVELOPMENT) {
 		if (process.env.SENTRY_DSN) {
-			Sentry.init({ dsn: process.env.SENTRY_DSN });
+			Sentry.init({ dsn: process.env.SENTRY_DSN, integrations: [nodeProfilingIntegration()], tracesSampleRate: 0.1, profilesSampleRate: 0.1 });
 		}
-		app.use(Sentry.Handlers.requestHandler());
+
 		app.use(helmet());
 	}
 
@@ -71,7 +72,7 @@ export const initializeServer = async () => {
 	setupBaseRoutes(app);
 
 	// Has to be *after* all controllers
-	app.use(Sentry.Handlers.errorHandler());
+	Sentry.setupExpressErrorHandler(app);
 
 	console.log(`Starting server as ${cluster.isPrimary ? "Primary" : "Worker"}`);
 

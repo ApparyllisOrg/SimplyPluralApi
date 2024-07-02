@@ -427,7 +427,7 @@ export const initializeCustomFields = async (uid: string) => {
 		return;
 	}
 
-	const memberWithFields = await getCollection("members").findOne({ uid: uid, info: { $exists: true } });
+	const memberWithFields = await getCollection("members").findOne({ uid: uid, info: { $exists: true } }, { projection:{ _id: 1 } });
 	if (memberWithFields) {
 		update122(uid);
 	} else {

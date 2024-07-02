@@ -13,7 +13,7 @@ import { getEmailForUser } from "../auth/auth.core";
 // Fetch all avatars from a user
 //-------------------------------//
 export const fetchAllAvatars = async (uid: string, processAvatar: (name: String, data: Buffer) => Promise<void>) : Promise<void> => {
-	const members = await getCollection("members").find({ uid }).toArray();
+	const members = await getCollection("members").find({ uid }, { projection: { _id: 1, avatarUuid: 1 } }).toArray();
 
 	for (let i = 0; i < members.length; ++i) {
 		const member = members[i];
@@ -25,7 +25,7 @@ export const fetchAllAvatars = async (uid: string, processAvatar: (name: String,
 		}
 	}
 
-	const cfs = await getCollection("frontStatuses").find({ uid }).toArray();
+	const cfs = await getCollection("frontStatuses").find({ uid }, { projection: { _id: 1, avatarUuid: 1 } }).toArray();
 	for (let i = 0; i < cfs.length; ++i) {
 		const cf = cfs[i];
 		if (cf.avatarUuid) {
@@ -36,7 +36,7 @@ export const fetchAllAvatars = async (uid: string, processAvatar: (name: String,
 		}
 	}
 
-	const user = await getCollection("users").findOne({ uid, _id: uid });
+	const user = await getCollection("users").findOne({ uid, _id: uid }, { projection: { _id: 1, avatarUuid: 1 }});
 	if (user.avatarUuid) {
 		const avatar = await getFileFromStorage(`avatars/${uid}/${user.avatarUuid}`);
 		if (avatar) {

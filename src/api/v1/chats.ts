@@ -135,7 +135,7 @@ export const writeMessage = async (req: Request, res: Response) => {
 		return;
 	}
 
-	const memberWriter = await getCollection("members").findOne({ uid: res.locals.uid, _id: parseId(req.body.writer) });
+	const memberWriter = await getCollection("members").findOne({ uid: res.locals.uid, _id: parseId(req.body.writer) }, { projection: { _id: 1 }});
 	if (!memberWriter) {
 		await getCollection("undeliveredMessages").insertOne({ uid: res.locals.uid, message: req.body, reason: "Member not found" });
 		res.status(404).send("Member who wrote this message not found, message cannot be delivered. We saved the message in case you would like to resend it with the correct member. Saved undelivered messages will automatically be deleted after 30 days.");

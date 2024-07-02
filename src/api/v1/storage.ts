@@ -3,6 +3,8 @@ import { logger, userLog } from "../../modules/logger";
 import { ajv, validateSchema } from "../../util/validation";
 import * as minio from "minio";
 import { isUserVerified } from "../../security";
+import promclient from "prom-client";
+
 const fileType = require('file-type');
 
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
@@ -21,6 +23,10 @@ const minioClient = new minio.Client({
 	secretKey: process.env.MINIO_SECRET!,
 });
 
+const update_avatar_counter = new promclient.Counter({
+	name: "apparyllis_api_avatar_upload",
+	help: "Counter for avatar uploads",
+});
 
 export const Store = async (req: Request, res: Response) => {
 	const result = await isUserVerified(res.locals.uid);
@@ -49,6 +55,8 @@ export const Store = async (req: Request, res: Response) => {
 		return false;
 	}
 
+	update_avatar_counter.inc()
+
 	const params = {
 		Bucket: "simply-plural",
 		Key: path,
@@ -61,8 +69,8 @@ export const Store = async (req: Request, res: Response) => {
 		const result = await s3.send(command)
 
 		if (result) {
-			res.status(200).send({ success: true, msg: { url: "https://serve.apparyllis.com/avatars/" + path } });
-			userLog(res.locals.uid, "Stored avatar with size: " + buffer.length);
+			res.status(200).send({ success: true, msg: { url: `https://serve.apparyllis.com/avatars/${path}` } });
+			userLog(res.locals.uid, `Stored avatar with size: ${buffer.length}`);
 			return;
 		}
 	}

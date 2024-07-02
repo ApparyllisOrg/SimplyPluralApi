@@ -18,21 +18,32 @@ const bindEvents = async () => {
 	_boundEvents.set("frontChangePrivate", notifyPrivateFrontDue);
 };
 
-const counter = new promclient.Gauge({
+const users_counter = new promclient.Gauge({
 	name: "apparyllis_api_daily_users",
 	help: "Counter for the amount of daily users, resets daily and counts up until the end of the day",
+});
+
+const events_counter = new promclient.Counter({
+	name: "apparyllis_api_event_controller_events",
+	help: "Counter for events processed",
+});
+
+const events_counter_enqueued = new promclient.Counter({
+	name: "apparyllis_api_event_controller_enqueued_events",
+	help: "Counter for events enqueued",
 });
 
 const runDailyUserCounter = async () => {
 	const event = await getCollection("events").findOne({ date: getStartOfDay().toDate(), event: "dailyUsage" });
 	if (event) {
-		counter.set(event.count);
+		users_counter.set(event.count);
 	}
 };
 
 const runEvents = async () => {
 	const now = Date.now();
 	const queuedEvents = getCollection("queuedEvents");
+
 	await queuedEvents.find({ due: { $lte: now } }).forEach((event) => {
 		// Try because if one event fails, we don't want any of the others to fail..
 		try {
@@ -41,7 +52,10 @@ const runEvents = async () => {
 		} catch (e) {
 			logger.error(e);
 		}
+
+		events_counter.inc()
 	});
+
 	queuedEvents.deleteMany({ due: { $lte: now } });
 
 	runDailyUserCounter();
@@ -60,6 +74,8 @@ const enqueueEvent = (event: string, uid: string, delay: number) => {
 	const future = now + delay;
 	const queuedEvents = getCollection("queuedEvents");
 	queuedEvents.updateOne({ uid: uid, event: event }, { $set: { event: event, uid: uid, due: future } }, { upsert: true });
+
+	events_counter_enqueued.inc()
 };
 
 export const init = () => {

@@ -1,3 +1,4 @@
+import { isMember } from "../../util";
 import { getCollection, parseId } from "../mongo";
 import { notifyUser } from "../notifications/notifications";
 
@@ -8,7 +9,7 @@ export const notifyOfFrontChange = async (uid: string, removed: boolean, memberI
 	const automatedReminders = getCollection("automatedReminders");
 	const foundReminders = await automatedReminders.find({ uid: uid }).toArray();
 
-	const foundMember = await getCollection("members").findOne({ _id: parseId(memberId) });
+	const foundMember = await isMember(uid, memberId)
 	const custom = !foundMember;
 
 	// enum ESelectedAction { MemberFront, Customfront, AnyFront } <= Dart code
