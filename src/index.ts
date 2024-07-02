@@ -12,6 +12,7 @@ import { startCollectingUsage } from "./modules/usage";
 import admin, { ServiceAccount } from "firebase-admin";
 import { initializeServer, startServer } from "./modules/server";
 import { namedArguments } from "./util/args";
+import * as fs from "fs";
 
 if (namedArguments.development === true) {
 	process.env.DEVELOPMENT = "true";
