@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { getCollection } from "../../modules/mongo";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 
 export const getNotesForMember = async (req: Request, res: Response) => {
 	const documents = await getCollection("notes").find({ uid: req.params.system, member: req.params.member }).toArray();
@@ -24,37 +24,39 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "notes");
 };
 
-export const validateNoteSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			title: { type: "string" },
-			note: { type: "string" },
-			color: { type: "string" },
-			supportMarkdown: { type: "boolean" },
-		},
-		nullable: false,
-		additionalProperties: false,
-	};
+const s_validateNoteSchema = {
+	type: "object",
+	properties: {
+		title: { type: "string" },
+		note: { type: "string" },
+		color: { type: "string" },
+		supportMarkdown: { type: "boolean" },
+	},
+	nullable: false,
+	additionalProperties: false,
+};
+const v_validateNoteSchema = ajv.compile(s_validateNoteSchema)
 
-	return validateSchema(schema, body);
+export const validateNoteSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateNoteSchema, body);
 };
 
-export const validatePostNoteSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			title: { type: "string" },
-			note: { type: "string" },
-			color: { type: "string" },
-			member: { type: "string" },
-			date: { type: "number" },
-			supportMarkdown: { type: "boolean" },
-		},
-		required: ["title", "note", "color", "member", "date"],
-		nullable: false,
-		additionalProperties: false,
-	};
+const s_validatePostNoteSchema = {
+	type: "object",
+	properties: {
+		title: { type: "string" },
+		note: { type: "string" },
+		color: { type: "string" },
+		member: { type: "string" },
+		date: { type: "number" },
+		supportMarkdown: { type: "boolean" },
+	},
+	required: ["title", "note", "color", "member", "date"],
+	nullable: false,
+	additionalProperties: false,
+};
+const v_validatePostNoteSchema = ajv.compile(s_validatePostNoteSchema)
 
-	return validateSchema(schema, body);
+export const validatePostNoteSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validatePostNoteSchema, body);
 };

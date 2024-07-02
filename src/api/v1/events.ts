@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import moment from "moment";
 import { getCollection } from "../../modules/mongo";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 import { logOpenUsage } from "./events/open";
 
 export const event = async (req: Request, res: Response) => {
@@ -33,29 +33,30 @@ export const openEvent = async (_req: Request, res: Response) => {
 	res.status(200).send();
 };
 
-export const validateEventSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			events: {
-				type: "array",
-				items: {
-					type: "object",
-					properties: {
-						event: { type: "string", pattern: "^[a-zA-Z-_/# ]{1,}$" },
-						time: { type: "number", minimum: 0 },
-					},
-					nullable: false,
-					additionalProperties: false,
-					required: ["event", "time"],
+const s_validateEventSchema = {
+	type: "object",
+	properties: {
+		events: {
+			type: "array",
+			items: {
+				type: "object",
+				properties: {
+					event: { type: "string", pattern: "^[a-zA-Z-_/# ]{1,}$" },
+					time: { type: "number", minimum: 0 },
 				},
-				uniqueItems: true,
+				nullable: false,
+				additionalProperties: false,
+				required: ["event", "time"],
 			},
+			uniqueItems: true,
 		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["events"],
-	};
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["events"],
+};
+const v_validateEventSchema = ajv.compile(s_validateEventSchema)
 
-	return validateSchema(schema, body);
+export const validateEventSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateEventSchema, body);
 };

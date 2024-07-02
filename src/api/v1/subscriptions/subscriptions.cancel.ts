@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { getCollection } from "../../../modules/mongo";
-import { validateSchema } from "../../../util/validation";
+import { ajv, validateSchema } from "../../../util/validation";
 import { isLemonSetup } from "./subscriptions.core";
 import { deleteRequestLemon, } from "./subscriptions.http";
 import { reportLemonError } from "./subscriptions.utils";
@@ -54,20 +54,21 @@ export const cancelSubscription = async (req: Request, res: Response) => {
     }
 };
 
-export const validatePauseSubscriptionSchema = (body: unknown): { success: boolean; msg: string } => {
-    const schema = {
-        type: "object",
-        properties: {
-            reason: { type: "string", maxLength: 400 },
-            feedback: {
-                type: "string",
-                pattern: "^(too_expensive|missing_features|too_complex|low_quality|other)$"
-            },
+const s_PauseSubscriptionSchema = {
+    type: "object",
+    properties: {
+        reason: { type: "string", maxLength: 400 },
+        feedback: {
+            type: "string",
+            pattern: "^(too_expensive|missing_features|too_complex|low_quality|other)$"
         },
-        nullable: false,
-        additionalProperties: false,
-        required: ["feedback"],
-    };
+    },
+    nullable: false,
+    additionalProperties: false,
+    required: ["feedback"],
+};
+const v_PauseSubscriptionSchema = ajv.compile(s_PauseSubscriptionSchema)
 
-    return validateSchema(schema, body);
+export const validatePauseSubscriptionSchema = (body: unknown): { success: boolean; msg: string } => {
+    return validateSchema(v_PauseSubscriptionSchema, body);
 };

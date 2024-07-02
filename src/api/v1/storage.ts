@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { logger, userLog } from "../../modules/logger";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 import * as minio from "minio";
 import { isUserVerified } from "../../security";
 const fileType = require('file-type');
@@ -73,18 +73,19 @@ export const Store = async (req: Request, res: Response) => {
 	}
 };
 
-export const validateStoreAvatarSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			buffer: { type: "array", items: { type: "number", minimum: 0, maximum: 255 } },
-		},
-		nullable: false,
-		required: ["buffer"],
-		additionalProperties: false,
-	};
+const s_validateStoreAvatarSchema = {
+	type: "object",
+	properties: {
+		buffer: { type: "array", items: { type: "number", minimum: 0, maximum: 255 } },
+	},
+	nullable: false,
+	required: ["buffer"],
+	additionalProperties: false,
+};
+const v_validateStoreAvatarSchema = ajv.compile(s_validateStoreAvatarSchema)
 
-	return validateSchema(schema, body);
+export const validateStoreAvatarSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateStoreAvatarSchema, body);
 };
 
 export const Delete = async (req: Request, res: Response) => {

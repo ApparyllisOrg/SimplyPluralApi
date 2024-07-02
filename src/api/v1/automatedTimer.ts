@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 
 export const getAutomatedTimers = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "automatedReminders", {});
@@ -22,20 +22,22 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "automatedReminders");
 };
 
-export const validateAutomatedTimerSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			name: { type: "string" },
-			message: { type: "string" },
-			action: { type: "number" },
-			delayInHours: { type: "number" },
-			type: { type: "number" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["name", "message", "delayInHours", "type"],
-	};
+const s_validateAutomatedTimerSchema =  {
+	type: "object",
+	properties: {
+		name: { type: "string" },
+		message: { type: "string" },
+		action: { type: "number" },
+		delayInHours: { type: "number" },
+		type: { type: "number" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["name", "message", "delayInHours", "type"],
+};
+const v_validateAutomatedTimerSchema = ajv.compile(s_validateAutomatedTimerSchema)
 
-	return validateSchema(schema, body);
+
+export const validateAutomatedTimerSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateAutomatedTimerSchema, body);
 };

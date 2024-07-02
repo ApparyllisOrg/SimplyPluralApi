@@ -3,7 +3,7 @@ import moment from "moment";
 import { userLog } from "../../modules/logger";
 import { getCollection, parseId } from "../../modules/mongo";
 import { addSimpleDocument, fetchSimpleDocument, updateSimpleDocument } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 import { setupNewUser } from "./user";
 import { updateUser } from "./user/updates/updateUser";
 
@@ -56,23 +56,24 @@ export const update = async (req: Request, res: Response) => {
 	}
 };
 
-export const validatePrivateSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			notificationToken: { type: "array", items: { type: "string" } },
-			lastUpdate: { type: "number" },
-			latestVersion: { type: "number" },
-			location: { type: "string" },
-			termsOfServiceAccepted: { type: "boolean", enum: [true] },
-			whatsNew: { type: "number" },
-			categories: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
-		},
-		nullable: false,
-		additionalProperties: false,
-	};
+const s_validatePrivateSchema = {
+	type: "object",
+	properties: {
+		notificationToken: { type: "array", items: { type: "string" } },
+		lastUpdate: { type: "number" },
+		latestVersion: { type: "number" },
+		location: { type: "string" },
+		termsOfServiceAccepted: { type: "boolean", enum: [true] },
+		whatsNew: { type: "number" },
+		categories: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+	},
+	nullable: false,
+	additionalProperties: false,
+};
+const v_validatePrivateSchema = ajv.compile(s_validatePrivateSchema)
 
-	return validateSchema(schema, body);
+export const validatePrivateSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validatePrivateSchema, body);
 };
 
 const resetGenerationLimit = async (uid: string) => {

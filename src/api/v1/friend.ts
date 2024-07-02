@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
 import { canAccessDocument } from "../../security";
 import { sendDocument, sendDocuments } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 
 export const getFriend = async (req: Request, res: Response) => {
 	const document = await getCollection("friends").findOne({ uid: req.params.system, frienduid: req.params.id });
@@ -164,19 +164,20 @@ export const getFriendFront = async (req: Request, res: Response) => {
 	res.status(200).send({ fronters: frontingList, statuses: frontingStatuses });
 };
 
-export const validatePatchFriendSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			seeMembers: { type: "boolean" },
-			seeFront: { type: "boolean" },
-			getFrontNotif: { type: "boolean" },
-			getTheirFrontNotif: { type: "boolean" },
-			trusted: { type: "boolean" },
-		},
-		nullable: false,
-		additionalProperties: false,
-	};
+const s_validatePatchFriendSchema = {
+	type: "object",
+	properties: {
+		seeMembers: { type: "boolean" },
+		seeFront: { type: "boolean" },
+		getFrontNotif: { type: "boolean" },
+		getTheirFrontNotif: { type: "boolean" },
+		trusted: { type: "boolean" },
+	},
+	nullable: false,
+	additionalProperties: false,
+};
+const v_validatePatchFriendSchema = ajv.compile(s_validatePatchFriendSchema)
 
-	return validateSchema(schema, body);
+export const validatePatchFriendSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validatePatchFriendSchema, body);
 };

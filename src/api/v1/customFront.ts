@@ -4,7 +4,7 @@ import { frontChange } from "../../modules/events/frontChange";
 import { getCollection } from "../../modules/mongo";
 import { canSeeMembers } from "../../security";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
-import { getPrivacyDependency, validateSchema } from "../../util/validation";
+import { ajv, getPrivacyDependency, validateSchema } from "../../util/validation";
 import { frameType } from "../types/frameType";
 
 export const getCustomFronts = async (req: Request, res: Response) => {
@@ -49,47 +49,49 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "frontStatuses");
 };
 
-export const validateCustomFrontSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			name: { type: "string" },
-			desc: { type: "string" },
-			avatarUrl: { type: "string" },
-			avatarUuid: { type: "string" },
-			color: { type: "string" },
-			preventTrusted: { type: "boolean" },
-			private: { type: "boolean" },
-			supportDescMarkdown: { type: "boolean" },
-			frame: frameType
-		},
-		nullable: false,
-		additionalProperties: false,
-		dependencies: getPrivacyDependency(),
-	};
+const s_validateCustomFrontSchema = {
+	type: "object",
+	properties: {
+		name: { type: "string" },
+		desc: { type: "string" },
+		avatarUrl: { type: "string" },
+		avatarUuid: { type: "string" },
+		color: { type: "string" },
+		preventTrusted: { type: "boolean" },
+		private: { type: "boolean" },
+		supportDescMarkdown: { type: "boolean" },
+		frame: frameType
+	},
+	nullable: false,
+	additionalProperties: false,
+	dependencies: getPrivacyDependency(),
+};
+const v_validateCustomFrontSchema = ajv.compile(s_validateCustomFrontSchema)
 
-	return validateSchema(schema, body);
+export const validateCustomFrontSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateCustomFrontSchema, body);
 };
 
-export const validatePostCustomFrontSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			name: { type: "string" },
-			desc: { type: "string" },
-			avatarUrl: { type: "string" },
-			avatarUuid: { type: "string" },
-			color: { type: "string" },
-			preventTrusted: { type: "boolean" },
-			private: { type: "boolean" },
-			supportDescMarkdown: { type: "boolean" },
-			frame: frameType
-		},
-		required: ["name", "private", "preventTrusted"],
-		nullable: false,
-		additionalProperties: false,
-		dependencies: getPrivacyDependency(),
-	};
+const s_validatePostCustomFrontSchema = {
+	type: "object",
+	properties: {
+		name: { type: "string" },
+		desc: { type: "string" },
+		avatarUrl: { type: "string" },
+		avatarUuid: { type: "string" },
+		color: { type: "string" },
+		preventTrusted: { type: "boolean" },
+		private: { type: "boolean" },
+		supportDescMarkdown: { type: "boolean" },
+		frame: frameType
+	},
+	required: ["name", "private", "preventTrusted"],
+	nullable: false,
+	additionalProperties: false,
+	dependencies: getPrivacyDependency(),
+};
+const v_validatePostCustomFrontSchema = ajv.compile(s_validatePostCustomFrontSchema)
 
-	return validateSchema(schema, body);
+export const validatePostCustomFrontSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validatePostCustomFrontSchema, body);
 };

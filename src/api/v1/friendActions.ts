@@ -4,7 +4,7 @@ import { getCollection } from "../../modules/mongo";
 import { notifyUser } from "../../modules/notifications/notifications";
 import { FriendLevel, getFriendLevel } from "../../security";
 
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 
 // Todo: Add schema
 export const AddFriend = async (req: Request, res: Response) => {
@@ -67,71 +67,74 @@ export const AddFriend = async (req: Request, res: Response) => {
 	res.status(200).send({ success: true, msg: "Friend request sent" });
 };
 
-export const validatAddFrienqRequestSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			settings: {
-				type: "object",
-				properties: {
-					seeMembers: { type: "boolean" },
-					seeFront: { type: "boolean" },
-					getFrontNotif: { type: "boolean" },
-					trusted: { type: "boolean" },
-					message: { type: "string" },
-				},
-				nullable: false,
-				additionalProperties: false,
-				required: ["seeMembers", "seeFront", "getFrontNotif", "trusted"],
+const s_validateAddFrienqRequestSchema = {
+	type: "object",
+	properties: {
+		settings: {
+			type: "object",
+			properties: {
+				seeMembers: { type: "boolean" },
+				seeFront: { type: "boolean" },
+				getFrontNotif: { type: "boolean" },
+				trusted: { type: "boolean" },
+				message: { type: "string" },
 			},
+			nullable: false,
+			additionalProperties: false,
+			required: ["seeMembers", "seeFront", "getFrontNotif", "trusted"],
 		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["settings"],
-	};
-
-	return validateSchema(schema, body);
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["settings"],
 };
+const v_validateAddFrienqRequestSchema = ajv.compile(s_validateAddFrienqRequestSchema)
+
+export const validateAddFrienqRequestSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateAddFrienqRequestSchema, body);
+};
+
+const s_validateRespondToFrienqRequestQuerySchema = {
+	type: "object",
+	properties: {
+		accepted: {
+			type: "string",
+			pattern: "^(true|false)$",
+		},
+	},
+	nullable: false,
+	additionalProperties: false,
+};
+const v_validateRespondToFrienqRequestQuerySchema = ajv.compile(s_validateRespondToFrienqRequestQuerySchema)
 
 export const validateRespondToFrienqRequestQuerySchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			accepted: {
-				type: "string",
-				pattern: "^(true|false)$",
-			},
-		},
-		nullable: false,
-		additionalProperties: false,
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateRespondToFrienqRequestQuerySchema, body);
 };
 
-export const validateRespondToFrienqRequestSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			settings: {
-				type: "object",
-				properties: {
-					seeMembers: { type: "boolean" },
-					seeFront: { type: "boolean" },
-					getFrontNotif: { type: "boolean" },
-					trusted: { type: "boolean" },
-				},
-				nullable: false,
-				additionalProperties: false,
-				required: ["seeMembers", "seeFront", "getFrontNotif", "trusted"],
+const s_validateRespondToFrienqRequestSchema = {
+	type: "object",
+	properties: {
+		settings: {
+			type: "object",
+			properties: {
+				seeMembers: { type: "boolean" },
+				seeFront: { type: "boolean" },
+				getFrontNotif: { type: "boolean" },
+				trusted: { type: "boolean" },
 			},
+			nullable: false,
+			additionalProperties: false,
+			required: ["seeMembers", "seeFront", "getFrontNotif", "trusted"],
 		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["settings"],
-	};
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["settings"],
+};
+const v_validateRespondToFrienqRequestSchema = ajv.compile(s_validateRespondToFrienqRequestSchema)
 
-	return validateSchema(schema, body);
+export const validateRespondToFrienqRequestSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateRespondToFrienqRequestSchema, body);
 };
 
 export const RespondToFriendRequest = async (req: Request, res: Response) => {

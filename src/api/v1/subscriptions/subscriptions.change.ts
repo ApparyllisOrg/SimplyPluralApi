@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import {isLemonSetup } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { sendCustomizedEmail, sendSimpleEmail } from "../../../modules/mail";
-import { validateSchema } from "../../../util/validation";
+import { ajv, validateSchema } from "../../../util/validation";
 import { getTemplate, mailTemplate_cancelledSubscription, mailTemplate_changedSubscription } from "../../../modules/mail/mailTemplates";
 import { nameToPriceId, reportLemonError } from "./subscriptions.utils";
 import assert from "node:assert";
@@ -67,19 +67,20 @@ export const changeSubscription = async (req: Request, res: Response) => {
     }
 };
 
-export const validateChangeSubscriptionSchema = (body: unknown): { success: boolean; msg: string } => {
-    const schema = {
-        type: "object",
-        properties: {
-            price: {
-                type: "string",
-                pattern: "^(affordable|regular|pif)$"
-            },
+const s_validateChangeSubscriptionSchema = {
+    type: "object",
+    properties: {
+        price: {
+            type: "string",
+            pattern: "^(affordable|regular|pif)$"
         },
-        nullable: false,
-        additionalProperties: false,
-        required: ["price"],
-    };
+    },
+    nullable: false,
+    additionalProperties: false,
+    required: ["price"],
+};
+const v_validateChangeSubscriptionSchema = ajv.compile(s_validateChangeSubscriptionSchema)
 
-    return validateSchema(schema, body);
+export const validateChangeSubscriptionSchema = (body: unknown): { success: boolean; msg: string } => {
+    return validateSchema(v_validateChangeSubscriptionSchema, body);
 };

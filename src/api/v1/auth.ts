@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { getCollection } from "../../modules/mongo";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 import { randomBytes, timingSafeEqual } from "crypto";
 import { confirmUserEmail, getConfirmationKey, sendConfirmationEmail } from "./auth/auth.confirmation";
 import { base64decodeJwt, isJwtValid, jwtForUser } from "./auth/auth.jwt";
@@ -314,138 +314,147 @@ export const confirmEmail = async (req: Request, res: Response) => {
 	}
 };
 
-export const validateRegisterSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			email: { type: "string", format: "fullEmail" },
-			password: { type: "string" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["email", "password"],
-	};
-
-	return validateSchema(schema, body);
+const s_validateRegisterSchema = {
+	type: "object",
+	properties: {
+		email: { type: "string", format: "fullEmail" },
+		password: { type: "string" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["email", "password"],
 };
+const v_validateRegisterSchema = ajv.compile(s_validateRegisterSchema)
+
+export const validateRegisterSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateRegisterSchema, body);
+};
+
+const s_validateForgotEmailSchema = {
+	type: "object",
+	properties: {
+		username: { type: "string", pattern: "^[a-zA-Z0-9-_]{1,35}$" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["username"],
+};
+const v_validateForgotEmailSchema = ajv.compile(s_validateForgotEmailSchema)
 
 export const validateForgotEmailSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			username: { type: "string", pattern: "^[a-zA-Z0-9-_]{1,35}$" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["username"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateForgotEmailSchema, body);
 };
+
+const s_validateConfirmEmailSchema = {
+	type: "object",
+	properties: {
+		// Users registering before 1.8 have a firebase user id (regex `^[A-Za-z0-9]{1,50}$`)
+		// Users registering on/after 1.8 have a new auth user id (regex `^[A-Za-z0-9]{64}$`)
+		// At a later stage it's probably best to merge those two into an OR check rather than this broad condition
+		uid: { type: "string", pattern: "^[a-zA-Z0-9]{1,64}$" },
+		key: { type: "string", pattern: "^[a-zA-Z0-9]{128}$" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["key"],
+};
+const v_validateConfirmEmailSchema = ajv.compile(s_validateConfirmEmailSchema)
 
 export const validateConfirmEmailSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			// Users registering before 1.8 have a firebase user id (regex `^[A-Za-z0-9]{1,50}$`)
-			// Users registering on/after 1.8 have a new auth user id (regex `^[A-Za-z0-9]{64}$`)
-			// At a later stage it's probably best to merge those two into an OR check rather than this broad condition
-			uid: { type: "string", pattern: "^[a-zA-Z0-9]{1,64}$" },
-			key: { type: "string", pattern: "^[a-zA-Z0-9]{128}$" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["key"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateConfirmEmailSchema, body);
 };
+
+const s_validateLoginOAuth2Schema = {
+	type: "object",
+	properties: {
+		credential: { type: "string" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["credential"],
+};
+const v_validateLoginOAuth2Schema = ajv.compile(s_validateLoginOAuth2Schema)
 
 export const validateLoginOAuth2Schema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			credential: { type: "string" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["credential"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateLoginOAuth2Schema, body);
 };
+
+const s_validateResetPasswordRequestSchema = {
+	type: "object",
+	properties: {
+		email: { type: "string", format: "fullEmail" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["email"],
+};
+const v_validateResetPasswordRequestSchema = ajv.compile(s_validateResetPasswordRequestSchema)
 
 export const validateResetPasswordRequestSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			email: { type: "string", format: "fullEmail" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["email"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateResetPasswordRequestSchema, body);
 };
+
+const s_validateResetPasswordSchema = {
+	type: "object",
+	properties: {
+		key: { type: "string" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["key"],
+};
+const v_validateResetPasswordSchema = ajv.compile(s_validateResetPasswordSchema)
 
 export const validateResetPasswordSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			key: { type: "string" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["key"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateResetPasswordSchema, body);
 };
+
+const s_validateResetPasswordExecutionSchema =  {
+	type: "object",
+	properties: {
+		resetKey: { type: "string", pattern: "^[a-zA-Z0-9]{128}$" },
+		newPassword: { type: "string", pattern: getPasswordRegexString() },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["resetKey", "newPassword"],
+};
+const v_validateResetPasswordExecutionSchema = ajv.compile(s_validateResetPasswordExecutionSchema)
 
 export const validateResetPasswordExecutionSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			resetKey: { type: "string", pattern: "^[a-zA-Z0-9]{128}$" },
-			newPassword: { type: "string", pattern: getPasswordRegexString() },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["resetKey", "newPassword"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateResetPasswordExecutionSchema, body);
 };
+
+const s_validateChangePasswordSchema = {
+	type: "object",
+	properties: {
+		uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
+		oldPassword: { type: "string" },
+		newPassword: { type: "string" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["uid", "oldPassword", "newPassword"],
+};
+const v_validateChangePasswordSchema = ajv.compile(s_validateChangePasswordSchema)
 
 export const validateChangePasswordSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
-			oldPassword: { type: "string" },
-			newPassword: { type: "string" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["uid", "oldPassword", "newPassword"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateChangePasswordSchema, body);
 };
 
-export const validateChangeEmailSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			oldEmail: { type: "string", format: "fullEmail" },
-			password: { type: "string" },
-			newEmail: { type: "string", format: "fullEmail" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["oldEmail", "password", "newEmail"],
-	};
+const s_validateChangeEmailSchema =  {
+	type: "object",
+	properties: {
+		oldEmail: { type: "string", format: "fullEmail" },
+		password: { type: "string" },
+		newEmail: { type: "string", format: "fullEmail" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["oldEmail", "password", "newEmail"],
+};
+const v_validateChangeEmailSchema = ajv.compile(s_validateChangeEmailSchema)
 
-	return validateSchema(schema, body);
+export const validateChangeEmailSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateChangeEmailSchema, body);
 };

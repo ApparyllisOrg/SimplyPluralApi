@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { getCollection } from "../../../modules/mongo";
-import { validateSchema } from "../../../util/validation";
+import { ajv, validateSchema } from "../../../util/validation";
 import { isLemonSetup } from "./subscriptions.core";
 import { getLemonStoreRelationship, nameToPriceId, reportLemonError } from "./subscriptions.utils";
 import { postRequestLemon } from "./subscriptions.http";
@@ -66,20 +66,21 @@ export const startCheckoutSession = async (req: Request, res: Response) => {
     res.status(200).send({checkoutUrl})
 };
 
-export const validateCheckoutSessionSchema = (body: unknown): { success: boolean; msg: string } => {
-    const schema = {
-        type: "object",
-        properties: {
-            price: {
-                type: "string",
-                pattern: "^(affordable|regular|pif)$"
-            }
-        },
-        nullable: false,
-        additionalProperties: false,
-        required: ["price"],
-    };
+const s_validateCheckoutSessionSchema = {
+    type: "object",
+    properties: {
+        price: {
+            type: "string",
+            pattern: "^(affordable|regular|pif)$"
+        }
+    },
+    nullable: false,
+    additionalProperties: false,
+    required: ["price"],
+};
+const v_validateCheckoutSessionSchema = ajv.compile(s_validateCheckoutSessionSchema)
 
-    return validateSchema(schema, body);
+export const validateCheckoutSessionSchema = (body: unknown): { success: boolean; msg: string } => {
+    return validateSchema(v_validateCheckoutSessionSchema, body);
 };
 

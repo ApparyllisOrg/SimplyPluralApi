@@ -2,7 +2,6 @@
 import { Request, Response } from "express";
 import { getEmailForUser } from "../auth/auth.core";
 import assert from "assert";
-import { validateSchema } from "../../../util/validation";
 import { isLemonSetup } from "./subscriptions.core";
 import { getCollection } from "../../../modules/mongo";
 import { transformResultForClientRead } from "../../../util";

@@ -3,7 +3,7 @@ import shortUUID from "short-uuid";
 import { logger, userLog } from "../../modules/logger";
 import { db, getCollection, parseId } from "../../modules/mongo";
 import { fetchCollection, sendDocument } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
 import { update122 } from "./user/updates/update112";
 import { nanoid } from "nanoid";
@@ -435,120 +435,124 @@ export const initializeCustomFields = async (uid: string) => {
 	}
 };
 
-export const validateUserSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			shownMigration: { type: "boolean" },
-			desc: { type: "string" },
-			fromFirebase: { type: "boolean" },
-			isAsystem: { type: "boolean" },
-			avatarUuid: { type: "string" },
-			avatarUrl: { type: "string" },
-			color: { type: "string" },
-			supportDescMarkdown: { type: "boolean" },
-			fields: {
-				type: "object",
-				patternProperties: {
-					"^[0-9A-z]{22,23}$": {
-						type: "object",
-						properties: {
-							name: { type: "string" },
-							order: { type: "number" },
-							private: { type: "boolean" },
-							preventTrusted: { type: "boolean" },
-							type: { type: "number" },
-							supportMarkdown: { type: "boolean" },
-						},
-						required: ["name", "order", "private", "preventTrusted", "type"],
+const s_validateUserSchema =  {
+	type: "object",
+	properties: {
+		shownMigration: { type: "boolean" },
+		desc: { type: "string" },
+		fromFirebase: { type: "boolean" },
+		isAsystem: { type: "boolean" },
+		avatarUuid: { type: "string" },
+		avatarUrl: { type: "string" },
+		color: { type: "string" },
+		supportDescMarkdown: { type: "boolean" },
+		fields: {
+			type: "object",
+			patternProperties: {
+				"^[0-9A-z]{22,23}$": {
+					type: "object",
+					properties: {
+						name: { type: "string" },
+						order: { type: "number" },
+						private: { type: "boolean" },
+						preventTrusted: { type: "boolean" },
+						type: { type: "number" },
+						supportMarkdown: { type: "boolean" },
 					},
+					required: ["name", "order", "private", "preventTrusted", "type"],
 				},
-				additionalProperties: false,
 			},
-			frame: frameType
+			additionalProperties: false,
 		},
-		nullable: false,
-		additionalProperties: false,
-	};
-
-	return validateSchema(schema, body);
+		frame: frameType
+	},
+	nullable: false,
+	additionalProperties: false,
 };
+const v_validateUserSchema = ajv.compile(s_validateUserSchema)
+
+export const validateUserSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateUserSchema, body);
+};
+
+const s_validateUsernameSchema =  {
+	type: "object",
+	properties: {
+		username: { type: "string", pattern: "^[a-zA-Z0-9-_]{1,35}$" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["username"],
+};
+const v_validateUsernameSchema = ajv.compile(s_validateUsernameSchema)
 
 export const validateUsernameSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			username: { type: "string", pattern: "^[a-zA-Z0-9-_]{1,35}$" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["username"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateUsernameSchema, body);
 };
+
+const s_validateExportAvatarsSchema = {
+	type: "object",
+	properties: {
+		key: { type: "string", pattern: "^[a-zA-Z0-9-_]{256}$" },
+		uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["key", "uid"],
+};
+const v_validateExportAvatarsSchema = ajv.compile(s_validateExportAvatarsSchema)
 
 export const validateExportAvatarsSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			key: { type: "string", pattern: "^[a-zA-Z0-9-_]{256}$" },
-			uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["key", "uid"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateExportAvatarsSchema, body);
 };
 
-export const validateUserReportSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			sendTo: {
-				type: "string",
-				format: "email",
-			},
-			cc: {
-				type: "array",
-				items: { type: "string", format: "fullEmail" },
-			},
-			frontHistory: {
-				nullable: true,
-				type: "object",
-				properties: {
-					start: { type: "number" },
-					end: { type: "number" },
-					includeMembers: { type: "boolean" },
-					includeCustomFronts: { type: "boolean" },
-					privacyLevel: { type: "number" },
-				},
-				required: ["privacyLevel", "includeMembers", "includeCustomFronts", "start", "end"],
-			},
-			members: {
-				nullable: true,
-				type: "object",
-				properties: {
-					includeCustomFields: { type: "boolean" },
-					privacyLevel: { type: "number" },
-				},
-				required: ["privacyLevel", "includeCustomFields"],
-			},
-			customFronts: {
-				nullable: true,
-				type: "object",
-				properties: {
-					privacyLevel: { type: "number" },
-				},
-				required: ["privacyLevel"],
-			},
+const s_validateUserReportSchema =  {
+	type: "object",
+	properties: {
+		sendTo: {
+			type: "string",
+			format: "email",
 		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["sendTo"],
-	};
+		cc: {
+			type: "array",
+			items: { type: "string", format: "fullEmail" },
+		},
+		frontHistory: {
+			nullable: true,
+			type: "object",
+			properties: {
+				start: { type: "number" },
+				end: { type: "number" },
+				includeMembers: { type: "boolean" },
+				includeCustomFronts: { type: "boolean" },
+				privacyLevel: { type: "number" },
+			},
+			required: ["privacyLevel", "includeMembers", "includeCustomFronts", "start", "end"],
+		},
+		members: {
+			nullable: true,
+			type: "object",
+			properties: {
+				includeCustomFields: { type: "boolean" },
+				privacyLevel: { type: "number" },
+			},
+			required: ["privacyLevel", "includeCustomFields"],
+		},
+		customFronts: {
+			nullable: true,
+			type: "object",
+			properties: {
+				privacyLevel: { type: "number" },
+			},
+			required: ["privacyLevel"],
+		},
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["sendTo"],
+};
+const v_validateUserReportSchema = ajv.compile(s_validateUserReportSchema)
 
-	return validateSchema(schema, body);
+export const validateUserReportSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateUserReportSchema, body);
 };

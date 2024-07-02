@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { repeatRemindersEvent } from "../../modules/events/repeatReminders";
 import { getCollection, parseId } from "../../modules/mongo";
 import { addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument, sendDocument } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 
 const convertTimerToInt = (document: any) => {
 	// Convert values to numbers, they were previously stored as strings
@@ -50,39 +50,40 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "repeatedReminders");
 };
 
-export const validateRepeatedTimerSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			name: { type: "string" },
-			message: { type: "string" },
-			dayInterval: { type: "number" },
-			time: {
-				type: "object",
-				properties: {
-					hour: { type: "number" },
-					minute: { type: "number" },
-				},
-				nullable: false,
-				additionalProperties: false,
-				required: ["hour", "minute"],
+const s_validateRepeatedTimerSchema = {
+	type: "object",
+	properties: {
+		name: { type: "string" },
+		message: { type: "string" },
+		dayInterval: { type: "number" },
+		time: {
+			type: "object",
+			properties: {
+				hour: { type: "number" },
+				minute: { type: "number" },
 			},
-			startTime: {
-				type: "object",
-				properties: {
-					year: { type: "number" },
-					month: { type: "number" },
-					day: { type: "number" },
-				},
-				nullable: false,
-				additionalProperties: false,
-				required: ["year", "month", "day"],
-			},
+			nullable: false,
+			additionalProperties: false,
+			required: ["hour", "minute"],
 		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["name", "message", "dayInterval", "time", "startTime"],
-	};
+		startTime: {
+			type: "object",
+			properties: {
+				year: { type: "number" },
+				month: { type: "number" },
+				day: { type: "number" },
+			},
+			nullable: false,
+			additionalProperties: false,
+			required: ["year", "month", "day"],
+		},
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["name", "message", "dayInterval", "time", "startTime"],
+};
+const v_validateRepeatedTimerSchema = ajv.compile(s_validateRepeatedTimerSchema)
 
-	return validateSchema(schema, body);
+export const validateRepeatedTimerSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateRepeatedTimerSchema, body);
 };

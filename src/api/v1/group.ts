@@ -2,7 +2,8 @@ import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
 import { dispatchDelete, OperationType } from "../../modules/socket";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, isMemberOrCustomFront, isMember } from "../../util";
-import { getPrivacyDependency, validateSchema } from "../../util/validation";
+import { ajv, getPrivacyDependency, validateSchema } from "../../util/validation";
+import Ajv from "ajv";
 
 export const getGroups = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "groups", {});
@@ -116,62 +117,65 @@ const privateGroupRecursive = async (groupId: string, uid: string, priv: boolean
 	await getCollection("groups").updateOne({ uid, _id: parseId(groupId) }, { $set: { private: priv, preventTrusted } });
 };
 
-export const validateGroupSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			parent: { type: "string" },
-			color: { type: "string" },
-			private: { type: "boolean" },
-			preventTrusted: { type: "boolean" },
-			name: { type: "string" },
-			desc: { type: "string" },
-			emoji: { type: "string" },
-			members: { type: "array", items: { type: "string" }, uniqueItems: true },
-			supportDescMarkdown: { type: "boolean" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		dependencies: getPrivacyDependency(),
-	};
-
-	return validateSchema(schema, body);
+const groupSchema = {
+	type: "object",
+	properties: {
+		parent: { type: "string" },
+		color: { type: "string" },
+		private: { type: "boolean" },
+		preventTrusted: { type: "boolean" },
+		name: { type: "string" },
+		desc: { type: "string" },
+		emoji: { type: "string" },
+		members: { type: "array", items: { type: "string" }, uniqueItems: true },
+		supportDescMarkdown: { type: "boolean" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	dependencies: getPrivacyDependency(),
 };
+const groupValidate = ajv.compile(groupSchema)
+
+export const validateGroupSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(groupValidate, body);
+};
+
+const setMembersInGroupSchema = {
+	type: "object",
+	properties: {
+		member: { type: "string", pattern: "^[a-zA-Z0-9]{5,64}$" },
+		groups: { type: "array", items: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" }, uniqueItems: true },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["member", "groups"],
+};
+const setMembersInGroupValidate = ajv.compile(setMembersInGroupSchema)
 
 export const validateSetMemberInGroupSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			member: { type: "string", pattern: "^[a-zA-Z0-9]{5,64}$" },
-			groups: { type: "array", items: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" }, uniqueItems: true },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["member", "groups"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(setMembersInGroupValidate, body);
 };
 
-export const validatePostGroupSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			parent: { type: "string" },
-			color: { type: "string" },
-			private: { type: "boolean" },
-			preventTrusted: { type: "boolean" },
-			name: { type: "string" },
-			desc: { type: "string" },
-			emoji: { type: "string" },
-			members: { type: "array", items: { type: "string" }, uniqueItems: true },
-			supportDescMarkdown: { type: "boolean" },
-		},
-		required: ["parent", "color", "private", "preventTrusted", "name", "desc", "emoji", "members"],
-		nullable: false,
-		additionalProperties: false,
-		dependencies: getPrivacyDependency(),
-	};
+const postGroupSchema = {
+	type: "object",
+	properties: {
+		parent: { type: "string" },
+		color: { type: "string" },
+		private: { type: "boolean" },
+		preventTrusted: { type: "boolean" },
+		name: { type: "string" },
+		desc: { type: "string" },
+		emoji: { type: "string" },
+		members: { type: "array", items: { type: "string" }, uniqueItems: true },
+		supportDescMarkdown: { type: "boolean" },
+	},
+	required: ["parent", "color", "private", "preventTrusted", "name", "desc", "emoji", "members"],
+	nullable: false,
+	additionalProperties: false,
+	dependencies: getPrivacyDependency(),
+};
+const postGroupValidate = ajv.compile(postGroupSchema)
 
-	return validateSchema(schema, body);
+export const validatePostGroupSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(postGroupValidate, body);
 };

@@ -3,11 +3,11 @@ import { NextFunction } from "express";
 import { Request, Response } from "express";
 import addFormats from "ajv-formats";
 
-import Ajv from "ajv";
+import Ajv, { ValidateFunction } from "ajv";
 import { ObjectId } from "mongodb";
 import moment from "moment";
 
-const ajv = new Ajv({ allErrors: true, $data: true, verbose: true });
+export const ajv = new Ajv({ allErrors: true, $data: true, verbose: true });
 ajv.addFormat("fullEmail", RegExp("^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$", "i"))
 
 addFormats(ajv);
@@ -53,9 +53,7 @@ export const validateBody = (func: schemavalidation) => {
 	};
 };
 
-export const validateSchema = (schema: any, body: unknown): { success: boolean; msg: string } => {
-	const validate = ajv.compile(schema);
-
+export const validateSchema = (validate: ValidateFunction<unknown>, body: unknown): { success: boolean; msg: string } => {
 	const valid = validate(body);
 	if (valid) {
 		return { success: true, msg: "" };
