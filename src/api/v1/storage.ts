@@ -3,14 +3,14 @@ import { logger, userLog } from "../../modules/logger";
 import { validateSchema } from "../../util/validation";
 import * as minio from "minio";
 import { isUserVerified } from "../../security";
-import * as AWS from "aws-sdk";
 const fileType = require('file-type');
 
-const objectEndpoint = new AWS.Endpoint(process.env.OBJECT_HOST ?? "");
-export const s3 = new AWS.S3({
-	endpoint: objectEndpoint,
-	accessKeyId: process.env.OBJECT_KEY,
-	secretAccessKey: process.env.OBJECT_SECRET,
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+
+const s3 = new S3Client({
+	endpoint: process.env.OBJECT_HOST ?? "",
+	region: process.env.OBJECT_REGION ?? "",
+	credentials: { accessKeyId: process.env.OBJECT_KEY ?? '', secretAccessKey: process.env.OBJECT_SECRET ?? ''}
 });
 
 const minioClient = new minio.Client({
@@ -55,15 +55,22 @@ export const Store = async (req: Request, res: Response) => {
 		Body: buffer,
 	};
 
-	s3.putObject(params, function (err) {
-		if (err) {
-			logger.log("error", err)
-			res.status(500).send("Error uploading avatar");
-		} else {
+	try {
+		const command = new PutObjectCommand(params);
+
+		const result = await s3.send(command)
+
+		if (result) {
 			res.status(200).send({ success: true, msg: { url: "https://serve.apparyllis.com/avatars/" + path } });
 			userLog(res.locals.uid, "Stored avatar with size: " + buffer.length);
+			return;
 		}
-	});
+	}
+	catch (e)
+	{
+		logger.log("error", e)
+		res.status(500).send("Error uploading avatar");
+	}
 };
 
 export const validateStoreAvatarSchema = (body: unknown): { success: boolean; msg: string } => {
@@ -94,20 +101,27 @@ export const Delete = async (req: Request, res: Response) => {
 		Key: path,
 	};
 
-	s3.deleteObject(params, function (err, data) {
-		minioClient
-			.removeObject("spaces", path)
-			.then(() => {
-				res.status(200).send({ success: true, msg: "" });
-				userLog(res.locals.uid, "Deleted avatar");
-			})
-			.catch((e) => {
-				logger.error(e);
-				res.status(500).send("Error deleting file");
-			});
-
-		if (err) {
-			logger.error(err);
-		}
+	minioClient
+	.removeObject("spaces", path)
+	.then(() => {
+		userLog(res.locals.uid, "Deleted avatar");
+	})
+	.catch((e) => {
+		logger.error(e);
 	});
+
+	try {
+		const command = new DeleteObjectCommand(params);
+
+		const result = await s3.send(command)
+		if (result) {
+			res.status(200).send('Deleted avatar');
+			userLog(res.locals.uid, "Deleted avatar");
+		}
+	}
+	catch (e)
+	{
+		logger.log("error", e)
+		res.status(500).send("Error uploading avatar");
+	}
 };

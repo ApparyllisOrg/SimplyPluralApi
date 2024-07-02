@@ -17,12 +17,19 @@ import { createUser } from "./user/migrate";
 import { exportData, fetchAllAvatars } from "./user/export";
 import JSZip from "jszip";
 import { getEmailForUser } from "./auth/auth.core";
-import { s3 } from "./storage";
 import { frameType } from "../types/frameType";
 import { getTemplate, mailTemplate_userReport } from "../../modules/mail/mailTemplates";
 import { sendCustomizedEmailToEmail } from "../../modules/mail";
 import archiver, { Archiver } from "archiver"
-import { S3 } from "aws-sdk";
+
+import { DeleteObjectsCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+
+const s3 = new S3Client({
+	endpoint: process.env.OBJECT_HOST ?? "",
+	region: process.env.OBJECT_REGION ?? "",
+	credentials: { accessKeyId: process.env.OBJECT_KEY ?? '', secretAccessKey: process.env.OBJECT_SECRET ?? ''}
+});
+
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -88,21 +95,25 @@ const performReportGeneration = async (req: Request, res: Response) => {
 
 	getCollection("reports").insertOne({ uid: res.locals.uid, url: reportUrl, createdAt: moment.now(), usedSettings: req.body });
 
-	const params = {
-		Bucket: "simply-plural",
-		Key: path,
-		Body: htmlFile,
-		ACL: "public-read",
-	};
+	try {
+		const command = new PutObjectCommand({
+			Bucket: "simply-plural",
+			Key: path,
+			Body: htmlFile,
+			ACL: 'public-read'
+		});
 
-	s3.putObject(params, function (err) {
-		if (err) {
-			logger.error(err);
-			res.status(500).send("Error uploading report");
-		} else {
+		const result = await s3.send(command)
+		if (result) {
 			res.status(200).send({ success: true, msg: reportUrl });
+			return;
 		}
-	});
+	}
+	catch (e)
+	{
+		logger.error(e);
+		res.status(500).send("Error uploading report");
+	}
 };
 
 export const getReports = async (req: Request, res: Response) => {
@@ -233,24 +244,29 @@ const deleteUploadedUserFolder = async (uid: string, prefix: string) => {
 			};
 
 			try {
-				let list = await s3.listObjectsV2(params).promise();
+				let listCommand = new ListObjectsV2Command(params);
+
+				const list = await s3.send(listCommand)
 
 				if (list.NextContinuationToken) {
 					await recursiveDelete(list.NextContinuationToken);
 				}
 
 				if (list.KeyCount && list.Contents) {
-					const deleteParams = {
+		
+					let deleteCommand = new DeleteObjectsCommand({
 						Bucket: "simply-plural",
 						Delete: {
 							Objects: list.Contents.map((item) => ({ Key: item.Key ?? "" }))
 						},
-					};
+					});
 
-					s3.deleteObjects(deleteParams, (err: any) => { }).promise();
+					await s3.send(deleteCommand)
 				}
+	
 			}
-			catch (e) {
+			catch (e)
+			{
 				logger.log("error", e)
 			}
 		};
@@ -369,10 +385,9 @@ export const exportAvatars = async (req: Request, res: Response) => {
 
 	arch.pipe(res)
 
-	await fetchAllAvatars(req.query.uid?.toString() ?? "", async (name: String, data: S3.Body | Buffer[]) => 
+	await fetchAllAvatars(req.query.uid?.toString() ?? "", async (name: String, data: Buffer) => 
 	{
-		const buffer = Buffer.isBuffer(data) ? data : Buffer.concat(data as Buffer[]);
-		arch.append(buffer, { name: name + ".png" })
+		arch.append(data, { name: name + ".png" })
 	});
 
 	arch.finalize()

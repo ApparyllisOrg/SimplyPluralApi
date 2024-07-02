@@ -200,9 +200,3 @@ export async function dispatchCustomEvent(data: { uid: string; type: string; dat
 		conn.send(payload);
 	}
 }
-
-const logCurrentConnection = () => {
-	setTimeout(logCurrentConnection, 10000);
-};
-
-logCurrentConnection();

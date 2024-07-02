@@ -33,8 +33,7 @@ const runDailyUserCounter = async () => {
 const runEvents = async () => {
 	const now = Date.now();
 	const queuedEvents = getCollection("queuedEvents");
-	const overdueEvents = await queuedEvents.find({ due: { $lte: now } }).toArray();
-	overdueEvents.forEach((event) => {
+	await queuedEvents.find({ due: { $lte: now } }).forEach((event) => {
 		// Try because if one event fails, we don't want any of the others to fail..
 		try {
 			const func = _boundEvents.get(event["event"]);
@@ -46,9 +45,6 @@ const runEvents = async () => {
 	queuedEvents.deleteMany({ due: { $lte: now } });
 
 	runDailyUserCounter();
-
-	// Re-run after 300ms
-	setTimeout(runEvents, 300);
 };
 
 export const performDelete = (target: string, uid: any, delay: number) => {
@@ -68,7 +64,10 @@ const enqueueEvent = (event: string, uid: string, delay: number) => {
 
 export const init = () => {
 	if (isPrimaryInstace()) {
-		runEvents();
+		
+		// Re-run after 300ms
+		setInterval(runEvents, 300);
+
 		// Todo: Edit this so that every server can run queued events and that
 		// getting queued events is atomic, so only one server handles the documents it got returned
 		// We don't want to run runEvents twice on two servers and have it return

@@ -1,13 +1,11 @@
 import * as minio from "minio";
-import * as AWS from "aws-sdk";
-import { S3 } from "aws-sdk";
+import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { logger } from "./logger";
 
-const objectEndpoint = new AWS.Endpoint(process.env.OBJECT_HOST ?? "");
-const s3 = new AWS.S3({
-	endpoint: objectEndpoint,
-	accessKeyId: process.env.OBJECT_KEY,
-	secretAccessKey: process.env.OBJECT_SECRET,
+const s3 = new S3Client({
+	endpoint: process.env.OBJECT_HOST ?? "",
+	region: process.env.OBJECT_REGION ?? "",
+	credentials: { accessKeyId: process.env.OBJECT_KEY ?? '', secretAccessKey: process.env.OBJECT_SECRET ?? ''}
 });
 
 const minioClient = new minio.Client({
@@ -21,16 +19,19 @@ const minioClient = new minio.Client({
 //-------------------------------//
 // Get a file from storage
 //-------------------------------//
-export const getFileFromStorage = async (path: string): Promise<Buffer[] | null | S3.Body> => {
-	return new Promise<Buffer[] | null | S3.Body>(async (resolve, _reject) => {
+export const getFileFromStorage = async (path: string): Promise<Buffer | null> => {
+	return new Promise<Buffer | null>(async (resolve, _reject) => {
 		const params = {
 			Bucket: "simply-plural",
 			Key: path
 		};
 		try {
-			const file = await s3.getObject(params).promise();
+			const command = new GetObjectCommand(params);
+
+			const file = await s3.send(command)
 			if (file && file.Body) {
-				resolve(file.Body);
+				const buffer = await file.Body.transformToByteArray()
+				resolve(Buffer.from(buffer));
 				return;
 			}
 		}
@@ -46,7 +47,7 @@ export const getFileFromStorage = async (path: string): Promise<Buffer[] | null 
 				buffer.push(chunk);
 			});
 			file.on("end", function () {
-				resolve(buffer);
+				resolve(Buffer.concat(buffer));
 			});
 			file.on("error", function (_e) {
 				resolve(null);

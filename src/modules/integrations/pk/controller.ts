@@ -47,13 +47,12 @@ export const addPendingRequest = (request: PkRequest): Promise<AxiosResponse<any
 };
 
 export const startPkController = () => {
-	tick();
-	resetRequestCounter();
+	setInterval(tick, 100);
+	setInterval(resetRequestCounter, 1000);
 };
 
 export const resetRequestCounter = () => {
 	remainingRequestsThisSecond = 20;
-	setTimeout(resetRequestCounter, 1000);
 };
 
 
@@ -77,8 +76,6 @@ export const tick = async () => {
 		logger.error("Pk sync error: " + e);
 		Sentry.captureException(e);
 	}
-
-	setTimeout(tick, 100);
 };
 
 const counter = new promclient.Counter({
