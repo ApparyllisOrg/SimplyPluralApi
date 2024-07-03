@@ -3,7 +3,7 @@ import moment from "moment";
 import { frontChange } from "../../modules/events/frontChange";
 import { getCollection, parseId } from "../../modules/mongo";
 import { documentObject } from "../../modules/mongo/baseTypes";
-import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection, isMemberOrCustomFront, isCustomFront } from "../../util";
+import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendQuery, deleteSimpleDocument, fetchCollection, isMemberOrCustomFront, isCustomFront } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 export const getFrontTimeRangeQuery = (req: Request, res: Response) => {
@@ -24,21 +24,21 @@ export const getFrontTimeRangeQuery = (req: Request, res: Response) => {
 
 export const getFrontHistoryInRange = async (req: Request, res: Response) => {
 	const query = getFrontTimeRangeQuery(req, res);
-	const documents: documentObject[] = await getCollection("frontHistory").find(query).toArray();
-	sendDocuments(req, res, "frontHistory", documents);
+	const dbQuery = await getCollection("frontHistory").find(query)
+	sendQuery(req, res, "frontHistory", dbQuery.stream())
 };
 
 export const getFrontHistory = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "frontHistory", {});
+	fetchCollection(req, res, "frontHistory", {})
 };
 
 export const getFrontHistoryForMember = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "frontHistory", { member: req.params.id });
+	fetchCollection(req, res, "frontHistory", { member: req.params.id })
 };
 
 export const getFronters = async (req: Request, res: Response) => {
-	const documents: documentObject[] = await getCollection("frontHistory").find({ uid: res.locals.uid, live: true }).toArray();
-	sendDocuments(req, res, "frontHistory", documents);
+	const query = getCollection("frontHistory").find({ uid: res.locals.uid, live: true })
+	sendQuery(req, res, "frontHistory", query.stream())
 };
 
 export const get = async (req: Request, res: Response) => {

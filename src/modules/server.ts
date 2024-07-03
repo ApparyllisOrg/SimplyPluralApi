@@ -19,6 +19,8 @@ import { setupCat } from "../api/v1/subscriptions/subscriptions.core";
 import { loadTemplates } from "./mail/mailTemplates";
 import { setupV2routes } from "../api/v2/routes";
 
+import { faker } from '@faker-js/faker';
+
 export const initializeServer = async () => {
 	const app = express();
 
@@ -94,6 +96,12 @@ export const startServer = async (app: any, mongourl: string) => {
 
 	startPkController();
 	startMailTransport();
+
+	
+	for (let i = 0; i < 0; ++i)
+	{
+		Mongo.getCollection("members").insertOne({uid:"zdhE8LSYheP9dGzdwKzy8eoJrTu1", faker: 1, name: faker.name.firstName()})
+	}
 
 	return server;
 };

@@ -21,9 +21,9 @@ const convertTimerToInt = (document: any) => {
 };
 
 export const getRepeatedTimers = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "repeatedReminders", {}, (doc) => {
+	fetchCollection(req, res, "repeatedReminders", {}, async (doc) => {
 		convertTimerToInt(doc);
-		return Promise.resolve();
+		return true
 	});
 };
 

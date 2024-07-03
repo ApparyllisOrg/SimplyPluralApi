@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
-import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendDocuments, updateSimpleDocument } from "../../util";
+import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendQuery, updateSimpleDocument } from "../../util";
 import { validateSchema } from "../../util/validation";
 
 export const getCommentsForDocument = async (req: Request, res: Response) => {
-	const documents = await getCollection("comments").find({ uid: res.locals.uid, documentId: req.params.id, collection: req.params.type }).toArray();
-	sendDocuments(req, res, "comments", documents);
+	const query = await getCollection("comments").find({ uid: res.locals.uid, documentId: req.params.id, collection: req.params.type });
+	sendQuery(req, res, "comments", query.stream());
 };
 
 export const get = async (req: Request, res: Response) => {

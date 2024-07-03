@@ -3,7 +3,7 @@ import moment from "moment";
 import { frontChange } from "../../modules/events/frontChange";
 import { getCollection, parseId } from "../../modules/mongo";
 import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security";
-import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, getDocumentAccess, sendDocument, sendDocuments, updateSimpleDocument } from "../../util";
+import { addSimpleDocument, deleteSimpleDocument, fetchCollection, fetchSimpleDocument, getDocumentAccess, sendDocument, sendQuery, transformResultForClientRead, updateSimpleDocument } from "../../util";
 import { getPrivacyDependency, validateSchema } from "../../util/validation";
 import { frameType } from "../types/frameType";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
@@ -12,8 +12,9 @@ import { Diff } from "deep-diff";
 import { DiffProcessor, DiffResult } from "../../util/diff";
 import { limitStringLength } from "../../util/string";
 import { ObjectId } from "mongodb";
+import { Transform } from "stream";
 
-export const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]) : Promise<boolean> => 
+export const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]) : Promise<void> => 
 {
 	const hasMigrated = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION)
 	if (hasMigrated)
@@ -79,32 +80,33 @@ export const filterFieldsForPrivacy = async (req: Request, res: Response, uid: s
 			});
 		}
 	}
-
-	return true
 }
 
 export const getMembers = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
 		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
 		if (!canSee) {
-			res.status(403).send("You are not authorized to see members of this user");
+			res.status(403).send("You are not authorized to see content of this user");
 			return;
 		}
 	}
 
-	const query = getCollection("members").find({ uid: req.params.system });
-	const documents = await query.toArray();
+	if (req.params.system != res.locals.uid)
+	{
+		const query = getCollection("members").find({ uid: req.params.system });
 
-	if (req.params.system != res.locals.uid) {
-
-		const filterResult = await filterFieldsForPrivacy(req, res, req.params.system, documents)
-		if (filterResult !== true)
+		const parseDocument = async (chunk: any) => 
 		{
-			return
+			chunk = await filterFieldsForPrivacy(req, res, req.params.system, [document])
+			return true
 		}
+	
+		sendQuery(req, res, "members", query.stream(), parseDocument);
 	}
-
-	sendDocuments(req, res, "members", documents);
+	else // Send to ourselves, bypass all checks
+	{
+		fetchCollection(req, res, "members", { uid: req.params.system })
+	}
 };
 
 export const get = async (req: Request, res: Response) => {
@@ -113,11 +115,7 @@ export const get = async (req: Request, res: Response) => {
 
 	if (req.params.system != res.locals.uid) {
 
-		const filterResult = await filterFieldsForPrivacy(req, res, req.params.system, [document])
-		if (filterResult !== true)
-		{
-			return
-		}
+		await filterFieldsForPrivacy(req, res, req.params.system, [document])
 	}
 
 	sendDocument(req, res, "members", document);

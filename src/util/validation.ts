@@ -192,6 +192,17 @@ export const validateOperationTime = async (req: Request, res: Response, next: a
 	res.status(400).send("Operation-Time header is not a valid number");
 };
 
+// Pre-flight check that the requestor and the requested documents are of the same uid
+export const validateSelfOperation = async (req: Request, res: Response, next: any) => {
+
+	if (req.params.system !== res.locals.uid) {
+		res.status(401).send("You are not authorized to see content of this user");
+		return;
+	} 
+	
+	next();
+};
+
 export const getPrivacyDependency = () => ({
 	private: { required: ["preventTrusted"] },
 	preventTrusted: { required: ["private"] },

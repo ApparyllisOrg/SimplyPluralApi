@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
-import { fetchCollection, getDocumentAccess, sendDocument, sendDocuments, transformResultForClientRead } from "../../util";
+import { fetchCollection, getDocumentAccess, sendDocument, sendQuery, transformResultForClientRead } from "../../util";
 import { validateSchema } from "../../util/validation";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
 
@@ -10,18 +10,20 @@ export const getFriend = async (req: Request, res: Response) => {
 };
 
 export const getFriends = async (req: Request, res: Response) => {
-	const friends = await getCollection("friends").find({ uid: res.locals.uid }).toArray();
-	const friendValues: any[] = [];
-
-	for (let i = 0; i < friends.length; ++i) {
-		const friend = await getCollection("users").findOne({ uid: friends[i].frienduid });
+	const friends = await getCollection("friends").find({ uid: res.locals.uid });
+	
+	const parseDocument = async (chunk: any) => 
+	{
+		const friend = await getCollection("users").findOne({ uid: chunk.frienduid });
 		if (friend) {
-			friendValues.push(friend);
+			return true
 		}
+
+		return false
 	}
 
 	// Send users as collection as we are sending user objects, not friend (requests)
-	sendDocuments(req, res, "users", friendValues);
+	sendQuery(req, res, "users", friends.stream()), parseDocument;
 };
 
 export const getFriendsSettings = async (req: Request, res: Response) => {
