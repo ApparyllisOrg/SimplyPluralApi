@@ -29,10 +29,6 @@ export const initializeServer = async () => {
 	}
 
 	if (!process.env.DEVELOPMENT) {
-		if (process.env.SENTRY_DSN) {
-			Sentry.init({ dsn: process.env.SENTRY_DSN });
-		}
-		app.use(Sentry.Handlers.requestHandler());
 		app.use(helmet());
 	}
 
@@ -75,7 +71,7 @@ export const initializeServer = async () => {
 	setupBaseRoutes(app);
 
 	// Has to be *after* all controllers
-	app.use(Sentry.Handlers.errorHandler());
+	Sentry.setupExpressErrorHandler(app);
 
 	console.log(`Starting server as ${cluster.isPrimary ? "Primary" : "Worker"}`);
 

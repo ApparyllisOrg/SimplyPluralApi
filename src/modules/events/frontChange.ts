@@ -6,6 +6,7 @@ import { notifyOfFrontChange } from "./automatedReminder";
 import { ObjectId } from "mongodb";
 import { performEvent } from "./eventController";
 import { getDocumentAccess } from "../../util";
+import promclient from "prom-client";
 
 const getFronterString = (entries: Array<string>) => {
 	return entries.join(", ");
@@ -81,7 +82,7 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 					privateFronterNames.push(doc.name);
 				}
 			} else {
-				logger.warn("cannot find " + fronter);
+				logger.warn(`cannot find ${fronter}`);
 			}
 		}
 	}
@@ -244,18 +245,25 @@ export const notifyFrontDue = async (uid: string, _event: any) => {
 		}})
 	})
 };
+const notify_fronts_counter = new promclient.Counter({
+	name: "apparyllis_api_notify_front_event",
+	help: "Counter for notify fronts processed",
+});
 
 const notifyFront = async (frontNotificationString: string, customFrontString: string, uid: string, trusted: boolean) => {
+
+	notify_fronts_counter.inc()
+
 	let message = "";
 
 	if (frontNotificationString.length > 0) {
 		if (customFrontString.length > 0) {
-			message = "Fronting: " + frontNotificationString + " \n" + "Custom fronting: " + customFrontString;
+			message = `Fronting: ${frontNotificationString}\nCustom fronting: ${customFrontString}`;
 		} else {
-			message = "Fronting: " + frontNotificationString;
+			message = `Fronting: ${frontNotificationString}`;
 		}
 	} else if (customFrontString.length > 0) {
-		message = "Custom fronting: " + customFrontString;
+		message = `Custom fronting: ${customFrontString}`;
 	}
 
 	// no public members to show as front.

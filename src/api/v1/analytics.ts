@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import moment from "moment";
 import { getCollection } from "../../modules/mongo";
 import { isMemberOrCustomFront } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 import { getFrontTimeRangeQuery } from "./frontHistory";
 
 interface frontDurationType {
@@ -16,19 +16,20 @@ interface frontAnalyticValueType {
 	value: number;
 }
 
-export const validatGetAnalyticsSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			startTime: { type: "string", pattern: "^[0-9]" },
-			endTime: { type: "string", pattern: "^[0-9]" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["startTime", "endTime"],
-	};
+const s_validatGetAnalyticsSchema = {
+	type: "object",
+	properties: {
+		startTime: { type: "string", pattern: "^[0-9]" },
+		endTime: { type: "string", pattern: "^[0-9]" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["startTime", "endTime"],
+};
+const v_validatGetAnalyticsSchema = ajv.compile(s_validatGetAnalyticsSchema)
 
-	return validateSchema(schema, body);
+export const validatGetAnalyticsSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validatGetAnalyticsSchema, body);
 };
 
 export const get = async (req: Request, res: Response) => {

@@ -1,12 +1,18 @@
 import dotenv from "dotenv";
 dotenv.config();
 
+import * as Sentry from "@sentry/node";
+const { nodeProfilingIntegration } = require("@sentry/profiling-node");
+
+if (process.env.SENTRY_DSN) {
+	Sentry.init({ dsn: process.env.SENTRY_DSN, integrations: [nodeProfilingIntegration()], tracesSampleRate: 0.1, profilesSampleRate: 0.1 });
+}
+
 import { startCollectingUsage } from "./modules/usage";
 import admin, { ServiceAccount } from "firebase-admin";
-import * as fs from "fs";
 import { initializeServer, startServer } from "./modules/server";
 import { namedArguments } from "./util/args";
-import moment from "moment";
+import * as fs from "fs";
 
 if (namedArguments.development === true) {
 	process.env.DEVELOPMENT = "true";

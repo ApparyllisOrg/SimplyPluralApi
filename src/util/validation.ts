@@ -3,11 +3,11 @@ import { NextFunction } from "express";
 import { Request, Response } from "express";
 import addFormats from "ajv-formats";
 
-import Ajv from "ajv";
+import Ajv, { ValidateFunction } from "ajv";
 import { ObjectId } from "mongodb";
 import moment from "moment";
 
-const ajv = new Ajv({ allErrors: true, $data: true, verbose: true });
+export const ajv = new Ajv({ allErrors: true, $data: true, verbose: true });
 ajv.addFormat("fullEmail", RegExp("^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$", "i"))
 
 addFormats(ajv);
@@ -58,9 +58,7 @@ export const validateBody = (func: schemavalidation) => {
 	};
 };
 
-export const validateSchema = (schema: any, body: unknown): { success: boolean; msg: string } => {
-	const validate = ajv.compile(schema);
-
+export const validateSchema = (validate: ValidateFunction<unknown>, body: unknown): { success: boolean; msg: string } => {
 	const valid = validate(body);
 	if (valid) {
 		return { success: true, msg: "" };
@@ -81,24 +79,26 @@ export const validateSchema = (schema: any, body: unknown): { success: boolean; 
 	}
 };
 
-export const validateParams = (req: Request, res: Response) => {
-	const schema = {
-		type: "object",
-		properties: {
-			id: { type: "string", pattern: "^[A-Za-z0-9]{0,100}$" },
-			dashedid: { type: "string", pattern: "^[A-Za-z0-9-]{0,100}$" },
-			reportid: { type: "string", pattern: "^[A-Za-z0-9-]{0,100}$" },
-			system: { type: "string", pattern: "^[A-Za-z0-9]{1,100}$" },
-			member: { type: "string", pattern: "^[A-Za-z0-9]{1,100}$" },
-			type: { type: "string", pattern: "^[A-Za-z0-9]{1,100}$" },
-			usernameOrId: { type: "string", pattern: "^[A-Za-z0-9-_]{1,100}$" },
-		},
-		nullable: false,
-		additionalProperties: false,
-	};
+const paramsSchema = {
+	type: "object",
+	properties: {
+		id: { type: "string", pattern: "^[A-Za-z0-9]{0,100}$" },
+		dashedid: { type: "string", pattern: "^[A-Za-z0-9-]{0,100}$" },
+		reportid: { type: "string", pattern: "^[A-Za-z0-9-]{0,100}$" },
+		system: { type: "string", pattern: "^[A-Za-z0-9]{1,100}$" },
+		member: { type: "string", pattern: "^[A-Za-z0-9]{1,100}$" },
+		type: { type: "string", pattern: "^[A-Za-z0-9]{1,100}$" },
+		usernameOrId: { type: "string", pattern: "^[A-Za-z0-9-_]{1,100}$" },
+	},
+	nullable: false,
+	additionalProperties: false,
+};
 
-	const validate = ajv.compile(schema);
-	const valid = validate(req.params);
+const paramsValidate = ajv.compile(paramsSchema);
+
+export const validateParams = (req: Request, res: Response) => {
+	
+	const valid = paramsValidate(req.params);
 
 	if (valid) {
 		return true;
@@ -109,24 +109,27 @@ export const validateParams = (req: Request, res: Response) => {
 	return false;
 };
 
+const getSchema = {
+	type: "object",
+	properties: {
+		sortBy: { type: "string" },
+		sortUp: { type: "boolean" },
+		limit: { type: "string", pattern: "^[0-9]" },
+		start: { type: "string", pattern: "^[0-9]" },
+	},
+	nullable: false,
+	dependencies: {
+		sortBy: { required: ["sortUp"] },
+		sortUp: { required: ["sortBy"] },
+	},
+};
+
+const getValidate = ajv.compile(getSchema);
+
 export const validateGetQuery = (req: Request, res: Response, next: NextFunction) => {
 	if (req.method === "GET") {
-		const schema = {
-			type: "object",
-			properties: {
-				sortBy: { type: "string" },
-				sortUp: { type: "boolean" },
-				limit: { type: "string", pattern: "^[0-9]" },
-				start: { type: "string", pattern: "^[0-9]" },
-			},
-			nullable: false,
-			dependencies: {
-				sortBy: { required: ["sortUp"] },
-				sortUp: { required: ["sortBy"] },
-			},
-		};
-
-		const validate = ajv.compile(schema);
+	
+		const validate = ajv.compile(getValidate);
 
 		const valid = validate(req.query);
 		if (valid) {

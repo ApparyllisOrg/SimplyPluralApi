@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { getCollection, parseId } from "../../../modules/mongo";
-import { validateSchema } from "../../../util/validation";
+import { ajv, validateSchema } from "../../../util/validation";
 
 export const orderBuckets = async (req: Request, res: Response) => {
     const buckets : {id: string, rank: string}[] = req.body.buckets
@@ -13,25 +13,26 @@ export const orderBuckets = async (req: Request, res: Response) => {
 	res.status(200).send()
 };
 
-export const validateOrderBucketsSchema = (body: unknown): { success: boolean; msg: string } => {
-    const schema = {
-        type: "object", 
-        properties: {
-            buckets: { type: "array",  items: {
-                type: "object",
-                properties: {
-                    id: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
-                    rank: { type: "string", pattern: "^0\|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
-                },
-                required: ["id", "rank",],
-                nullable: false,
-                additionalProperties: false,
-            }}
-        },
-        required: ["buckets",],
-        nullable: false,
-        additionalProperties: false,
-    }
+const s_validateOrderBucketsSchema = {
+    type: "object", 
+    properties: {
+        buckets: { type: "array",  items: {
+            type: "object",
+            properties: {
+                id: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
+                rank: { type: "string", pattern: "^0\|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
+            },
+            required: ["id", "rank",],
+            nullable: false,
+            additionalProperties: false,
+        }}
+    },
+    required: ["buckets",],
+    nullable: false,
+    additionalProperties: false,
+};
+const v_validateOrderBucketsSchema = ajv.compile(s_validateOrderBucketsSchema)
 
-	return validateSchema(schema, body);
+export const validateOrderBucketsSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateOrderBucketsSchema, body);
 };

@@ -1,4 +1,4 @@
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 import { canGenerateReport, decrementGenerationsLeft, sendReport } from "../base/user";
 import { Request, Response } from "express";
 import { fieldKeyToName, generateUserReport, getAvatarString, getDescription, typeConverters } from "../base/user/generateReports";
@@ -172,58 +172,59 @@ export const generateReport = async (req: Request, res: Response) => {
 	}
 };
 
-export const validateUserReportSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			sendTo: {
-				type: "string",
-				format: "email",
-			},
-			cc: {
-				type: "array",
-				items: { type: "string", format: "fullEmail" },
-			},
-			frontHistory: {
-				nullable: true,
-				type: "object",
-				properties: {
-					start: { type: "number" },
-					end: { type: "number" },
-					includeMembers: { type: "boolean" },
-					includeCustomFronts: { type: "boolean" },
-                    includeMembersBucketless: {type: "boolean"},
-                    includeCustomFrontsBucketless: {type: "boolean"},
-					memberBuckets: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
-                    customFrontBuckets: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
-                    
-				},
-				required: ["memberBuckets", "customFrontBuckets", "includeMembersBucketless", "includeCustomFrontsBucketless", "includeMembers", "includeCustomFronts", "start", "end"],
-			},
-			members: {
-				nullable: true,
-				type: "object",
-				properties: {
-					includeCustomFields: { type: "boolean" },
-                    includeBucketless: {type: "boolean"},
-					buckets: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
-				},
-				required: ["buckets", "includeBucketless", "includeCustomFields"],
-			},
-			customFronts: {
-				nullable: true,
-				type: "object",
-				properties: {
-                    includeBucketless: {type: "boolean"},
-					buckets: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
-				},
-				required: ["buckets", "includeBucketless"],
-			},
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["sendTo"],
-	};
+const s_validateUserReportSchema = {
+    type: "object",
+    properties: {
+        sendTo: {
+            type: "string",
+            format: "email",
+        },
+        cc: {
+            type: "array",
+            items: { type: "string", format: "fullEmail" },
+        },
+        frontHistory: {
+            nullable: true,
+            type: "object",
+            properties: {
+                start: { type: "number" },
+                end: { type: "number" },
+                includeMembers: { type: "boolean" },
+                includeCustomFronts: { type: "boolean" },
+                includeMembersBucketless: {type: "boolean"},
+                includeCustomFrontsBucketless: {type: "boolean"},
+                memberBuckets: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+                customFrontBuckets: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+                
+            },
+            required: ["memberBuckets", "customFrontBuckets", "includeMembersBucketless", "includeCustomFrontsBucketless", "includeMembers", "includeCustomFronts", "start", "end"],
+        },
+        members: {
+            nullable: true,
+            type: "object",
+            properties: {
+                includeCustomFields: { type: "boolean" },
+                includeBucketless: {type: "boolean"},
+                buckets: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+            },
+            required: ["buckets", "includeBucketless", "includeCustomFields"],
+        },
+        customFronts: {
+            nullable: true,
+            type: "object",
+            properties: {
+                includeBucketless: {type: "boolean"},
+                buckets: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+            },
+            required: ["buckets", "includeBucketless"],
+        },
+    },
+    nullable: false,
+    additionalProperties: false,
+    required: ["sendTo"],
+};
+const v_validateUserReportSchema = ajv.compile(s_validateUserReportSchema)
 
-	return validateSchema(schema, body);
+export const validateUserReportSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateUserReportSchema, body);
 };

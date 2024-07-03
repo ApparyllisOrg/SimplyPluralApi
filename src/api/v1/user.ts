@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { logger, userLog } from "../../modules/logger";
 import { db, getCollection, parseId } from "../../modules/mongo";
 import { fetchCollection, getDocumentAccess, sendDocument } from "../../util";
-import { getAvatarUuidSchema, validateSchema } from "../../util/validation";
+import { ajv, getAvatarUuidSchema, validateSchema } from "../../util/validation";
 import { generateUserReport } from "./user/generateReport";
 import { update122 } from "./user/updates/update112";
 import { auth } from "firebase-admin";
@@ -14,12 +14,19 @@ import { ERR_FUNCTIONALITY_EXPECTED_VALID } from "../../modules/errors";
 import { createUser } from "./user/migrate";
 import { exportData, fetchAllAvatars } from "./user/export";
 import { getEmailForUser } from "./auth/auth.core";
-import { s3 } from "./storage";
 import { frameType } from "../types/frameType";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
 import { canGenerateReport, decrementGenerationsLeft, reportBaseUrl, reportBaseUrl_V2, sendReport } from "../base/user";
 import archiver, { Archiver } from "archiver"
-import { S3 } from "aws-sdk";
+
+import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
+
+const s3 = new S3Client({
+	endpoint: process.env.OBJECT_HOST ?? "",
+	region: process.env.OBJECT_REGION ?? "",
+	credentials: { accessKeyId: process.env.OBJECT_KEY ?? '', secretAccessKey: process.env.OBJECT_SECRET ?? ''}
+});
+
 
 
 const minioClient = new minio.Client({
@@ -200,25 +207,30 @@ const deleteUploadedUserFolder = async (uid: string, prefix: string) => {
 			};
 
 			try {
-				let list = await s3.listObjectsV2(params).promise();
+				let listCommand = new ListObjectsV2Command(params);
+
+				const list = await s3.send(listCommand)
 
 				if (list.NextContinuationToken) {
 					await recursiveDelete(list.NextContinuationToken);
 				}
 
 				if (list.KeyCount && list.Contents) {
-					const deleteParams = {
+		
+					let deleteCommand = new DeleteObjectsCommand({
 						Bucket: "simply-plural",
 						Delete: {
 							Objects: list.Contents.map((item) => ({ Key: item.Key ?? "" }))
 						},
-					};
+					});
 
-					s3.deleteObjects(deleteParams, (err: any) => { }).promise();
+					await s3.send(deleteCommand)
 				}
+	
 			}
-			catch (e) {
-				console.log(e)
+			catch (e)
+			{
+				logger.log("error", e)
 			}
 		};
 
@@ -336,10 +348,9 @@ export const exportAvatars = async (req: Request, res: Response) => {
 
 	arch.pipe(res)
 
-	await fetchAllAvatars(req.query.uid?.toString() ?? "", async (name: String, data: S3.Body | Buffer[]) => 
+	await fetchAllAvatars(req.query.uid?.toString() ?? "", async (name: String, data: Buffer) => 
 	{
-		const buffer = Buffer.isBuffer(data) ? data : Buffer.concat(data as Buffer[]);
-		arch.append(buffer, { name: name + ".png" })
+		arch.append(data, { name: name + ".png" })
 	});
 
 	arch.finalize()
@@ -367,124 +378,129 @@ export const initializeCustomFields = async (uid: string) => {
 		return;
 	}
 
-	const memberWithFields = await getCollection("members").findOne({ uid: uid, info: { $exists: true } });
+	const memberWithFields = await getCollection("members").findOne({ uid: uid, info: { $exists: true } }, { projection:{ _id: 1 } });
 	if (memberWithFields) {
 		update122(uid);
 	} 
 };
 
-export const validateUserSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			desc: { type: "string" },
-			isAsystem: { type: "boolean" },
-			avatarUuid: getAvatarUuidSchema(),
-			avatarUrl: { type: "string" },
-			color: { type: "string" },
-			supportDescMarkdown: { type: "boolean" },
-			fields: {
-				type: "object",
-				patternProperties: {
-					"^[0-9A-z]{22,23}$": {
-						type: "object",
-						properties: {
-							name: { type: "string" },
-							order: { type: "number" },
-							private: { type: "boolean" },
-							preventTrusted: { type: "boolean" },
-							type: { type: "number" },
-							supportMarkdown: { type: "boolean" },
-						},
-						required: ["name", "order", "private", "preventTrusted", "type"],
+const s_validateUserSchema = {
+	type: "object",
+	properties: {
+		desc: { type: "string" },
+		isAsystem: { type: "boolean" },
+		avatarUuid: getAvatarUuidSchema(),
+		avatarUrl: { type: "string" },
+		color: { type: "string" },
+		supportDescMarkdown: { type: "boolean" },
+		fields: {
+			type: "object",
+			patternProperties: {
+				"^[0-9A-z]{22,23}$": {
+					type: "object",
+					properties: {
+						name: { type: "string" },
+						order: { type: "number" },
+						private: { type: "boolean" },
+						preventTrusted: { type: "boolean" },
+						type: { type: "number" },
+						supportMarkdown: { type: "boolean" },
 					},
+					required: ["name", "order", "private", "preventTrusted", "type"],
 				},
-				additionalProperties: false,
 			},
-			frame: frameType
+			additionalProperties: false,
 		},
-		nullable: false,
-		additionalProperties: false,
-	};
-
-	return validateSchema(schema, body);
+		frame: frameType
+	},
+	nullable: false,
+	additionalProperties: false,
 };
+
+const v_validateUserSchema = ajv.compile(s_validateUserSchema)
+
+export const validateUserSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateUserSchema, body);
+};
+
+const s_validateUsernameSchema =  {
+	type: "object",
+	properties: {
+		username: { type: "string", pattern: "^[a-zA-Z0-9-_]{1,35}$" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["username"],
+};
+const v_validateUsernameSchema = ajv.compile(s_validateUsernameSchema)
 
 export const validateUsernameSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			username: { type: "string", pattern: "^[a-zA-Z0-9-_]{1,35}$" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["username"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateUsernameSchema, body);
 };
+
+const s_validateExportAvatarsSchema = {
+	type: "object",
+	properties: {
+		key: { type: "string", pattern: "^[a-zA-Z0-9-_]{256}$" },
+		uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["key", "uid"],
+};
+const v_validateExportAvatarsSchema = ajv.compile(s_validateExportAvatarsSchema)
 
 export const validateExportAvatarsSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			key: { type: "string", pattern: "^[a-zA-Z0-9-_]{256}$" },
-			uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["key", "uid"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateExportAvatarsSchema, body);
 };
 
-export const validateUserReportSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			sendTo: {
-				type: "string",
-				format: "email",
-			},
-			cc: {
-				type: "array",
-				items: { type: "string", format: "fullEmail" },
-			},
-			frontHistory: {
-				nullable: true,
-				type: "object",
-				properties: {
-					start: { type: "number" },
-					end: { type: "number" },
-					includeMembers: { type: "boolean" },
-					includeCustomFronts: { type: "boolean" },
-					privacyLevel: { type: "number" },
-				},
-				required: ["privacyLevel", "includeMembers", "includeCustomFronts", "start", "end"],
-			},
-			members: {
-				nullable: true,
-				type: "object",
-				properties: {
-					includeCustomFields: { type: "boolean" },
-					privacyLevel: { type: "number" },
-				},
-				required: ["privacyLevel", "includeCustomFields"],
-			},
-			customFronts: {
-				nullable: true,
-				type: "object",
-				properties: {
-					privacyLevel: { type: "number" },
-				},
-				required: ["privacyLevel"],
-			},
+const s_validateUserReportSchema =  {
+	type: "object",
+	properties: {
+		sendTo: {
+			type: "string",
+			format: "email",
 		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["sendTo"],
-	};
+		cc: {
+			type: "array",
+			items: { type: "string", format: "fullEmail" },
+		},
+		frontHistory: {
+			nullable: true,
+			type: "object",
+			properties: {
+				start: { type: "number" },
+				end: { type: "number" },
+				includeMembers: { type: "boolean" },
+				includeCustomFronts: { type: "boolean" },
+				privacyLevel: { type: "number" },
+			},
+			required: ["privacyLevel", "includeMembers", "includeCustomFronts", "start", "end"],
+		},
+		members: {
+			nullable: true,
+			type: "object",
+			properties: {
+				includeCustomFields: { type: "boolean" },
+				privacyLevel: { type: "number" },
+			},
+			required: ["privacyLevel", "includeCustomFields"],
+		},
+		customFronts: {
+			nullable: true,
+			type: "object",
+			properties: {
+				privacyLevel: { type: "number" },
+			},
+			required: ["privacyLevel"],
+		},
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["sendTo"],
+};
+const v_validateUserReportSchema = ajv.compile(s_validateUserReportSchema)
 
-	return validateSchema(schema, body);
+export const validateUserReportSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateUserReportSchema, body);
 };

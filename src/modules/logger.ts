@@ -51,7 +51,7 @@ export const logger = winston.createLogger({
 });
 
 export const userLog = (uid: string, message: string) => {
-	const msg = "USER: [" + uid + "] " + message;
+	const msg =`USER: [${uid}] ${message}`;
 	if (process.env.DEVELOPMENT) {
 		console.log(msg);
 	}
@@ -59,7 +59,7 @@ export const userLog = (uid: string, message: string) => {
 };
 
 export const log = (message: string) => {
-	const msg = "SYSTEM: " + message;
+	const msg = `SYSTEM: ${message}`;
 	if (process.env.DEVELOPMENT) {
 		console.log(msg);
 	}

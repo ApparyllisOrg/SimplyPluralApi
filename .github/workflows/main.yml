@@ -7,22 +7,22 @@ on:
   workflow_dispatch:
     inputs:
       logLevel:
-        description: 'Log level'     
+        description: "Log level"
         required: true
-        default: 'warning'
+        default: "warning"
   push:
-    branches: [ release ]
+    branches: [release]
 
 jobs:
   build:
     runs-on: prod2
     steps:
-    - uses: actions/checkout@v2
-      with:
-        ref: release
-    - run: npm install
-    - run: npm run build
-    - run: cp /home/actions_runner/.env ./dist/.env
-    - run: cp /home/actions_runner/spGoogle.json ./dist/spGoogle.json
-    - run: cp -R ./templates ./dist/templates
-    - run: pm2 restart prod
+      - uses: actions/checkout@v2
+        with:
+          ref: release
+      - run: npm install
+      - run: npm run build
+      - run: cp /home/actions_runner/.env ./dist/.env
+      - run: cp /home/actions_runner/spGoogle.json ./dist/spGoogle.json
+      - run: cp -R ./templates ./dist/templates
+      - run: pm2 restart all

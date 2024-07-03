@@ -72,7 +72,7 @@ const handlePkResponse = (requestResponse: AxiosResponse<any, any> | { status: n
 };
 
 export const syncMemberToPk = async (options: syncOptions, spMemberId: string, token: string, userId: string, memberData: any | undefined, knownSystemId: string | undefined): Promise<{ success: boolean; msg: string }> => {
-	const spMemberResult = await getCollection("members").findOne({ uid: userId, _id: parseId(spMemberId) });
+	const spMemberResult = await getCollection("members").findOne({ uid: userId, _id: parseId(spMemberId) }, {projection: {name: 1, desc: 1, avatarUrl: 1, pkId: 1, color: 1, pronouns: 1}});
 
 	if (spMemberResult) {
 		let { name = "", avatarUrl = "", pronouns = "", desc = "" } = spMemberResult;
@@ -107,7 +107,7 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 		}
 
 		const pkId: string | undefined | null = spMemberResult.pkId;
-		if (pkId && pkId.length === 5) {
+		if (pkId && ( pkId.length === 5 || pkId.length === 6 ) ) {
 			const getRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members/${spMemberResult.pkId}`, token, response: null, data: undefined, type: PkRequestType.Get, id: "" };
 			const pkMemberResult = memberData ?? (await addPendingRequest(getRequest));
 
@@ -188,7 +188,7 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 		}
 	}
 
-	const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: pkMemberId });
+	const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: pkMemberId }, {projection: {name: 1}});
 	const forceSyncProperties = spMemberResult == null;
 	const memberDataToSync: any = {};
 	if (options.name || forceSyncProperties) {
@@ -244,7 +244,7 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 };
 
 export const syncAllSpMembersToPk = async (options: syncOptions, _allSyncOptions: syncAllOptions, token: string, userId: string): Promise<{ success: boolean; msg: string }> => {
-	const spMembersResult = await getCollection("members").find({ uid: userId }).toArray();
+	const spMembersResult = await getCollection("members").find({ uid: userId }, { projection: {name: 1, pkId: 1, _id: 1}}).toArray();
 
 	dispatchCustomEvent({ uid: userId, type: "syncToUpdate", data: "Starting Sync" });
 
@@ -310,7 +310,7 @@ export const syncAllPkMembersToSp = async (options: syncOptions, allSyncOptions:
 					lastUpdate = moment.now();
 				}
 
-				const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: parseId(member.id) });
+				const spMemberResult = await getCollection("members").findOne({ uid: userId, pkId: parseId(member.id) }, { projection:{_id: 1} });
 				if (spMemberResult && allSyncOptions.overwrite) {
 					promises.push(syncMemberFromPk(options, member.id, token, userId, foundMembers[i], bulkWrites, allSyncOptions.privateByDefault));
 				}

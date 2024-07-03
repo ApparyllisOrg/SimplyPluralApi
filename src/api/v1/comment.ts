@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
 import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendQuery, updateSimpleDocument } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 
 export const getCommentsForDocument = async (req: Request, res: Response) => {
 	const query = await getCollection("comments").find({ uid: res.locals.uid, documentId: req.params.id, collection: req.params.type });
@@ -47,35 +47,38 @@ export const del = async (req: Request, res: Response) => {
 	}
 };
 
-export const validateCommentSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			time: { type: "number" },
-			text: { type: "string" },
-			supportMarkdown: { type: "boolean" },
-			documentId: { type: "string" },
-			collection: { type: "string" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["time", "text", "documentId", "collection"],
-	};
+const s_validateCommentSchema = {
+	type: "object",
+	properties: {
+		time: { type: "number" },
+		text: { type: "string" },
+		supportMarkdown: { type: "boolean" },
+		documentId: { type: "string" },
+		collection: { type: "string" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["time", "text", "documentId", "collection"],
+};
+const v_validateCommentSchema = ajv.compile(s_validateCommentSchema)
 
-	return validateSchema(schema, body);
+export const validateCommentSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateCommentSchema, body);
 };
 
-export const validateCommentPatchSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			text: { type: "string" },
-			supportMarkdown: { type: "boolean" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["text"],
-	};
+const s_validateCommentPatchSchema = {
+	type: "object",
+	properties: {
+		text: { type: "string" },
+		supportMarkdown: { type: "boolean" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["text"],
+};
+const v_validateCommentPatchSchema = ajv.compile(s_validateCommentPatchSchema)
 
-	return validateSchema(schema, body);
+export const validateCommentPatchSchema = (body: unknown): { success: boolean; msg: string } => {
+
+	return validateSchema(v_validateCommentPatchSchema, body);
 };

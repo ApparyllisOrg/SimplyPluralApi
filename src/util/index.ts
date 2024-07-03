@@ -341,13 +341,13 @@ export const updateSimpleDocument = async (req: Request, res: Response, collecti
 };
 
 export const isMember = async (uid: string, id: string) => {
-	const member = await Mongo.getCollection("members").findOne({ uid, _id: parseId(id) });
-	return !!member;
+	const memberCount = await Mongo.getCollection("members").count({ uid, _id: parseId(id) }, { limit: 1});
+	return memberCount === 1;
 };
 
 export const isCustomFront = async (uid: string, id: string) => {
-	const cf = await Mongo.getCollection("frontStatuses").findOne({ uid, _id: parseId(id) });
-	return !!cf;
+	const cfCount = await Mongo.getCollection("frontStatuses").count({ uid, _id: parseId(id) }, { limit: 1});
+	return cfCount === 1;
 };
 
 export const isMemberOrCustomFront = async (uid: string, id: string) => {

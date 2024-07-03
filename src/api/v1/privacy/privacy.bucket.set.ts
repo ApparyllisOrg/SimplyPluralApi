@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { validateSchema } from "../../../util/validation";
+import { ajv, validateSchema } from "../../../util/validation";
 import assert from "assert";
 import { getCollection, parseId } from "../../../modules/mongo";
 import { convertListToIds } from "../../../util";
@@ -39,23 +39,24 @@ export const setPrivacyBuckets = async (req: Request, res: Response) =>
     }
 }
 
-export const validateSetPrivacyBucketsSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			id: { type: "string", pattern: "^[A-Za-z0-9]{0,100}$" },
-            buckets: {  type: "array", uniqueItems: true,  items: 
-                { 
-                    type: "string", pattern: "^[A-Za-z0-9]{0,100}$" 
-                },
+const s_validateSetPrivacyBucketsSchema = {
+    type: "object",
+    properties: {
+        id: { type: "string", pattern: "^[A-Za-z0-9]{0,100}$" },
+        buckets: {  type: "array", uniqueItems: true,  items: 
+            { 
+                type: "string", pattern: "^[A-Za-z0-9]{0,100}$" 
             },
-            recursive: { type : "boolean" }, // Only used in conjunction with groups, when true this will also apply it on sub-groups
-			type: { type: "string", enum : ["members", "groups", "frontStatuses", "customFields"] },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["id", "type"],
-	};
+        },
+        recursive: { type : "boolean" }, // Only used in conjunction with groups, when true this will also apply it on sub-groups
+        type: { type: "string", enum : ["members", "groups", "frontStatuses", "customFields"] },
+    },
+    nullable: false,
+    additionalProperties: false,
+    required: ["id", "type"],
+};
+const v_validateSetPrivacyBucketsSchema = ajv.compile(s_validateSetPrivacyBucketsSchema)
 
-	return validateSchema(schema, body);
+export const validateSetPrivacyBucketsSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateSetPrivacyBucketsSchema, body);
 }
