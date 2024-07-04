@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
 import { deleteSimpleDocument, fetchCollection } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 import { OperationType, dispatchDelete } from "../../modules/socket";
 
 export const getAuditHistory = async (req: Request, res: Response) => {
@@ -55,21 +55,22 @@ export const deleteAuditEntry = async (req: Request, res: Response) => {
 	}
 };
 
-export const validateGetAuditHistorySchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			target: { type: "string", pattern: "^[A-Za-z0-9]{5,50}$" },
-            sortBy: { type: "string" },
-            sortOrder: { type: "string", pattern: "^-1$|^1$" },
-            limit: { type: "string", pattern: "^[0-9]" },
-            start: { type: "string", pattern: "^[0-9]" },
-            sortUp: { type: "string", pattern: "^(true|false)$" },
-		},
-		required: [],
-		nullable: false,
-		additionalProperties: false,
-	};
+const s_validateGetAuditHistorySchema = {
+	type: "object",
+	properties: {
+		target: { type: "string", pattern: "^[A-Za-z0-9]{5,50}$" },
+		sortBy: { type: "string" },
+		sortOrder: { type: "string", pattern: "^-1$|^1$" },
+		limit: { type: "string", pattern: "^[0-9]" },
+		start: { type: "string", pattern: "^[0-9]" },
+		sortUp: { type: "string", pattern: "^(true|false)$" },
+	},
+	required: [],
+	nullable: false,
+	additionalProperties: false,
+};
+const v_validateGetAuditHistorySchema = ajv.compile(s_validateGetAuditHistorySchema)
 
-	return validateSchema(schema, body);
+export const validateGetAuditHistorySchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateGetAuditHistorySchema, body);
 };
