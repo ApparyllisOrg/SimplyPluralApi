@@ -23,7 +23,7 @@ import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/c
 
 const s3 = new S3Client({
 	endpoint: process.env.OBJECT_HOST ?? "",
-	region: process.env.OBJECT_REGION ?? "",
+	region: process.env.OBJECT_REGION ?? "none",
 	credentials: { accessKeyId: process.env.OBJECT_KEY ?? '', secretAccessKey: process.env.OBJECT_SECRET ?? ''}
 });
 
