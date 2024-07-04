@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, deleteSimpleDocument, fetchCollection } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 
 export const getPolls = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "polls", {});
@@ -33,66 +33,67 @@ const voteType = {
 	additionalProperties: false,
 };
 
-export const validatePollSchema = (body: unknown): { success: boolean; msg: string } => {
-	const normalVote = {
-		type: "object",
-		properties: {
-			name: { type: "string" },
-			desc: { type: "string" },
-			allowAbstain: { type: "boolean" },
-			allowVeto: { type: "boolean" },
-			endTime: { type: "number" },
-			custom: {
-				type: "boolean",
-				enum: [false],
-			},
-			votes: {
-				type: "array",
-				items: voteType,
-			},
-			supportDescMarkdown: { type: "boolean" },
+const normalVote = {
+	type: "object",
+	properties: {
+		name: { type: "string" },
+		desc: { type: "string" },
+		allowAbstain: { type: "boolean" },
+		allowVeto: { type: "boolean" },
+		endTime: { type: "number" },
+		custom: {
+			type: "boolean",
+			enum: [false],
 		},
-		nullable: false,
-		additionalProperties: false,
-	};
+		votes: {
+			type: "array",
+			items: voteType,
+		},
+		supportDescMarkdown: { type: "boolean" },
+	},
+	nullable: false,
+	additionalProperties: false,
+};
 
-	const customVote = {
-		type: "object",
-		properties: {
-			name: { type: "string" },
-			desc: { type: "string" },
-			endTime: { type: "number" },
-			custom: {
-				type: "boolean",
-				enum: [true],
-			},
-			options: {
-				type: "array",
-				items: {
-					type: "object",
-					properties: {
-						name: { type: "string" },
-						color: { type: "string" },
-					},
-					nullable: false,
-					additionalProperties: false,
+const customVote = {
+	type: "object",
+	properties: {
+		name: { type: "string" },
+		desc: { type: "string" },
+		endTime: { type: "number" },
+		custom: {
+			type: "boolean",
+			enum: [true],
+		},
+		options: {
+			type: "array",
+			items: {
+				type: "object",
+				properties: {
+					name: { type: "string" },
+					color: { type: "string" },
 				},
+				nullable: false,
+				additionalProperties: false,
 			},
-			votes: {
-				type: "array",
-				items: voteType,
-			},
-			supportDescMarkdown: { type: "boolean" },
 		},
-		nullable: false,
-		additionalProperties: false,
-	};
+		votes: {
+			type: "array",
+			items: voteType,
+		},
+		supportDescMarkdown: { type: "boolean" },
+	},
+	nullable: false,
+	additionalProperties: false,
+};
 
-	const schema = {
-		anyOf: [normalVote, customVote],
-	};
+const s_validatePollSchema = {
+	anyOf: [normalVote, customVote],
+};
+const v_validatePollSchema = ajv.compile(s_validatePollSchema)
 
-	const result = validateSchema(schema, body);
+export const validatePollSchema = (body: unknown): { success: boolean; msg: string } => {
+	const result = validateSchema(v_validatePollSchema, body);
 	if (!result.success) {
 		return result;
 	}
@@ -100,68 +101,69 @@ export const validatePollSchema = (body: unknown): { success: boolean; msg: stri
 	return result;
 };
 
-export const validatePostPollSchema = (body: unknown): { success: boolean; msg: string } => {
-	const normalVote = {
-		type: "object",
-		properties: {
-			name: { type: "string" },
-			desc: { type: "string" },
-			allowAbstain: { type: "boolean" },
-			allowVeto: { type: "boolean" },
-			endTime: { type: "number" },
-			custom: {
-				type: "boolean",
-				enum: [false],
-			},
-			votes: {
-				type: "array",
-				items: voteType,
-			},
-			supportDescMarkdown: { type: "boolean" },
+const normalPostVote = {
+	type: "object",
+	properties: {
+		name: { type: "string" },
+		desc: { type: "string" },
+		allowAbstain: { type: "boolean" },
+		allowVeto: { type: "boolean" },
+		endTime: { type: "number" },
+		custom: {
+			type: "boolean",
+			enum: [false],
 		},
-		nullable: false,
-		required: ["name", "desc", "custom", "endTime"],
-		additionalProperties: false,
-	};
+		votes: {
+			type: "array",
+			items: voteType,
+		},
+		supportDescMarkdown: { type: "boolean" },
+	},
+	nullable: false,
+	required: ["name", "desc", "custom", "endTime"],
+	additionalProperties: false,
+};
 
-	const customVote = {
-		type: "object",
-		properties: {
-			name: { type: "string" },
-			desc: { type: "string" },
-			endTime: { type: "number" },
-			custom: {
-				type: "boolean",
-				enum: [true],
-			},
-			options: {
-				type: "array",
-				items: {
-					type: "object",
-					properties: {
-						name: { type: "string" },
-						color: { type: "string" },
-					},
-					nullable: false,
-					additionalProperties: false,
+const customPostVote = {
+	type: "object",
+	properties: {
+		name: { type: "string" },
+		desc: { type: "string" },
+		endTime: { type: "number" },
+		custom: {
+			type: "boolean",
+			enum: [true],
+		},
+		options: {
+			type: "array",
+			items: {
+				type: "object",
+				properties: {
+					name: { type: "string" },
+					color: { type: "string" },
 				},
+				nullable: false,
+				additionalProperties: false,
 			},
-			votes: {
-				type: "array",
-				items: voteType,
-			},
-			supportDescMarkdown: { type: "boolean" },
 		},
-		required: ["name", "desc", "custom", "endTime"],
-		nullable: false,
-		additionalProperties: false,
-	};
+		votes: {
+			type: "array",
+			items: voteType,
+		},
+		supportDescMarkdown: { type: "boolean" },
+	},
+	required: ["name", "desc", "custom", "endTime"],
+	nullable: false,
+	additionalProperties: false,
+};
 
-	const schema = {
-		anyOf: [normalVote, customVote],
-	};
+const s_validatePostPollSchema = {
+	anyOf: [normalPostVote, customPostVote],
+};
+const v_validatePostPollSchema = ajv.compile(s_validatePostPollSchema)
 
-	const result = validateSchema(schema, body);
+export const validatePostPollSchema = (body: unknown): { success: boolean; msg: string } => {
+	const result = validateSchema(v_validatePostPollSchema, body);
 	if (!result.success) {
 		return result;
 	}

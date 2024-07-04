@@ -200,10 +200,3 @@ export async function dispatchCustomEvent(data: { uid: string; type: string; dat
 		conn.send(payload);
 	}
 }
-
-const logCurrentConnection = () => {
-	console.log("Current socket connections:" + _wss?.clients.size.toString());
-	setTimeout(logCurrentConnection, 10000);
-};
-
-logCurrentConnection();

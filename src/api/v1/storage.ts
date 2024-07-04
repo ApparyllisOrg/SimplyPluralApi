@@ -1,16 +1,18 @@
 import { Request, Response } from "express";
 import { logger, userLog } from "../../modules/logger";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 import * as minio from "minio";
 import { isUserVerified } from "../../security";
-import * as AWS from "aws-sdk";
+import promclient from "prom-client";
+
 const fileType = require('file-type');
 
-const objectEndpoint = new AWS.Endpoint(process.env.OBJECT_HOST ?? "");
-export const s3 = new AWS.S3({
-	endpoint: objectEndpoint,
-	accessKeyId: process.env.OBJECT_KEY,
-	secretAccessKey: process.env.OBJECT_SECRET,
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+
+export const s3 = new S3Client({
+	endpoint: process.env.OBJECT_HOST ?? "",
+	region: process.env.OBJECT_REGION ?? "none",
+	credentials: { accessKeyId: process.env.OBJECT_KEY ?? '', secretAccessKey: process.env.OBJECT_SECRET ?? ''}
 });
 
 const minioClient = new minio.Client({
@@ -21,6 +23,10 @@ const minioClient = new minio.Client({
 	secretKey: process.env.MINIO_SECRET!,
 });
 
+const update_avatar_counter = new promclient.Counter({
+	name: "apparyllis_api_avatar_upload",
+	help: "Counter for avatar uploads",
+});
 
 export const Store = async (req: Request, res: Response) => {
 	const result = await isUserVerified(res.locals.uid);
@@ -49,35 +55,45 @@ export const Store = async (req: Request, res: Response) => {
 		return false;
 	}
 
+	update_avatar_counter.inc()
+
 	const params = {
 		Bucket: "simply-plural",
 		Key: path,
 		Body: buffer,
 	};
 
-	s3.putObject(params, function (err) {
-		if (err) {
-			console.log(err)
-			res.status(500).send("Error uploading avatar");
-		} else {
-			res.status(200).send({ success: true, msg: { url: "https://serve.apparyllis.com/avatars/" + path } });
-			userLog(res.locals.uid, "Stored avatar with size: " + buffer.length);
+	try {
+		const command = new PutObjectCommand(params);
+
+		const result = await s3.send(command)
+
+		if (result) {
+			res.status(200).send({ success: true, msg: { url: `https://serve.apparyllis.com/avatars/${path}` } });
+			userLog(res.locals.uid, `Stored avatar with size: ${buffer.length}`);
+			return;
 		}
-	});
+	}
+	catch (e)
+	{
+		logger.log("error", e)
+		res.status(500).send("Error uploading avatar");
+	}
 };
 
-export const validateStoreAvatarSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			buffer: { type: "array", items: { type: "number", minimum: 0, maximum: 255 } },
-		},
-		nullable: false,
-		required: ["buffer"],
-		additionalProperties: false,
-	};
+const s_validateStoreAvatarSchema = {
+	type: "object",
+	properties: {
+		buffer: { type: "array", items: { type: "number", minimum: 0, maximum: 255 } },
+	},
+	nullable: false,
+	required: ["buffer"],
+	additionalProperties: false,
+};
+const v_validateStoreAvatarSchema = ajv.compile(s_validateStoreAvatarSchema)
 
-	return validateSchema(schema, body);
+export const validateStoreAvatarSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateStoreAvatarSchema, body);
 };
 
 export const Delete = async (req: Request, res: Response) => {
@@ -94,20 +110,27 @@ export const Delete = async (req: Request, res: Response) => {
 		Key: path,
 	};
 
-	s3.deleteObject(params, function (err, data) {
-		minioClient
-			.removeObject("spaces", path)
-			.then(() => {
-				res.status(200).send({ success: true, msg: "" });
-				userLog(res.locals.uid, "Deleted avatar");
-			})
-			.catch((e) => {
-				logger.error(e);
-				res.status(500).send("Error deleting file");
-			});
-
-		if (err) {
-			logger.error(err);
-		}
+	minioClient
+	.removeObject("spaces", path)
+	.then(() => {
+		userLog(res.locals.uid, "Deleted avatar");
+	})
+	.catch((e) => {
+		logger.error(e);
 	});
+
+	try {
+		const command = new DeleteObjectCommand(params);
+
+		const result = await s3.send(command)
+		if (result) {
+			res.status(200).send('Deleted avatar');
+			userLog(res.locals.uid, "Deleted avatar");
+		}
+	}
+	catch (e)
+	{
+		logger.log("error", e)
+		res.status(500).send("Error uploading avatar");
+	}
 };

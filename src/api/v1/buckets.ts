@@ -2,7 +2,7 @@ import assert from "assert";
 import { getCollection, parseId } from "../../modules/mongo";
 import { fetchSimpleDocument, fetchCollection, addSimpleDocument, updateSimpleDocument, deleteSimpleDocument } from "../../util";
 import { Request, Response } from "express";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 
 export const getPrivacyBucket = async (req: Request, res: Response) => {
 	fetchSimpleDocument(req, res, "privacyBuckets");
@@ -36,19 +36,21 @@ export const deletePrivacyBucket = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "privacyBuckets");
 };
 
-export const validateBucketSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			name: { type: "string", maxLength: 150, minLength: 1 },
-			desc: { type: "string", maxLength: 500, minLength: 0  },
-			color: { type: "string", maxLength: 10 },
-			icon: { type: "string", maxLength: 5 },
-			rank: { type: "string", pattern: "^0\|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
-		},
-		required: ["name", "desc", "color", "icon", "rank"],
-		nullable: false,
-		additionalProperties: false,	};
+const s_validateBucketSchema = {
+	type: "object",
+	properties: {
+		name: { type: "string", maxLength: 150, minLength: 1 },
+		desc: { type: "string", maxLength: 500, minLength: 0  },
+		color: { type: "string", maxLength: 10 },
+		icon: { type: "string", maxLength: 5 },
+		rank: { type: "string", pattern: "^0\|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
+	},
+	required: ["name", "desc", "color", "icon", "rank"],
+	nullable: false,
+	additionalProperties: false,	
+};
+const v_validateBucketSchema = ajv.compile(s_validateBucketSchema)
 
-	return validateSchema(schema, body);
+export const validateBucketSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateBucketSchema, body);
 };

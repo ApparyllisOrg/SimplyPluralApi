@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
-import { fetchCollection, getDocumentAccess, sendDocument, sendDocuments, transformResultForClientRead } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { fetchCollection, getDocumentAccess, sendDocument, sendQuery, transformResultForClientRead } from "../../util";
+import { ajv, validateSchema } from "../../util/validation";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
 
 export const getFriend = async (req: Request, res: Response) => {
@@ -10,18 +10,20 @@ export const getFriend = async (req: Request, res: Response) => {
 };
 
 export const getFriends = async (req: Request, res: Response) => {
-	const friends = await getCollection("friends").find({ uid: res.locals.uid }).toArray();
-	const friendValues: any[] = [];
-
-	for (let i = 0; i < friends.length; ++i) {
-		const friend = await getCollection("users").findOne({ uid: friends[i].frienduid });
+	const friends = await getCollection("friends").find({ uid: res.locals.uid });
+	
+	const parseDocument = async (chunk: any) => 
+	{
+		const friend = await getCollection("users").findOne({ uid: chunk.frienduid });
 		if (friend) {
-			friendValues.push(friend);
+			return true
 		}
+
+		return false
 	}
 
 	// Send users as collection as we are sending user objects, not friend (requests)
-	sendDocuments(req, res, "users", friendValues);
+	sendQuery(req, res, "users", friends.stream()), parseDocument;
 };
 
 export const getFriendsSettings = async (req: Request, res: Response) => {
@@ -205,7 +207,7 @@ export const getFriendFront = async (req: Request, res: Response) => {
 
 	for (let i = 0; i < friendFronts.length; ++i) {
 		const { member, customStatus } = friendFronts[i];
-		const memberDoc = await getCollection("members").findOne({ _id: parseId(member) });
+		const memberDoc = await getCollection("members").findOne({ _id: parseId(member) }, { projection:{ private: 1, preventTrusted: 1} });
 
 		if (memberDoc) {
 			const canAccess = await getDocumentAccess(res.locals.uid, memberDoc, "members");
@@ -216,7 +218,7 @@ export const getFriendFront = async (req: Request, res: Response) => {
 				}
 			}
 		}
-		const customFrontDoc = await getCollection("frontStatuses").findOne({ _id: parseId(member) });
+		const customFrontDoc = await getCollection("frontStatuses").findOne({ _id: parseId(member) }, { projection:{ private: 1, preventTrusted: 1} });
 		if (customFrontDoc) {
 			const canAccess = await getDocumentAccess(res.locals.uid, customFrontDoc, "frontStatuses");
 			if (canAccess.access === true) {
@@ -231,19 +233,20 @@ export const getFriendFront = async (req: Request, res: Response) => {
 	res.status(200).send({ fronters: frontingList, statuses: frontingStatuses });
 };
 
-export const validatePatchFriendSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			seeMembers: { type: "boolean" },
-			seeFront: { type: "boolean" },
-			getFrontNotif: { type: "boolean" },
-			getTheirFrontNotif: { type: "boolean" },
-			trusted: { type: "boolean" },
-		},
-		nullable: false,
-		additionalProperties: false,
-	};
+const s_validatePatchFriendSchema = {
+	type: "object",
+	properties: {
+		seeMembers: { type: "boolean" },
+		seeFront: { type: "boolean" },
+		getFrontNotif: { type: "boolean" },
+		getTheirFrontNotif: { type: "boolean" },
+		trusted: { type: "boolean" },
+	},
+	nullable: false,
+	additionalProperties: false,
+};
+const v_validatePatchFriendSchema = ajv.compile(s_validatePatchFriendSchema)
 
-	return validateSchema(schema, body);
+export const validatePatchFriendSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validatePatchFriendSchema, body);
 };

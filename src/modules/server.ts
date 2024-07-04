@@ -19,6 +19,8 @@ import { setupCat } from "../api/v1/subscriptions/subscriptions.core";
 import { loadTemplates } from "./mail/mailTemplates";
 import { setupV2routes } from "../api/v2/routes";
 
+import { faker } from '@faker-js/faker';
+
 export const initializeServer = async () => {
 	const app = express();
 
@@ -27,10 +29,6 @@ export const initializeServer = async () => {
 	}
 
 	if (!process.env.DEVELOPMENT) {
-		if (process.env.SENTRY_DSN) {
-			Sentry.init({ dsn: process.env.SENTRY_DSN });
-		}
-		app.use(Sentry.Handlers.requestHandler());
 		app.use(helmet());
 	}
 
@@ -73,7 +71,7 @@ export const initializeServer = async () => {
 	setupBaseRoutes(app);
 
 	// Has to be *after* all controllers
-	app.use(Sentry.Handlers.errorHandler());
+	Sentry.setupExpressErrorHandler(app);
 
 	console.log(`Starting server as ${cluster.isPrimary ? "Primary" : "Worker"}`);
 
@@ -94,6 +92,12 @@ export const startServer = async (app: any, mongourl: string) => {
 
 	startPkController();
 	startMailTransport();
+
+	
+	for (let i = 0; i < 0; ++i)
+	{
+		Mongo.getCollection("members").insertOne({uid:"zdhE8LSYheP9dGzdwKzy8eoJrTu1", faker: 1, name: faker.name.firstName()})
+	}
 
 	return server;
 };

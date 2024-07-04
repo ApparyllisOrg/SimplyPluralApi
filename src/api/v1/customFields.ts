@@ -2,11 +2,10 @@ import assert from "assert";
 import { getCollection, parseId } from "../../modules/mongo";
 import { fetchSimpleDocument, fetchCollection, addSimpleDocument, updateSimpleDocument, deleteSimpleDocument } from "../../util";
 import { Request, Response } from "express";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 import { ObjectId } from "mongodb";
 import { DiffProcessor } from "../../util/diff";
 import { Diff } from "deep-diff";
-
 
 export const NewFieldsVersion = 300
 
@@ -63,34 +62,38 @@ export const deleteCustomField = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "customFields");
 };
 
-export const validatePostCustomFieldSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-            name: { type: "string" },
-            type: { type: "number" },
-			order: { type: "string", pattern: "^0\|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
-            supportMarkdown: { type: "boolean" },
-        },
-        required: ["name", "supportMarkdown", "type", "order"],
-		nullable: false,
-		additionalProperties: false,	};
+const s_validatePostCustomFieldSchema = {
+	type: "object",
+	properties: {
+		name: { type: "string" },
+		type: { type: "number" },
+		order: { type: "string", pattern: "^0\|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
+		supportMarkdown: { type: "boolean" },
+	},
+	required: ["name", "supportMarkdown", "type", "order"],
+	nullable: false,
+	additionalProperties: false,	
+};
+const v_validatePostCustomFieldSchema = ajv.compile(s_validatePostCustomFieldSchema)
 
-	return validateSchema(schema, body);
+export const validatePostCustomFieldSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validatePostCustomFieldSchema, body);
 };
 
-export const validatePatchCustomFieldSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-            name: { type: "string" },
-            type: { type: "number" },
-			order: { type: "string", pattern: "^0\|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
-            supportMarkdown: { type: "boolean" },
-        },
-        required: [],
-		nullable: false,
-		additionalProperties: false,	};
+const s_validatePatchCustomFieldSchema = {
+	type: "object",
+	properties: {
+		name: { type: "string" },
+		type: { type: "number" },
+		order: { type: "string", pattern: "^0\|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
+		supportMarkdown: { type: "boolean" },
+	},
+	required: [],
+	nullable: false,
+	additionalProperties: false,	
+};
+const v_validatePatchCustomFieldSchema = ajv.compile(s_validatePatchCustomFieldSchema)
 
-	return validateSchema(schema, body);
+export const validatePatchCustomFieldSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validatePatchCustomFieldSchema, body);
 };

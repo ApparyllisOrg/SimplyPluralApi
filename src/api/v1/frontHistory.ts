@@ -3,8 +3,8 @@ import moment from "moment";
 import { frontChange } from "../../modules/events/frontChange";
 import { getCollection, parseId } from "../../modules/mongo";
 import { documentObject } from "../../modules/mongo/baseTypes";
-import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument, fetchCollection, isMemberOrCustomFront, isCustomFront } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendQuery, deleteSimpleDocument, fetchCollection, isMemberOrCustomFront, isCustomFront } from "../../util";
+import { ajv, validateSchema } from "../../util/validation";
 
 export const getFrontTimeRangeQuery = (req: Request, res: Response) => {
 	return {
@@ -24,21 +24,21 @@ export const getFrontTimeRangeQuery = (req: Request, res: Response) => {
 
 export const getFrontHistoryInRange = async (req: Request, res: Response) => {
 	const query = getFrontTimeRangeQuery(req, res);
-	const documents: documentObject[] = await getCollection("frontHistory").find(query).toArray();
-	sendDocuments(req, res, "frontHistory", documents);
+	const dbQuery = await getCollection("frontHistory").find(query)
+	sendQuery(req, res, "frontHistory", dbQuery.stream())
 };
 
 export const getFrontHistory = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "frontHistory", {});
+	fetchCollection(req, res, "frontHistory", {})
 };
 
 export const getFrontHistoryForMember = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "frontHistory", { member: req.params.id });
+	fetchCollection(req, res, "frontHistory", { member: req.params.id })
 };
 
 export const getFronters = async (req: Request, res: Response) => {
-	const documents: documentObject[] = await getCollection("frontHistory").find({ uid: res.locals.uid, live: true }).toArray();
-	sendDocuments(req, res, "frontHistory", documents);
+	const query = getCollection("frontHistory").find({ uid: res.locals.uid, live: true })
+	sendQuery(req, res, "frontHistory", query.stream())
 };
 
 export const get = async (req: Request, res: Response) => {
@@ -132,55 +132,60 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "frontHistory");
 };
 
-export const validatefrontHistoryPostSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			custom: { type: "boolean" },
-			live: { type: "boolean" },
-			startTime: { type: "number", format: "int64" },
-			endTime: { type: "number", format: "int64" },
-			member: { type: "string" },
-			customStatus: { type: "string", maxLength: 50 },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["custom", "live", "startTime", "member"],
-	};
-
-	return validateSchema(schema, body);
+const s_validatefrontHistoryPostSchema = {
+	type: "object",
+	properties: {
+		custom: { type: "boolean" },
+		live: { type: "boolean" },
+		startTime: { type: "number", format: "int64" },
+		endTime: { type: "number", format: "int64" },
+		member: { type: "string" },
+		customStatus: { type: "string", maxLength: 50 },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["custom", "live", "startTime", "member"],
 };
+
+const v_validatefrontHistoryPostSchema = ajv.compile(s_validatefrontHistoryPostSchema)
+
+export const validatefrontHistoryPostSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validatefrontHistoryPostSchema, body);
+};
+
+const s_validatefrontHistoryPatchSchema = {
+	type: "object",
+	properties: {
+		custom: { type: "boolean" },
+		live: { type: "boolean" },
+		startTime: { type: "number", format: "int64" },
+		endTime: { type: "number", format: "int64" },
+		member: { type: "string" },
+		customStatus: { type: "string", maxLength: 50 },
+	},
+	nullable: false,
+	additionalProperties: false,
+};
+
+const v_validatefrontHistoryPatchSchema = ajv.compile(s_validatefrontHistoryPatchSchema)
 
 export const validatefrontHistoryPatchSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			custom: { type: "boolean" },
-			live: { type: "boolean" },
-			startTime: { type: "number", format: "int64" },
-			endTime: { type: "number", format: "int64" },
-			member: { type: "string" },
-			customStatus: { type: "string", maxLength: 50 },
-		},
-		nullable: false,
-		additionalProperties: false,
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validatefrontHistoryPatchSchema, body);
 };
+
+const s_validateGetfrontHistorySchema = {
+	type: "object",
+	properties: {
+		startTime: { type: "string", pattern: "^[0-9]" },
+		endTime: { type: "string", pattern: "^[0-9]" },
+	},
+	nullable: false,
+	required: ["startTime", "endTime"],
+};
+const v_validateGetfrontHistorySchema = ajv.compile(s_validateGetfrontHistorySchema)
 
 // Query params so we have to use string pattern comparison
 // Query proeprties are always strings
 export const validateGetfrontHistorychema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			startTime: { type: "string", pattern: "^[0-9]" },
-			endTime: { type: "string", pattern: "^[0-9]" },
-		},
-		nullable: false,
-		required: ["startTime", "endTime"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateGetfrontHistorySchema, body);
 };

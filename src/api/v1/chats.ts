@@ -5,7 +5,7 @@ import * as Sentry from "@sentry/node";
 import { getCollection, parseId } from "../../modules/mongo";
 import { documentObject } from "../../modules/mongo/baseTypes";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, deleteSimpleDocument, fetchCollection, sendDocument } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 import { decryptMessage, encryptMessage } from "./chat/chat.core";
 import { DiffProcessor } from "../../util/diff";
 import { Diff } from "deep-diff";
@@ -148,7 +148,7 @@ export const writeMessage = async (req: Request, res: Response) => {
 		return;
 	}
 
-	const memberWriter = await getCollection("members").findOne({ uid: res.locals.uid, _id: parseId(req.body.writer) });
+	const memberWriter = await getCollection("members").findOne({ uid: res.locals.uid, _id: parseId(req.body.writer) }, { projection: { _id: 1 }});
 	if (!memberWriter) {
 		await getCollection("undeliveredMessages").insertOne({ uid: res.locals.uid, message: req.body, reason: "Member not found" });
 		res.status(404).send("Member who wrote this message not found, message cannot be delivered. We saved the message in case you would like to resend it with the correct member. Saved undelivered messages will automatically be deleted after 30 days.");
@@ -190,85 +190,90 @@ export const deleteMessage = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "chatMessages");
 };
 
-export const validateWriteMessageSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			message: { type: "string", maxLength: 2500, minLength: 1 },
-			channel: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
-			writer: { type: "string", pattern: "^[A-Za-z0-9]{5,50}$" },
-			writtenAt: { type: "number" },
-			replyTo: { type: "string", pattern: "^$|[A-Za-z0-9]{20,50}$" },
-		},
-		required: ["message", "channel", "writer", "writtenAt"],
-		nullable: false,
-		additionalProperties: false,
-	};
-
-	return validateSchema(schema, body);
+const s_validateWriteMessageSchema = {
+	type: "object",
+	properties: {
+		message: { type: "string", maxLength: 2500, minLength: 1 },
+		channel: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
+		writer: { type: "string", pattern: "^[A-Za-z0-9]{5,50}$" },
+		writtenAt: { type: "number" },
+		replyTo: { type: "string", pattern: "^$|[A-Za-z0-9]{20,50}$" },
+	},
+	required: ["message", "channel", "writer", "writtenAt"],
+	nullable: false,
+	additionalProperties: false,
 };
+const v_validateWriteMessageSchema = ajv.compile(s_validateWriteMessageSchema)
+
+export const validateWriteMessageSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateWriteMessageSchema, body);
+};
+
+const s_validateUpdateMessageSchema = {
+	type: "object",
+	properties: {
+		message: { type: "string", maxLength: 2500, minLength: 1 },
+		updatedAt: { type: "number" },
+	},
+	required: ["message", "updatedAt"],
+	nullable: false,
+	additionalProperties: false,
+};;
+const v_validateUpdateMessageSchema = ajv.compile(s_validateUpdateMessageSchema)
 
 export const validateUpdateMessageSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			message: { type: "string", maxLength: 2500, minLength: 1 },
-			updatedAt: { type: "number" },
-		},
-		required: ["message", "updatedAt"],
-		nullable: false,
-		additionalProperties: false,
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateUpdateMessageSchema, body);
 };
+
+const s_validateWriteChannelschema = {
+	type: "object",
+	properties: {
+		name: { type: "string", maxLength: 100, minLength: 1 },
+		desc: { type: "string", maxLength: 2000 },
+		// color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"} Color is currently not supported
+	},
+	required: ["name", "desc"],
+	nullable: false,
+	additionalProperties: false,
+};
+const v_validateWriteChannelschema = ajv.compile(s_validateWriteChannelschema)
 
 export const validateWriteChannelschema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			name: { type: "string", maxLength: 100, minLength: 1 },
-			desc: { type: "string", maxLength: 2000 },
-			// color: { type: "string", pattern: "^$|^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{8})$"} Color is currently not supported
-		},
-		required: ["name", "desc"],
-		nullable: false,
-		additionalProperties: false,
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateWriteChannelschema, body);
 };
+
+const s_validateChatCategorySchema = {
+	type: "object",
+	properties: {
+		name: { type: "string", maxLength: 100, minLength: 1 },
+		desc: { type: "string", maxLength: 2000 },
+		channels: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+	},
+	required: ["name", "desc"],
+	nullable: false,
+	additionalProperties: false,
+};
+const v_validateChatCategorySchema = ajv.compile(s_validateChatCategorySchema)
 
 export const validateChatCategorySchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			name: { type: "string", maxLength: 100, minLength: 1 },
-			desc: { type: "string", maxLength: 2000 },
-			channels: { type: "array", items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
-		},
-		required: ["name", "desc"],
-		nullable: false,
-		additionalProperties: false,
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateChatCategorySchema, body);
 };
 
-export const validateGetChannelHistorySchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			limit: { type: "string", pattern: "^[1-9][0-9]?$|^100$" },
-			skip: { type: "string", pattern: "^[0-9]{1,}" },
-			skipTo: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
-			sortOrder: { type: "string", pattern: "^-1$|^1$" },
-			sortBy: { type: "string", pattern: "^[A-Za-z0-9]{1,50}$" },
-		},
-		required: ["limit"],
-		nullable: false,
-		additionalProperties: false,
-	};
+const s_validateGetChannelHistorySchema = {
+	type: "object",
+	properties: {
+		limit: { type: "string", pattern: "^[1-9][0-9]?$|^100$" },
+		skip: { type: "string", pattern: "^[0-9]{1,}" },
+		skipTo: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" },
+		sortOrder: { type: "string", pattern: "^-1$|^1$" },
+		sortBy: { type: "string", pattern: "^[A-Za-z0-9]{1,50}$" },
+	},
+	required: ["limit"],
+	nullable: false,
+	additionalProperties: false,
+};
+const v_validateGetChannelHistorySchema = ajv.compile(s_validateGetChannelHistorySchema)
 
-	return validateSchema(schema, body);
+export const validateGetChannelHistorySchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateGetChannelHistorySchema, body);
 };

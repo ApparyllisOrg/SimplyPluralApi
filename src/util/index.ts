@@ -11,6 +11,7 @@ import { parseForAllowedReadValues } from "../security/readRules";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "../api/v1/user/updates/updateUser";
 import { diff } from "deep-diff";
 import { DiffProcessor, logAudit, logCreatedAudit, logDeleteAudit } from "./diff";
+import internal, { Transform } from "stream";
 
 export function transformResultForClientRead(value: documentObject, requestorUid: string) {
 	parseForAllowedReadValues(value, requestorUid);
@@ -131,17 +132,31 @@ export const getDocumentAccess = async (requestor: string, document: documentObj
 	} 
 };
 
-export const sendDocuments = async (req: Request, res: Response, collection: string, documents: documentObject[]) => {
-	const returnDocuments: any[] = [];
+export const sendQuery = async (req: Request, res: Response, collection: string, query: internal.Readable & AsyncIterable<any>, forEach?: forEachDocument) => {
 
-	for (let i = 0; i < documents.length; ++i) {
-		const access = await getDocumentAccess(res.locals.uid, documents[i], collection);
-		if (access.access === true) {
-			returnDocuments.push(transformResultForClientRead(documents[i], res.locals.uid));
+	const parseDocument = async (chunk: any) => 
+	{
+		if (req.params.system !== res.locals.uid)
+		{
+			const access = await getDocumentAccess(res.locals.uid, chunk, collection)
+			if (access.access !== true) {
+				return false
+			}
 		}
+
+		if (forEach)
+		{
+			const forEachResult = await forEach(chunk)
+			if (forEachResult !== true)
+			{
+				return false
+			}
+		}
+
+		return true
 	}
 
-	res.status(200).send(returnDocuments);
+	streamQuery(req, res, query, parseDocument)
 };
 
 export const sendDocument = async (req: Request, res: Response, collection: string, document: documentObject) => {
@@ -191,7 +206,7 @@ export const deleteSimpleDocument = async (req: Request, res: Response, collecti
 	}
 };
 
-export type forEachDocument = (document: any) => Promise<void>;
+export type forEachDocument = (document: any) => Promise<boolean>;
 
 export const fetchCollection = async (req: Request, res: Response, collection: string, findQuery: { [key: string]: any }, forEach?: forEachDocument) => {
 
@@ -224,16 +239,53 @@ export const fetchCollection = async (req: Request, res: Response, collection: s
 		query.skip(Number(req.query.start));
 	}
 
-	const documents = await query.toArray();
-
-	if (forEach) {
-		for (let i = 0; i < documents.length; ++i) {
-			await forEach(documents[i]);
-		}
-	}
-
-	sendDocuments(req, res, collection, documents);
+	sendQuery(req, res, collection, query.stream(), forEach);
 };
+
+const streamQuery = async (req: Request, res: Response, query: internal.Readable & AsyncIterable<any>, transformOp?: (chunk: any) => Promise<boolean>) => 
+{
+	res.setHeader("content-type", "application/json")
+
+	let processedFirstResult = false
+
+	const transformResultTransform = new Transform({
+		objectMode: true,
+		transform: async (chunk, encoding, next) => {
+
+			if (transformOp)
+			{
+				const transformResult = await transformOp(chunk)
+				if (transformResult !== true)
+				{
+					return
+				}
+			}
+
+			const transformedDocument = transformResultForClientRead(chunk, res.locals.uid)
+
+			if (processedFirstResult)
+			{
+				next(null, `,${JSON.stringify(transformedDocument)}`)
+			}
+			else 
+			{
+				next(null, JSON.stringify(transformedDocument))
+				processedFirstResult = true
+			}
+			
+		},
+	});
+
+	res.write('[')
+
+	query.on('end', () => {
+		res.write(']')
+		res.end();
+	  });
+
+
+	query.pipe(transformResultTransform).pipe(res)
+}
 
 export const addSimpleDocument = async (req: Request, res: Response, collection: string) => {
 	const dataObj: documentObject = req.body;
@@ -289,13 +341,13 @@ export const updateSimpleDocument = async (req: Request, res: Response, collecti
 };
 
 export const isMember = async (uid: string, id: string) => {
-	const member = await Mongo.getCollection("members").findOne({ uid, _id: parseId(id) });
-	return !!member;
+	const memberCount = await Mongo.getCollection("members").count({ uid, _id: parseId(id) }, { limit: 1});
+	return memberCount === 1;
 };
 
 export const isCustomFront = async (uid: string, id: string) => {
-	const cf = await Mongo.getCollection("frontStatuses").findOne({ uid, _id: parseId(id) });
-	return !!cf;
+	const cfCount = await Mongo.getCollection("frontStatuses").count({ uid, _id: parseId(id) }, { limit: 1});
+	return cfCount === 1;
 };
 
 export const isMemberOrCustomFront = async (uid: string, id: string) => {

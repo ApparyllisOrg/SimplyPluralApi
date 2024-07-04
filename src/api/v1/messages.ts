@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import moment from "moment";
 import { getCollection } from "../../modules/mongo";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 
 export const get = async (_req: Request, res: Response) => {
 	let serverData = await getCollection("serverData").findOne({ uid: res.locals.uid, _id: res.locals.uid });
@@ -59,16 +59,17 @@ export const createServerDataForMessages = async (uid: string, _time: number) =>
 	await getCollection("serverData").updateOne({ uid: uid, _id: uid }, { $set: { lastReadMessage: oldestMessage } }, { upsert: true });
 };
 
-export const validateMarkReadSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			time: { type: "number" },
-		},
-		nullable: false,
-		required: ["time"],
-		additionalProperties: false,
-	};
+const s_validateMarkReadSchema = {
+	type: "object",
+	properties: {
+		time: { type: "number" },
+	},
+	nullable: false,
+	required: ["time"],
+	additionalProperties: false,
+};
+const v_validateMarkReadSchema = ajv.compile(s_validateMarkReadSchema)
 
-	return validateSchema(schema, body);
+export const validateMarkReadSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateMarkReadSchema, body);
 };

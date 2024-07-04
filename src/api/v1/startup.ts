@@ -1,48 +1,74 @@
 import { Request, Response } from "express";
 import { getCollection } from "../../modules/mongo";
 import { transformResultForClientRead } from "../../util";
+import internal, { Stream, Transform } from "stream";
 
 export const getStartupData = async (req: Request, res: Response) => {
 
-    const getPromises = []
-    getPromises.push(getCollection("members").find({ uid: res.locals.uid }).toArray())
-    getPromises.push(getCollection("groups").find({ uid: res.locals.uid }).toArray())
-    getPromises.push(getCollection("frontStatuses").find({ uid: res.locals.uid }).toArray())
-    getPromises.push(getCollection("frontHistory").find({ uid: res.locals.uid, live: true }).toArray())
-    getPromises.push(getCollection("channels").find({ uid: res.locals.uid }).toArray())
+    res.setHeader("content-type", "application/json")
 
-    const promiseResults = await Promise.all(getPromises)
-
-    const members = promiseResults[0];
-    const groups = promiseResults[1];
-    const customFronts = promiseResults[2];
-    const fronters = promiseResults[3];
-    const channels = promiseResults[4];
-
-    const constructDocumentsForClientRead = (documents: any[], ) =>
+    const streamQuery = async (query: internal.Readable & AsyncIterable<any>) : Promise<void> =>
     {
-        const returnDocuments: any[] = [];
+        return new Promise<void>(async (resolve, reject) => 
+        {
+            let processedFirstResult = false
 
-        for (let i = 0; i < documents.length; ++i) {
-            returnDocuments.push(transformResultForClientRead(documents[i], res.locals.uid));
-        }
-
-        return returnDocuments;
+            const responseStream = new Stream.Writable({
+                write: function(chunk, encoding, next) {
+                    res.write(chunk)
+                    next();
+                }
+              })
+           
+            const transformPipe = new Transform({
+                objectMode: true,
+                transform: (chunk, encoding, next) => {
+                    if (processedFirstResult)
+                    {
+                        next(null, `,${JSON.stringify(transformResultForClientRead(chunk, res.locals.uid))}`)
+                    }
+                    else 
+                    {
+                        next(null, JSON.stringify(transformResultForClientRead(chunk, res.locals.uid)))
+                        processedFirstResult = true
+                    }
+                },
+            });
+    
+            transformPipe.on("end", () => 
+            {
+                resolve();
+            })
+    
+            query.pipe(transformPipe).pipe(responseStream)
+        })
     }
 
-    const result : {members: any[], groups: any[], customFronts: any[], fronters: any[], channels: any[] }= {
-        members: [],
-        groups: [],
-        customFronts: [],
-        fronters: [],
-        channels: []
-    }
+	res.write('{ "members": [')
 
-    result.members = constructDocumentsForClientRead(members);
-    result.groups = constructDocumentsForClientRead(groups);
-    result.customFronts = constructDocumentsForClientRead(customFronts);
-    result.fronters = constructDocumentsForClientRead(fronters);
-    result.channels = constructDocumentsForClientRead(channels);
+    const membersStream = getCollection("members").find({ uid: res.locals.uid }).stream()
+    await streamQuery(membersStream)
+   
+    res.write('], "groups": [')
 
-    res.status(200).send(result)
+    const groupsStream = getCollection("groups").find({ uid: res.locals.uid }).stream()
+    await streamQuery(groupsStream)
+
+    res.write('], "customFronts": [')
+
+    const customFrontsStream = getCollection("frontStatuses").find({ uid: res.locals.uid }).stream()
+    await streamQuery(customFrontsStream)
+
+    res.write('], "fronters": [')
+
+    const frontersStream = getCollection("frontHistory").find({ uid: res.locals.uid, live: true }).stream()
+    await streamQuery(frontersStream)
+
+    res.write('], "channels": [')
+
+    const channelsStream = getCollection("channels").find({ uid: res.locals.uid }).stream()
+    await streamQuery(channelsStream)
+
+    res.write(']}')
+    res.end();
 }

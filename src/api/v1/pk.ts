@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { syncAllPkMembersToSp, syncAllSpMembersToPk, syncMemberFromPk, syncMemberToPk } from "../../modules/integrations/pk/sync";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 
 export const performSyncMember = async (req: Request, res: Response) => {
 	if (req.query.direction === "push") {
@@ -54,89 +54,92 @@ const performSyncAllMemberFromPk = async (req: Request, res: Response) => {
 	}
 };
 
-export const validateSyncDirectionSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			direction: {
-				anyOf: [
-					{ type: "string", enum: ["push"] },
-					{ type: "string", enum: ["pull"] },
-				],
-			},
+const s_validateSyncDirectionSchema = {
+	type: "object",
+	properties: {
+		direction: {
+			anyOf: [
+				{ type: "string", enum: ["push"] },
+				{ type: "string", enum: ["pull"] },
+			],
 		},
-		required: ["direction"],
-		nullable: false,
-		additionalProperties: false,
-	};
-
-	return validateSchema(schema, body);
+	},
+	required: ["direction"],
+	nullable: false,
+	additionalProperties: false,
 };
+const v_validateSyncDirectionSchema = ajv.compile(s_validateSyncDirectionSchema)
+
+export const validateSyncDirectionSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateSyncDirectionSchema, body);
+};
+
+const s_validateSyncMemberSchema = {
+	type: "object",
+	properties: {
+		member: { type: "string" },
+		token: { type: "string" },
+		options: {
+			type: "object",
+			properties: {
+				name: { type: "boolean" },
+				avatar: { type: "boolean" },
+				pronouns: { type: "boolean" },
+				description: { type: "boolean" },
+				useDisplayName: { type: "boolean" },
+				color: { type: "boolean" },
+			},
+			nullable: false,
+			additionalProperties: false,
+			required: ["name", "avatar", "pronouns", "description", "useDisplayName", "color"],
+		},
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["member", "token", "options"],
+};
+const v_validateSyncMemberSchema = ajv.compile(s_validateSyncMemberSchema)
 
 export const validateSyncMemberSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			member: { type: "string" },
-			token: { type: "string" },
-			options: {
-				type: "object",
-				properties: {
-					name: { type: "boolean" },
-					avatar: { type: "boolean" },
-					pronouns: { type: "boolean" },
-					description: { type: "boolean" },
-					useDisplayName: { type: "boolean" },
-					color: { type: "boolean" },
-				},
-				nullable: false,
-				additionalProperties: false,
-				required: ["name", "avatar", "pronouns", "description", "useDisplayName", "color"],
-			},
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["member", "token", "options"],
-	};
-
-	return validateSchema(schema, body);
+	return validateSchema(v_validateSyncMemberSchema, body);
 };
 
-export const validateSyncMembersSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			token: { type: "string" },
-			options: {
-				type: "object",
-				properties: {
-					name: { type: "boolean" },
-					avatar: { type: "boolean" },
-					pronouns: { type: "boolean" },
-					description: { type: "boolean" },
-					useDisplayName: { type: "boolean" },
-					color: { type: "boolean" },
-				},
-				nullable: false,
-				additionalProperties: false,
-				required: ["name", "avatar", "pronouns", "description", "useDisplayName", "color"],
+const s_validateSyncMembersSchema = {
+	type: "object",
+	properties: {
+		token: { type: "string" },
+		options: {
+			type: "object",
+			properties: {
+				name: { type: "boolean" },
+				avatar: { type: "boolean" },
+				pronouns: { type: "boolean" },
+				description: { type: "boolean" },
+				useDisplayName: { type: "boolean" },
+				color: { type: "boolean" },
 			},
-			syncOptions: {
-				type: "object",
-				properties: {
-					add: { type: "boolean" },
-					overwrite: { type: "boolean" },
-					privateByDefault: { type: "boolean" },
-				},
-				nullable: false,
-				additionalProperties: false,
-				required: ["add", "overwrite"],
-			},
+			nullable: false,
+			additionalProperties: false,
+			required: ["name", "avatar", "pronouns", "description", "useDisplayName", "color"],
 		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["token", "options", "syncOptions"],
-	};
+		syncOptions: {
+			type: "object",
+			properties: {
+				add: { type: "boolean" },
+				overwrite: { type: "boolean" },
+				privateByDefault: { type: "boolean" },
+			},
+			nullable: false,
+			additionalProperties: false,
+			required: ["add", "overwrite"],
+		},
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["token", "options", "syncOptions"],
+};
+const v_validateSyncMembersSchema = ajv.compile(s_validateSyncMembersSchema)
 
-	return validateSchema(schema, body);
+export const validateSyncMembersSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateSyncMembersSchema, body);
 };

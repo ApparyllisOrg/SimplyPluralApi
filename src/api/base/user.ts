@@ -6,6 +6,7 @@ import { s3 } from "../v1/storage";
 import moment from "moment";
 import { logger } from "../../modules/logger";
 import { sendCustomizedEmailToEmail } from "../../modules/mail";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 
 export const reportBaseUrl = "https://simply-plural.sfo3.digitaloceanspaces.com/";
 export const reportBaseUrl_V2 = "https://serve.apparyllis.com/";
@@ -52,20 +53,23 @@ export const sendReport = async(req : Request, res : Response, htmlFile: string)
 
 	getCollection("reports").insertOne({ uid: res.locals.uid, url: reportUrl, createdAt: moment.now(), usedSettings: req.body });
 
-	const params = {
-		Bucket: "simply-plural",
-		Key: path,
-		Body: htmlFile,
-		ACL: "public-read",
-	};
+	try {
+        const command = new PutObjectCommand({
+            Bucket: "simply-plural",
+            Key: path,
+            Body: htmlFile,
+            ACL: 'public-read'
+        });
 
-	s3.putObject(params, function (err) {
-		if (err) {
-			logger.error(err);
-			console.log(err);
-			res.status(500).send("Error uploading report");
-		} else {
-			res.status(200).send({ success: true, msg: reportUrl });
-		}
-	});
+        const result = await s3.send(command)
+        if (result) {
+            res.status(200).send({ success: true, msg: reportUrl });
+            return;
+        }
+    }
+    catch (e)
+    {
+        logger.error(e);
+        res.status(500).send("Error uploading report");
+    }
 }

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { getCollection, parseId } from "../../../modules/mongo";
 import { convertListToIds } from "../../../util";
-import { validateSchema } from "../../../util/validation";
+import { ajv, validateSchema } from "../../../util/validation";
 
 export const assignBucketsToFriend = async (req: Request, res: Response) => {
 	let mongoBucketIds : any[] = await convertListToIds(res.locals.uid, "privacyBuckets", req.body.buckets)
@@ -49,32 +49,34 @@ export const assignFriendsToBucket = async (req: Request, res: Response) => {
 	res.status(200).send()
 };
 
-export const validateAssignBucketsToFriendSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			friendUid: { type: "string", pattern: "^[A-Za-z0-9]{1,64}$" },
-			buckets: { type: "array" , items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
-		},
-		required: ["friendUid", "buckets",],
-		nullable: false,
-		additionalProperties: false,	
-	};
+const s_validateAssignBucketsToFriendSchema = {
+	type: "object",
+	properties: {
+		friendUid: { type: "string", pattern: "^[A-Za-z0-9]{1,64}$" },
+		buckets: { type: "array" , items: { type: "string", pattern: "^[A-Za-z0-9]{20,50}$" }, uniqueItems: true },
+	},
+	required: ["friendUid", "buckets",],
+	nullable: false,
+	additionalProperties: false,	
+};
+const v_validateAssignBucketsToFriendSchema = ajv.compile(s_validateAssignBucketsToFriendSchema)
 
-	return validateSchema(schema, body);
+export const validateAssignBucketsToFriendSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateAssignBucketsToFriendSchema, body);
 };
 
-export const validateAssignFriendsToBucketSchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			bucket: { type: "string", pattern: "^[A-Za-z0-9]{20,100}$" },
-			friends: { type: "array" , items: { type: "string", pattern: "^[a-zA-Z0-9]{1,64}$" }, uniqueItems: true },
-		},
-		required: ["bucket", "friends",],
-		nullable: false,
-		additionalProperties: false,	
-	};
+const s_validateAssignFriendsToBucketSchema = {
+	type: "object",
+	properties: {
+		bucket: { type: "string", pattern: "^[A-Za-z0-9]{20,100}$" },
+		friends: { type: "array" , items: { type: "string", pattern: "^[a-zA-Z0-9]{1,64}$" }, uniqueItems: true },
+	},
+	required: ["bucket", "friends",],
+	nullable: false,
+	additionalProperties: false,	
+};
+const v_validateAssignFriendsToBucketSchema = ajv.compile(s_validateAssignFriendsToBucketSchema)
 
-	return validateSchema(schema, body);
+export const validateAssignFriendsToBucketSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateAssignFriendsToBucketSchema, body);
 };

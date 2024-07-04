@@ -3,7 +3,7 @@ import { ApiKeyAccessType, assignApiKey, generateNewApiKey } from "../../modules
 import { getCollection, parseId } from "../../modules/mongo";
 import { logSecurityUserEvent } from "../../security";
 import { deleteSimpleDocument, fetchCollection, fetchSimpleDocument } from "../../util";
-import { validateSchema } from "../../util/validation";
+import { ajv, validateSchema } from "../../util/validation";
 
 export const get = async (req: Request, res: Response) => {
 	fetchSimpleDocument(req, res, "tokens");
@@ -61,16 +61,17 @@ export const del = async (req: Request, res: Response) => {
 	deleteSimpleDocument(req, res, "tokens");
 };
 
-export const validateApiKeySchema = (body: unknown): { success: boolean; msg: string } => {
-	const schema = {
-		type: "object",
-		properties: {
-			permission: { type: "number" },
-		},
-		nullable: false,
-		additionalProperties: false,
-		required: ["permission"],
-	};
+const s_validateApiKeySchema = {
+	type: "object",
+	properties: {
+		permission: { type: "number" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["permission"],
+};
+const v_validateApiKeySchema = ajv.compile(s_validateApiKeySchema)
 
-	return validateSchema(schema, body);
+export const validateApiKeySchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateApiKeySchema, body);
 };

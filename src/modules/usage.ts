@@ -9,7 +9,7 @@ const collectedUsage: Map<string, Map<string, number>> = new Map<string, Map<str
 let collectedUsageCount = 0;
 
 export const startCollectingUsage = () => {
-	collectUsage();
+	setInterval(collectUsage,  1000 * 10);
 };
 
 const collectUsage = () => {
@@ -28,12 +28,8 @@ const collectUsage = () => {
 	});
 
 	collectedUsage.clear();
-
-	console.log(`Dumped ${collectedUsageCount} actions to the usage logs`);
-
+	
 	collectedUsageCount = 0;
-
-	setTimeout(collectUsage, 1000 * 10);
 };
 
 export const logUserUsage = (uid: string, action: string) => {
