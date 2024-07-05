@@ -6,6 +6,7 @@ import { canSeeMembers } from "../../security";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
 import { ajv, getPrivacyDependency, validateSchema, getAvatarUuidSchema } from "../../util/validation";
 import { frameType } from "../types/frameType";
+import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults";
 
 export const getCustomFronts = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
@@ -23,7 +24,13 @@ export const get = async (req: Request, res: Response) => {
 };
 
 export const add = async (req: Request, res: Response) => {
-	addSimpleDocument(req, res, "frontStatuses");
+
+	const insertBuckets = async (data: any) : Promise<void> =>
+	{
+		await insertDefaultPrivacyBuckets(res.locals.uid, data, 'customFronts')
+	}
+
+	addSimpleDocument(req, res, "frontStatuses", insertBuckets);
 };
 
 export const update = async (req: Request, res: Response) => {

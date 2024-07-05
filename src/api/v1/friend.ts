@@ -23,7 +23,7 @@ export const getFriends = async (req: Request, res: Response) => {
 	}
 
 	// Send users as collection as we are sending user objects, not friend (requests)
-	sendQuery(req, res, "users", friends.stream()), parseDocument;
+	sendQuery(req, res, "users", friends.stream(), parseDocument);
 };
 
 export const getFriendsSettings = async (req: Request, res: Response) => {

@@ -5,6 +5,7 @@ import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchColl
 import { logDeleteAudit } from "../../util/diff";
 import { ajv, getPrivacyDependency, validateSchema } from "../../util/validation";
 import Ajv from "ajv";
+import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults";
 
 export const getGroups = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "groups", {});
@@ -15,7 +16,12 @@ export const get = async (req: Request, res: Response) => {
 };
 
 export const add = async (req: Request, res: Response) => {
-	addSimpleDocument(req, res, "groups");
+	const insertBuckets = async (data: any) : Promise<void> =>
+	{
+		await insertDefaultPrivacyBuckets(res.locals.uid, data, 'groups')
+	}
+
+	addSimpleDocument(req, res, "groups", insertBuckets);
 };
 
 export const setMemberInGroups = async (req: Request, res: Response) => {

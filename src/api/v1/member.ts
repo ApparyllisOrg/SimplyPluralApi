@@ -13,6 +13,7 @@ import { DiffProcessor, DiffResult } from "../../util/diff";
 import { limitStringLength } from "../../util/string";
 import { ObjectId } from "mongodb";
 import { Transform } from "stream";
+import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults";
 
 export const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]) : Promise<void> => 
 {
@@ -122,7 +123,13 @@ export const get = async (req: Request, res: Response) => {
 };
 
 export const add = async (req: Request, res: Response) => {
-	addSimpleDocument(req, res, "members");
+
+	const insertBuckets = async (data: any) : Promise<void> =>
+	{
+		await insertDefaultPrivacyBuckets(res.locals.uid, data, 'members')
+	}
+
+	addSimpleDocument(req, res, "members", insertBuckets);
 };
 
 const updateDiffProcessor : DiffProcessor = async (uid: string, difference: Diff<any, any>, lhs: any, rhs: any) =>

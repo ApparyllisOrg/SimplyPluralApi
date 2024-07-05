@@ -142,7 +142,17 @@ export const update300 = async (uid: string) => {
 
     getCollection("members").updateMany({ uid }, { $rename: renameOperation})
 
-    getCollection("private").updateOne({uid, _id: uid}, { $set: { auditContentChanges: true, auditRetention: 7, hideAudits: false } })
+    getCollection("private").updateOne({uid, _id: uid}, { $set: { 
+        auditContentChanges: true,
+         auditRetention: 7, 
+         hideAudits: false, 
+         defaultPrivacySettings: {
+            members: [],
+            groups: [], 
+            customFronts:[], 
+            customFields: []
+        }
+     }})
 };
 
 const rollback300 = async (uid: string) =>

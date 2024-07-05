@@ -18,6 +18,7 @@ import { frameType } from "../types/frameType";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
 import { canGenerateReport, decrementGenerationsLeft, reportBaseUrl, reportBaseUrl_V2, sendReport } from "../base/user";
 import archiver, { Archiver } from "archiver"
+import promclient from "prom-client";
 
 import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
 
@@ -26,8 +27,6 @@ const s3 = new S3Client({
 	region: process.env.OBJECT_REGION ?? "none",
 	credentials: { accessKeyId: process.env.OBJECT_KEY ?? '', secretAccessKey: process.env.OBJECT_SECRET ?? ''}
 });
-
-
 
 const minioClient = new minio.Client({
 	endPoint: "localhost",
@@ -45,11 +44,16 @@ export const generateReport = async (req: Request, res: Response) => {
 	} else {
 		res.status(403).send("You do not have enough generations left in order to generate a new report");
 	}
-};
 
+};
+const events_counter_reports= new promclient.Counter({
+	name: "apparyllis_api_generated_reports",
+	help: "Counter for generated reports",
+});
 
 const performReportGeneration = async (req: Request, res: Response) => {
-	const htmlFile = await generateUserReport(req.body, res.locals.uid);
+	events_counter_reports.inc()
+	const htmlFile = await generateUserReport(req.body, res.locals.uid)
 	sendReport(req, res, htmlFile)
 };
 

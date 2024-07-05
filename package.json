@@ -4,8 +4,8 @@
 	"main": "index.ts",
 	"scripts": {
 		"dev": "DEVELOPMENT=1 npm run start",
-		"start": "node --inspect=5858 -r ts-node/register src/index.ts",
-		"start:watch": "ts-node-dev --inspect=5858 --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config --inspect --nologs=true",
+		"start": "node --inspect=5859 -r ts-node/register src/index.ts",
+		"start:watch": "ts-node-dev --inspect=5859 --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config --inspect --nologs=true",
 		"build": "tsc",
 		"lint": "eslint src/**/**/*",
 		"test": "mocha --require ts-node/register 'src/tests/**/*spec.ts' --timeout=300000 --delay -r dotenv/config --exit --nologs=true --verbose --development=false --jwt_key=J2JaTklLcjhOQykhdCM9YG9LUU8ycHlLL0soOX0xeSN2RTUgNHU1SDYsZ19vTQ==, --without_google=true --messages_key=f9CYjd2dDE?UbH4tjRS2Ji_!SgA2!+Ky --password_key=jegjQ9HT9f3H3_r=2NM_zRKhqZEKLY?rjyawtKL5LpQsvput7vz4Fcj!wZvR  --password_seperator=_rxCcfxpFd=Jx9xiRu9FPTh2erP!bc4JTxgCYKewcT_zMMJwSZgd2FS94a5w",
