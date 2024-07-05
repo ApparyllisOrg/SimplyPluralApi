@@ -11,7 +11,7 @@ import { parseForAllowedReadValues } from "../security/readRules";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "../api/v1/user/updates/updateUser";
 import { diff } from "deep-diff";
 import { DiffProcessor, logAudit, logCreatedAudit, logDeleteAudit } from "./diff";
-import internal, { Transform } from "stream";
+import internal, { Stream, Transform } from "stream";
 
 export function transformResultForClientRead(value: documentObject, requestorUid: string) {
 	parseForAllowedReadValues(value, requestorUid);
@@ -248,6 +248,13 @@ const streamQuery = async (req: Request, res: Response, query: internal.Readable
 
 	let processedFirstResult = false
 
+	const responseStream = new Stream.Writable({
+		write: function(chunk, encoding, next) {
+			res.write(chunk)
+			next();
+		}
+	  })
+
 	const transformResultTransform = new Transform({
 		objectMode: true,
 		transform: async (chunk, encoding, next) => {
@@ -278,13 +285,12 @@ const streamQuery = async (req: Request, res: Response, query: internal.Readable
 
 	res.write('[')
 
-	query.on('end', () => {
+	query.pipe(transformResultTransform).pipe(responseStream)
+
+	responseStream.on('finish', () => {
 		res.write(']')
 		res.end();
 	  });
-
-
-	query.pipe(transformResultTransform).pipe(res)
 }
 
 export const addSimpleDocument = async (req: Request, res: Response, collection: string, insertFields?: (data: any) => Promise<void>) => {
