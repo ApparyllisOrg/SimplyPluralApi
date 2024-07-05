@@ -37,7 +37,6 @@ const s_validateAutomatedTimerSchema =  {
 };
 const v_validateAutomatedTimerSchema = ajv.compile(s_validateAutomatedTimerSchema)
 
-
 export const validateAutomatedTimerSchema = (body: unknown): { success: boolean; msg: string } => {
 	return validateSchema(v_validateAutomatedTimerSchema, body);
 };

@@ -5,7 +5,7 @@ import internal, { Stream, Transform } from "stream";
 
 export const getStartupData = async (req: Request, res: Response) => {
 
-    res.setHeader("content-type", "application/json")
+    res.setHeader("content-type", "application/json; charset=utf-8")
 
     const streamQuery = async (query: internal.Readable & AsyncIterable<any>) : Promise<void> =>
     {

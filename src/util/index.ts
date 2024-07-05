@@ -244,7 +244,7 @@ export const fetchCollection = async (req: Request, res: Response, collection: s
 
 const streamQuery = async (req: Request, res: Response, query: internal.Readable & AsyncIterable<any>, transformOp?: (chunk: any) => Promise<boolean>) => 
 {
-	res.setHeader("content-type", "application/json")
+	res.setHeader("content-type", "application/json; charset=utf-8")
 
 	let processedFirstResult = false
 
@@ -287,11 +287,16 @@ const streamQuery = async (req: Request, res: Response, query: internal.Readable
 	query.pipe(transformResultTransform).pipe(res)
 }
 
-export const addSimpleDocument = async (req: Request, res: Response, collection: string) => {
+export const addSimpleDocument = async (req: Request, res: Response, collection: string, insertFields?: (data: any) => Promise<void>) => {
 	const dataObj: documentObject = req.body;
 	dataObj._id = parseId(res.locals.useId) ?? new ObjectId();
 	dataObj.uid = res.locals.uid;
 	dataObj.lastOperationTime = res.locals.operationTime;
+
+	if (insertFields)
+	{
+		await insertFields(dataObj)
+	}
 
 	const result = await Mongo.getCollection(collection)
 		.insertOne(dataObj)

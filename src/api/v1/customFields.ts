@@ -6,6 +6,7 @@ import { ajv, validateSchema } from "../../util/validation";
 import { ObjectId } from "mongodb";
 import { DiffProcessor } from "../../util/diff";
 import { Diff } from "deep-diff";
+import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults";
 
 export const NewFieldsVersion = 300
 
@@ -32,7 +33,13 @@ export const getCustomFields = async (req: Request, res: Response) => {
 };
 
 export const addCustomField = async (req: Request, res: Response) => {
-	await addSimpleDocument(req, res, "customFields");
+
+	const insertBuckets = async (data: any) : Promise<void> =>
+	{
+		await insertDefaultPrivacyBuckets(res.locals.uid, data, 'customFields')
+	}
+
+	await addSimpleDocument(req, res, "customFields", insertBuckets);
 };
 
 export const updateCustomField= async (req: Request, res: Response) => {
