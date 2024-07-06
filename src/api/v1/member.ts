@@ -98,7 +98,7 @@ export const getMembers = async (req: Request, res: Response) => {
 
 		const parseDocument = async (chunk: any) => 
 		{
-			chunk = await filterFieldsForPrivacy(req, res, req.params.system, [document])
+			chunk = await filterFieldsForPrivacy(req, res, req.params.system, [chunk])
 			return true
 		}
 	
