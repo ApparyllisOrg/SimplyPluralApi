@@ -27,7 +27,7 @@ export const update300 = async (uid: string) => {
             const member = collectionData[i];
             if (member.private !== false && member.preventTrusted !== false)
             {
-                // Do nothing, assign no buckets
+                applyBucketsPromises.push(getCollection(collection).updateOne({uid, _id: member._id}, {$set: { buckets: [ ]}}))
             } 
             else if (member.private !== false)
             {
