@@ -264,6 +264,7 @@ const streamQuery = async (req: Request, res: Response, query: internal.Readable
 				const transformResult = await transformOp(chunk)
 				if (transformResult !== true)
 				{
+					next(null, '')
 					return
 				}
 			}
