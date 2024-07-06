@@ -25,13 +25,13 @@ export const getChannelHistory = async (req: Request, res: Response) => {
 		}
 	}
 
-	fetchCollection(req, res, "chatMessages", query, (document) => {
+	fetchCollection(req, res, "chatMessages", query, async (document) => {
 		if (document.iv) {
 			document.message = decryptMessage(document.message, document.iv);
 			delete document.iv;
 		}
 
-		return document;
+		return true;
 	});
 };
 

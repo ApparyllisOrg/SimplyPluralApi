@@ -10,20 +10,19 @@ export const getFriend = async (req: Request, res: Response) => {
 };
 
 export const getFriends = async (req: Request, res: Response) => {
-	const friends = await getCollection("friends").find({ uid: res.locals.uid });
-	
-	const parseDocument = async (chunk: any) => 
-	{
-		const friend = await getCollection("users").findOne({ uid: chunk.frienduid });
-		if (friend) {
-			return true
-		}
 
-		return false
+	const friendIds = []
+
+	const query = getCollection("friends").find({ uid: res.locals.uid })
+	
+	for await (const document of query) {
+		friendIds.push(document.frienduid)
 	}
+	
+	const friendUsersQuery = await getCollection("users").find({ uid: { $in: friendIds }, _id: { $in: friendIds } });
 
 	// Send users as collection as we are sending user objects, not friend (requests)
-	sendQuery(req, res, "users", friends.stream(), parseDocument);
+	sendQuery(req, res, "users", friendUsersQuery.stream());
 };
 
 export const getFriendsSettings = async (req: Request, res: Response) => {
