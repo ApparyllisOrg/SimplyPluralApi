@@ -32,6 +32,13 @@ export const deletePrivacyBucket = async (req: Request, res: Response) => {
 	await getCollection("groups").updateMany({ uid: res.locals.uid }, { $pull: { buckets: parseId(req.params.id) }});
 	//@ts-ignore
 	await getCollection("friends").updateMany({ uid: res.locals.uid }, { $pull: { buckets: parseId(req.params.id) }});
+	//@ts-ignore
+	await getCollection("private").updateMany({ uid: res.locals.uid, _id: res.locals.uid }, { $pull: { 
+		"defaultPrivacy.members": req.params.id,
+		"defaultPrivacy.groups": req.params.id,
+		"defaultPrivacy.customFronts": req.params.id,
+		"defaultPrivacy.customFields": req.params.id 
+	}});
 
 	deleteSimpleDocument(req, res, "privacyBuckets");
 };
