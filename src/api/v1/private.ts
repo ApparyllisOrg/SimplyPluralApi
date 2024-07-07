@@ -4,7 +4,6 @@ import { userLog } from "../../modules/logger";
 import { getCollection, parseId } from "../../modules/mongo";
 import { addSimpleDocument, fetchSimpleDocument, updateSimpleDocument } from "../../util";
 import { ajv, validateSchema } from "../../util/validation";
-import { setupNewUser } from "./user";
 import { updateUser } from "./user/updates/updateUser";
 import { NewFieldsVersion } from "./customFields";
 import { ObjectId } from "mongodb";
@@ -82,7 +81,6 @@ export const update = async (req: Request, res: Response) => {
 
 		updateSimpleDocument(req, res, "private");
 	} else {
-		await setupNewUser(res.locals.uid);
 		addSimpleDocument(req, res, "private");
 	}
 };
