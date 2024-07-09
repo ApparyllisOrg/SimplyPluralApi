@@ -109,6 +109,7 @@ export const getDocumentAccess = async (requestor: string, document: documentObj
 		} else {
 			const friendLevel: FriendLevel = await getFriendLevel(document.uid, requestor);
 			const isaFriend = isFriend(friendLevel);
+
 			if (!isaFriend) {
 				if (collection === "users" && !!(friendLevel == FriendLevel.Pending)) {
 					// Only send relevant data
@@ -118,7 +119,8 @@ export const getDocumentAccess = async (requestor: string, document: documentObj
 				}
 				return { access: false, statusCode: 403, message: "Access to document has been rejected." };
 			} else {
-				if (document.private) {
+
+				if (document.private === true) {
 					const trustedFriend: boolean = await isTrustedFriend(friendLevel);
 					if (trustedFriend) {
 						return { access: document.preventTrusted !== true, statusCode: 200, message: "" };

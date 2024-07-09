@@ -22,7 +22,7 @@ export const add = async (req: Request, res: Response) => {
 		return;
 	}
 
-	const attachedDocument = await getCollection(req.body.collection).findOne({ _id: parseId(req.body.documentId) });
+	const attachedDocument = await getCollection(req.body.collection).findOne({ _id: parseId(req.body.documentId), uid: res.locals.uid });
 	if (!attachedDocument) {
 		res.status(404).send("Document not found for which you wish to add a comment");
 	} else {

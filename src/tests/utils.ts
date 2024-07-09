@@ -2,6 +2,7 @@ import assert from "assert";
 import { ObjectId } from "mongodb";
 import { parseId } from "../modules/mongo";
 import axios from "axios";
+import { expect } from "chai";
 
 let _token = "";
 
@@ -39,13 +40,32 @@ export const getIdWhere = (documentArray : {id: ObjectId, content: any}[], test:
 	return undefined
 }
 
+export const containsWhere = (documentArray : {id: ObjectId, content: any}[], test: TestDocument) : boolean =>
+{
+	if (Array.isArray(documentArray))
+	{
+		for (let i = 0; i < documentArray.length; ++i)
+		{
+			if (test(documentArray[i].content))
+			{
+				return true
+			}
+		}
+
+		return false
+	}
+
+	assert(false, "Passed in documentArray is not an array!") 
+	return false
+}
+
 export const postDocument = async (url: string, uid: string, token: string, data: any) : Promise<any> => 
 {
-	const result = await axios.post(getTestAxiosUrl(url), data, { headers: { authorization: token } })
-	assert(result.status === 200)
+	const result = await axios.post(getTestAxiosUrl(url), data, { headers: { authorization: token }, validateStatus: () => true })
+	expect(result.status).to.eq(200, result.data)
 
-	const getResult = await axios.get(getTestAxiosUrl(`${url}/${uid}/${result.data}`), { headers: { authorization: token } })
-	assert(getResult.status === 200)
+	const getResult = await axios.get(getTestAxiosUrl(`${url}/${uid}/${result.data}`), { headers: { authorization: token }, validateStatus: () => true })
+	expect(getResult.status).to.eq(200, getResult.data)
 
 	return getResult.data
 }

@@ -112,7 +112,21 @@ export const getMembers = async (req: Request, res: Response) => {
 
 export const get = async (req: Request, res: Response) => {
 
+	if (req.params.system != res.locals.uid) {
+		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
+		if (!canSee) {
+			res.status(403).send("You are not authorized to see content of this user");
+			return;
+		}
+	}
+
 	const document = await getCollection("members").findOne({ _id: parseId(req.params.id), uid: req.params.system ?? res.locals.uid });
+
+	if (!document)
+	{
+		res.status(404).send()
+		return
+	}
 
 	if (req.params.system != res.locals.uid) {
 

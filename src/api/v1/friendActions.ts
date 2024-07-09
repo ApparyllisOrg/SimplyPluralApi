@@ -157,6 +157,7 @@ const s_validateRespondToFrienqRequestQuerySchema = {
 			pattern: "^(true|false)$",
 		},
 	},
+	required: ["accepted"],
 	nullable: false,
 	additionalProperties: false,
 };
@@ -241,7 +242,7 @@ export const RespondToFriendRequest = async (req: Request, res: Response) => {
 		return;
 	}
 
-	res.status(200).send({ success: false, msg: "No pending friend requests with this user" });
+	res.status(404).send({ success: false, msg: "No pending friend requests with this user" });
 };
 
 export const AcceptFriendRequest = async (_sender: string, _receiver: string, accepted: boolean, settings: any) => {

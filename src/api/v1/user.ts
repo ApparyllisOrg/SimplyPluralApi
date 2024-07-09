@@ -373,6 +373,8 @@ export const setupNewUser = async (uid: string) => {
     await getCollection("privacyBuckets").insertOne(trustedFriendData)
 
 	userLog(uid, "Setup new user account");
+
+	await createUser(uid);
 };
 
 export const initializeCustomFields = async (uid: string) => {

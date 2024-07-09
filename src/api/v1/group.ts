@@ -2,16 +2,32 @@ import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
 import { dispatchDelete, OperationType } from "../../modules/socket";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, isMemberOrCustomFront, isMember } from "../../util";
-import { logDeleteAudit } from "../../util/diff";
 import { ajv, getPrivacyDependency, validateSchema } from "../../util/validation";
-import Ajv from "ajv";
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults";
+import { canSeeMembers } from "../../security";
 
 export const getGroups = async (req: Request, res: Response) => {
+	if (req.params.system != res.locals.uid) {
+		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
+		if (!canSee) {
+			res.status(403).send("You are not authorized to see content of this user");
+			return;
+		}
+	}
+
 	fetchCollection(req, res, "groups", {});
 };
 
 export const get = async (req: Request, res: Response) => {
+
+	if (req.params.system != res.locals.uid) {
+		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
+		if (!canSee) {
+			res.status(403).send("You are not authorized to see content of this user");
+			return;
+		}
+	}
+
 	fetchSimpleDocument(req, res, "groups");
 };
 

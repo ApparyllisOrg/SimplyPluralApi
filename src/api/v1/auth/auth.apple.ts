@@ -5,6 +5,7 @@ import { getEmailRegex, getNewUid } from "./auth.core";
 import { decode, JwtPayload, verify } from "jsonwebtoken";
 import jwksClient from "jwks-rsa";
 import { migrateAccountFromFirebase } from "./auth.migrate";
+import { setupNewUser } from "../user";
 
 async function key(kid: any) {
 	const client = jwksClient({
@@ -67,6 +68,7 @@ const registerSub = async (payload: JwtPayload): Promise<boolean> => {
 		.catch(() => undefined);
 	if (!firebaseUser) {
 		const newUserId = await getNewUid();
+		await setupNewUser(newUserId)
 		await getCollection("accounts").insertOne({ uid: newUserId, sub: payload.sub, email: payload.email, verified: true, oAuth2: true, registeredAt: new Date() });
 		return true;
 	}
