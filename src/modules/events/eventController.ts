@@ -62,7 +62,7 @@ const runEvents = async () => {
 
 	runDailyUserCounter();
 
-	// Re-run after 300ms
+	// Re-run after 1000ms
 	setTimeout(runEvents, 1000);
 };
 

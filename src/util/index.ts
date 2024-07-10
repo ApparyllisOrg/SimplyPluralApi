@@ -6,7 +6,7 @@ import { getCollection, parseId } from "../modules/mongo";
 import LRU from "lru-cache";
 import { documentObject } from "../modules/mongo/baseTypes";
 import { dispatchDelete, OperationType } from "../modules/socket";
-import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isTrustedFriend } from "../security";
+import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isPendingFriend, isTrustedFriend } from "../security";
 import { parseForAllowedReadValues } from "../security/readRules";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "../api/v1/user/updates/updateUser";
 import { diff } from "deep-diff";
@@ -58,16 +58,20 @@ export const getDocumentAccess = async (requestor: string, document: documentObj
 				return { access: false, statusCode: 403, message: "Access to document has been rejected." }
 			}
 
-			const friendDoc = await getCollection("friends").findOne({uid: document.uid, frienduid: requestor})
-			
-			if (friendDoc)
+			const friendLevel: FriendLevel = await getFriendLevel(document.uid, requestor);
+
+			if (isFriend(friendLevel))
 			{
 				isFriendsLRU.set(friendsString, true)
 				return { access: true, statusCode: 200, message: "" }
 			}
+			else if (isPendingFriend(friendLevel))
+			{
+				document = { uid: document.uid, _id: document._id, username: document.username, message: document.message };
+				return { access: true, statusCode: 200, message: "" }
+			}
 			else 
 			{
-				isFriendsLRU.set(friendsString, false)
 				return { access: false, statusCode: 403, message: "Access to document has been rejected." }
 			}
 		}

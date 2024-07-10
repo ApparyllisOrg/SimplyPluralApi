@@ -59,6 +59,25 @@ export const containsWhere = (documentArray : {id: ObjectId, content: any}[], te
 	return false
 }
 
+export const containsWhereDirect = (contextArray : any[], test: TestDocument) : boolean =>
+{
+	if (Array.isArray(contextArray))
+	{
+		for (let i = 0; i < contextArray.length; ++i)
+		{
+			if (test(contextArray[i]))
+			{
+				return true
+			}
+		}
+
+		return false
+	}
+
+	assert(false, "Passed in documentArray is not an array!") 
+	return false
+}
+
 export const postDocument = async (url: string, uid: string, token: string, data: any) : Promise<any> => 
 {
 	const result = await axios.post(getTestAxiosUrl(url), data, { headers: { authorization: token }, validateStatus: () => true })
