@@ -8,7 +8,7 @@ import { FIELD_MIGRATION_VERSION } from "../../api/v1/user/updates/updateUser";
 import { AccountState, registerAccount, setupFront, testFrontAccess, testNoFrontAccess, testNoTypeAccess, testTypeAccess } from "./access/utils";
 import { ObjectId } from "mongodb";
 
-describe("validate access across accounts", () => {
+describe("validate legacy access across accounts", () => {
 	let acc1_legacy: AccountState = { id: "", token: "" }; // Legacy Account sharing data
 	let acc2_legacy: AccountState = { id: "", token: "" }; // Legacy Account marked as friend to acc1_legacy
 	let acc3_legacy: AccountState = { id: "", token: "" }; // Legacy Account marked as trusted friend to acc1_legacy
