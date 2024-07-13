@@ -1,22 +1,21 @@
-import { ObjectId } from "mongodb";
-import { documentObject } from "../modules/mongo/baseTypes";
-
+import { ObjectId } from "mongodb"
+import { SimplyDocument } from "../api/types/document"
 export interface UserField {
-	_id?: ObjectId;
-	name: string;
-	order: number;
-	private: boolean;
-	type: number;
-	preventTrusted: boolean;
+	_id?: ObjectId
+	name: string
+	order: number
+	private: boolean
+	type: number
+	preventTrusted: boolean
 }
 
 export interface UserItem {
-	_id?: ObjectId;
-	fields: Map<string, UserField>;
+	_id?: ObjectId
+	fields: Map<string, UserField>
 }
 
-export const parseForAllowedReadValues = async (data: documentObject, requestorUid: string) => {
+export const parseForAllowedReadValues = async (data: SimplyDocument, requestorUid: string) => {
 	if (data && data.uid !== requestorUid) {
-		delete data["comments"];
+		delete data["comments"]
 	}
-};
+}

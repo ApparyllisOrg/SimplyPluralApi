@@ -35,7 +35,7 @@ const s_validateNoteSchema = {
 	nullable: false,
 	additionalProperties: false,
 };
-const v_validateNoteSchema = ajv.compile(s_validateNoteSchema)
+const v_validateNoteSchema = ajv.compile(s_validateNoteSchema);
 
 export const validateNoteSchema = (body: unknown): { success: boolean; msg: string } => {
 	return validateSchema(v_validateNoteSchema, body);
@@ -55,7 +55,7 @@ const s_validatePostNoteSchema = {
 	nullable: false,
 	additionalProperties: false,
 };
-const v_validatePostNoteSchema = ajv.compile(s_validatePostNoteSchema)
+const v_validatePostNoteSchema = ajv.compile(s_validatePostNoteSchema);
 
 export const validatePostNoteSchema = (body: unknown): { success: boolean; msg: string } => {
 	return validateSchema(v_validatePostNoteSchema, body);

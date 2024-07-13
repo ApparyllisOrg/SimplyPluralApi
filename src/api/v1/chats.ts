@@ -1,194 +1,196 @@
-import { Request, Response } from "express";
-import moment from "moment";
-import { ObjectId } from "mongodb";
-import * as Sentry from "@sentry/node";
-import { getCollection, parseId } from "../../modules/mongo";
-import { documentObject } from "../../modules/mongo/baseTypes";
-import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, deleteSimpleDocument, fetchCollection, sendDocument } from "../../util";
-import { ajv, validateSchema } from "../../util/validation";
-import { decryptMessage, encryptMessage } from "./chat/chat.core";
-import { DiffProcessor } from "../../util/diff";
-import { Diff } from "deep-diff";
+import { Request, Response } from "express"
+import moment from "moment"
+import { ObjectId } from "mongodb"
+import * as Sentry from "@sentry/node"
+import { getCollection, parseId } from "../../modules/mongo"
+import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, deleteSimpleDocument, fetchCollection, sendDocument } from "../../util"
+import { ajv, validateSchema } from "../../util/validation"
+import { decryptMessage, encryptMessage } from "./chat/chat.core"
+import { DiffProcessor } from "../../util/diff"
+import { Diff } from "deep-diff"
 
 export const getChannelHistory = async (req: Request, res: Response) => {
-	const query: any = { channel: req.params.id };
+	const query: any = { channel: req.params.id }
 
 	if (req.query.skipTo?.toString() && req.query.sortOrder?.toString()) {
-		const sortOrder = req.query.sortOrder?.toString();
+		const sortOrder = req.query.sortOrder?.toString()
 		if (sortOrder === "-1") {
-			query["_id"] = { $lt: parseId(req.query.skipTo?.toString()) };
+			query["_id"] = { $lt: parseId(req.query.skipTo?.toString()) }
 		} else if (sortOrder === "1") {
-			query["_id"] = { $gt: parseId(req.query.skipTo?.toString()) };
+			query["_id"] = { $gt: parseId(req.query.skipTo?.toString()) }
 		} else {
-			Sentry.captureMessage("Invalid sort order found!");
-			res.status(500).send();
+			Sentry.captureMessage("Invalid sort order found!")
+			res.status(500).send()
 		}
 	}
 
 	fetchCollection(req, res, "chatMessages", query, async (document) => {
 		if (document.iv) {
-			document.message = decryptMessage(document.message, document.iv);
-			delete document.iv;
+			document.message = decryptMessage(document.message, document.iv)
+			delete document.iv
 		}
 
-		return true;
-	});
-};
+		return true
+	})
+}
 
 export const getChannel = async (req: Request, res: Response) => {
-	fetchSimpleDocument(req, res, "channels");
-};
+	fetchSimpleDocument(req, res, "channels")
+}
 
 export const getChannels = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "channels", {});
-};
+	fetchCollection(req, res, "channels", {})
+}
 
 export const addChannel = async (req: Request, res: Response) => {
-	await addSimpleDocument(req, res, "channels");
-};
+	await addSimpleDocument(req, res, "channels")
+}
 
 export const updateChannel = async (req: Request, res: Response) => {
-	updateSimpleDocument(req, res, "channels");
-};
+	updateSimpleDocument(req, res, "channels")
+}
 
 export const deleteChannel = async (req: Request, res: Response) => {
-	await getCollection("chatMessages").deleteMany({ uid: res.locals.uid, channel: parseId(req.params.id) });
+	await getCollection("chatMessages").deleteMany({ uid: res.locals.uid, channel: parseId(req.params.id) })
 
-	await getCollection("channelCategories").updateOne({ uid: res.locals.uid }, { $pull: { channels: req.params.id.toString() } });
+	await getCollection("channelCategories").updateOne({ uid: res.locals.uid }, { $pull: { channels: req.params.id.toString() } })
 
-	deleteSimpleDocument(req, res, "channels");
-};
+	deleteSimpleDocument(req, res, "channels")
+}
 
 export const getChannelCategory = async (req: Request, res: Response) => {
-	fetchSimpleDocument(req, res, "channelCategories");
-};
+	fetchSimpleDocument(req, res, "channelCategories")
+}
 
 export const getChannelCategories = async (req: Request, res: Response) => {
-	fetchCollection(req, res, "channelCategories", {});
-};
+	fetchCollection(req, res, "channelCategories", {})
+}
 
 const verifyValidChannelsPayload = async (req: Request, res: Response) => {
 	// TODO: Ensure a channel can only belong to one category
 
 	// Ensure all channels exist
 	if (req.body.channels) {
-		const validChannels = await getCollection("channels").find({ uid: res.locals.uid }).toArray();
+		const validChannels = await getCollection("channels").find({ uid: res.locals.uid }).toArray()
 
-		const channels: string[] = req.body.channels;
+		const channels: string[] = req.body.channels
 
 		// Remove non-existing channels
 		for (let i = channels.length - 1; i >= 0; --i) {
-			const channel = channels[i];
-			const channelDoc = validChannels.findIndex((value) => value._id.toString() === channel);
+			const channel = channels[i]
+			const channelDoc = validChannels.findIndex((value) => value._id.toString() === channel)
 			if (channelDoc == -1) {
-				channels.splice(i, 1);
+				channels.splice(i, 1)
 			}
 		}
 
-		req.body.channels = channels;
+		req.body.channels = channels
 	}
-};
+}
 
 export const addChannelCategory = async (req: Request, res: Response) => {
-	const dataObj: documentObject = req.body;
-	dataObj._id = res.locals.useId ?? new ObjectId();
+	const dataObj: any = req.body
+	dataObj._id = res.locals.useId ?? new ObjectId()
 
-	await verifyValidChannelsPayload(req, res);
+	await verifyValidChannelsPayload(req, res)
 
-	addSimpleDocument(req, res, "channelCategories");
+	addSimpleDocument(req, res, "channelCategories")
 
 	// Insert the category at the end
-	await getCollection("private").updateOne({ uid: res.locals.uid, _id: res.locals.uid }, { $addToSet: { categories: dataObj._id.toString() } });
-};
+	await getCollection("private").updateOne({ uid: res.locals.uid, _id: res.locals.uid }, { $addToSet: { categories: dataObj._id.toString() } })
+}
 
 export const updateChannelCategory = async (req: Request, res: Response) => {
-	await verifyValidChannelsPayload(req, res);
+	await verifyValidChannelsPayload(req, res)
 
-	const differenceProcessor : DiffProcessor = async (uid: string, difference: Diff<any, any>, lhs: any, rhs: any) =>
-	{
-		if (difference.path![0] === "channels")
-		{
-			return { processed: true, result: undefined, ignore: true}
+	const differenceProcessor: DiffProcessor = async (uid: string, difference: Diff<any, any>, lhs: any, rhs: any) => {
+		if (difference.path![0] === "channels") {
+			return { processed: true, result: undefined, ignore: true }
 		}
 
-
-		return {processed: false, result: undefined}
+		return { processed: false, result: undefined }
 	}
 
-	updateSimpleDocument(req, res, "channelCategories", differenceProcessor);
-};
+	updateSimpleDocument(req, res, "channelCategories", differenceProcessor)
+}
 
 export const deleteChannelCategory = async (req: Request, res: Response) => {
-	await getCollection("channels").updateMany({ uid: res.locals.uid }, { $set: { category: "" } });
-	await getCollection("private").updateOne({ uid: res.locals.uid, _id: res.locals.uid }, { $pull: { categories: req.params.id } });
-	deleteSimpleDocument(req, res, "channelCategories");
-};
+	await getCollection("channels").updateMany({ uid: res.locals.uid }, { $set: { category: "" } })
+	await getCollection("private").updateOne({ uid: res.locals.uid, _id: res.locals.uid }, { $pull: { categories: req.params.id } })
+	deleteSimpleDocument(req, res, "channelCategories")
+}
 
 export const getMessage = async (req: Request, res: Response) => {
-	const document = await getCollection("chatMessages").findOne({ _id: parseId(req.params.id), uid: req.params.system ?? res.locals.uid });
+	const document = await getCollection("chatMessages").findOne({ _id: parseId(req.params.id), uid: req.params.system ?? res.locals.uid })
 
 	if (document && document.iv) {
-		document.message = decryptMessage(document.message, document.iv);
-		delete document.iv;
+		document.message = decryptMessage(document.message, document.iv)
+		delete document.iv
 	}
 
-	sendDocument(req, res, "chatMessages", document);
-};
+	sendDocument(req, res, "chatMessages", document)
+}
 
 export const writeMessage = async (req: Request, res: Response) => {
 	// Clamp writtenAt to now
 	if (req.body.writtenAt > moment.now()) {
-		req.body.writtenAt = moment.now();
+		req.body.writtenAt = moment.now()
 	}
 
-	const channel = await getCollection("channels").findOne({ uid: res.locals.uid, _id: parseId(req.body.channel) });
+	const channel = await getCollection("channels").findOne({ uid: res.locals.uid, _id: parseId(req.body.channel) })
 	if (!channel) {
-		await getCollection("undeliveredMessages").insertOne({ uid: res.locals.uid, message: req.body, reason: "channel not found" });
-		res.status(404).send("Can't find the channel this messages is supposed to go to, message cannot be delivered. We saved the message in case you would like to resend it with the correct channel. Saved undelivered messages will automatically be deleted after 30 days.");
-		return;
+		await getCollection("undeliveredMessages").insertOne({ uid: res.locals.uid, message: req.body, reason: "channel not found" })
+		res.status(404).send(
+			"Can't find the channel this messages is supposed to go to, message cannot be delivered. We saved the message in case you would like to resend it with the correct channel. Saved undelivered messages will automatically be deleted after 30 days."
+		)
+		return
 	}
 
-	const memberWriter = await getCollection("members").findOne({ uid: res.locals.uid, _id: parseId(req.body.writer) }, { projection: { _id: 1 }});
+	const memberWriter = await getCollection("members").findOne({ uid: res.locals.uid, _id: parseId(req.body.writer) }, { projection: { _id: 1 } })
 	if (!memberWriter) {
-		await getCollection("undeliveredMessages").insertOne({ uid: res.locals.uid, message: req.body, reason: "Member not found" });
-		res.status(404).send("Member who wrote this message not found, message cannot be delivered. We saved the message in case you would like to resend it with the correct member. Saved undelivered messages will automatically be deleted after 30 days.");
-		return;
+		await getCollection("undeliveredMessages").insertOne({ uid: res.locals.uid, message: req.body, reason: "Member not found" })
+		res.status(404).send(
+			"Member who wrote this message not found, message cannot be delivered. We saved the message in case you would like to resend it with the correct member. Saved undelivered messages will automatically be deleted after 30 days."
+		)
+		return
 	}
 
 	if (req.body.replyTo) {
-		const replyToMessage = await getCollection("chatMessages").findOne({ uid: res.locals.uid, _id: parseId(req.body.replyTo), channel: req.body.channel });
+		const replyToMessage = await getCollection("chatMessages").findOne({ uid: res.locals.uid, _id: parseId(req.body.replyTo), channel: req.body.channel })
 		if (!replyToMessage) {
-			await getCollection("undeliveredMessages").insertOne({ uid: res.locals.uid, message: req.body, reason: "Reply-to not found" });
-			res.status(404).send("Can't find the message this message is supposed to reply to, message cannot be delivered. We saved the message in case you would like to resend it with the correct reply-to. Saved undelivered messages will automatically be deleted after 30 days.");
-			return;
+			await getCollection("undeliveredMessages").insertOne({ uid: res.locals.uid, message: req.body, reason: "Reply-to not found" })
+			res.status(404).send(
+				"Can't find the message this message is supposed to reply to, message cannot be delivered. We saved the message in case you would like to resend it with the correct reply-to. Saved undelivered messages will automatically be deleted after 30 days."
+			)
+			return
 		}
 	}
 
-	const encrpyted = encryptMessage(req.body.message);
-	req.body.message = encrpyted.msg;
-	req.body.iv = encrpyted.iv;
+	const encrpyted = encryptMessage(req.body.message)
+	req.body.message = encrpyted.msg
+	req.body.iv = encrpyted.iv
 
-	addSimpleDocument(req, res, "chatMessages");
-};
+	addSimpleDocument(req, res, "chatMessages")
+}
 
 export const updateMessage = async (req: Request, res: Response) => {
 	// Clamp updatedAt to now
 	if (req.body.updatedAt > moment.now()) {
-		req.body.updatedAt = moment.now();
+		req.body.updatedAt = moment.now()
 	}
 
 	if (req.body.message) {
-		const encrpyted = encryptMessage(req.body.message);
-		req.body.message = encrpyted.msg;
-		req.body.iv = encrpyted.iv;
+		const encrpyted = encryptMessage(req.body.message)
+		req.body.message = encrpyted.msg
+		req.body.iv = encrpyted.iv
 	}
 
-	updateSimpleDocument(req, res, "chatMessages");
-};
+	updateSimpleDocument(req, res, "chatMessages")
+}
 
 export const deleteMessage = async (req: Request, res: Response) => {
-	deleteSimpleDocument(req, res, "chatMessages");
-};
+	deleteSimpleDocument(req, res, "chatMessages")
+}
 
 const s_validateWriteMessageSchema = {
 	type: "object",
@@ -202,12 +204,12 @@ const s_validateWriteMessageSchema = {
 	required: ["message", "channel", "writer", "writtenAt"],
 	nullable: false,
 	additionalProperties: false,
-};
+}
 const v_validateWriteMessageSchema = ajv.compile(s_validateWriteMessageSchema)
 
 export const validateWriteMessageSchema = (body: unknown): { success: boolean; msg: string } => {
-	return validateSchema(v_validateWriteMessageSchema, body);
-};
+	return validateSchema(v_validateWriteMessageSchema, body)
+}
 
 const s_validateUpdateMessageSchema = {
 	type: "object",
@@ -218,12 +220,12 @@ const s_validateUpdateMessageSchema = {
 	required: ["message", "updatedAt"],
 	nullable: false,
 	additionalProperties: false,
-};;
+}
 const v_validateUpdateMessageSchema = ajv.compile(s_validateUpdateMessageSchema)
 
 export const validateUpdateMessageSchema = (body: unknown): { success: boolean; msg: string } => {
-	return validateSchema(v_validateUpdateMessageSchema, body);
-};
+	return validateSchema(v_validateUpdateMessageSchema, body)
+}
 
 const s_validateWriteChannelschema = {
 	type: "object",
@@ -235,12 +237,12 @@ const s_validateWriteChannelschema = {
 	required: ["name", "desc"],
 	nullable: false,
 	additionalProperties: false,
-};
+}
 const v_validateWriteChannelschema = ajv.compile(s_validateWriteChannelschema)
 
 export const validateWriteChannelschema = (body: unknown): { success: boolean; msg: string } => {
-	return validateSchema(v_validateWriteChannelschema, body);
-};
+	return validateSchema(v_validateWriteChannelschema, body)
+}
 
 const s_validateChatCategorySchema = {
 	type: "object",
@@ -252,12 +254,12 @@ const s_validateChatCategorySchema = {
 	required: ["name", "desc"],
 	nullable: false,
 	additionalProperties: false,
-};
+}
 const v_validateChatCategorySchema = ajv.compile(s_validateChatCategorySchema)
 
 export const validateChatCategorySchema = (body: unknown): { success: boolean; msg: string } => {
-	return validateSchema(v_validateChatCategorySchema, body);
-};
+	return validateSchema(v_validateChatCategorySchema, body)
+}
 
 const s_validateGetChannelHistorySchema = {
 	type: "object",
@@ -271,9 +273,9 @@ const s_validateGetChannelHistorySchema = {
 	required: ["limit"],
 	nullable: false,
 	additionalProperties: false,
-};
+}
 const v_validateGetChannelHistorySchema = ajv.compile(s_validateGetChannelHistorySchema)
 
 export const validateGetChannelHistorySchema = (body: unknown): { success: boolean; msg: string } => {
-	return validateSchema(v_validateGetChannelHistorySchema, body);
-};
+	return validateSchema(v_validateGetChannelHistorySchema, body)
+}
