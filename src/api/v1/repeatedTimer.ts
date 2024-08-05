@@ -28,7 +28,7 @@ export const getRepeatedTimers = async (req: Request, res: Response) => {
 };
 
 export const get = async (req: Request, res: Response) => {
-	const document = await getCollection("repeatedReminders").findOne({ _id: parseId(req.params.id), uid: req.params.system ?? res.locals.uid });
+	const document = await getCollection("repeatedReminders").findOne({ _id: parseId(req.params.id), uid: res.locals.uid });
 
 	convertTimerToInt(document);
 

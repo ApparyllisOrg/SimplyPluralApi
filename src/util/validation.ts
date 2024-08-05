@@ -6,6 +6,7 @@ import addFormats from "ajv-formats";
 import Ajv, { ValidateFunction } from "ajv";
 import { ObjectId } from "mongodb";
 import moment from "moment";
+import { getCollection } from "../modules/mongo";
 
 export const ajv = new Ajv({ allErrors: true, $data: true, verbose: true });
 ajv.addFormat("fullEmail", RegExp("^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$", "i"))
@@ -204,6 +205,24 @@ export const validateSelfOperation = async (req: Request, res: Response, next: a
 	} 
 	
 	next();
+};
+
+// Pre-flight check that the requestor and the requested user id documents are friends
+export const validateAreFriends = async (req: Request, res: Response, next: any) => {
+
+	if (req.params.system === res.locals.uid) {
+		next()
+		return
+	}
+
+	const friendDoc = await getCollection("friends").findOne({ uid: req.params.system, frienduid: res.locals.uid });
+	if (!friendDoc)
+	{
+		res.status(403).send()
+		return
+	}
+	
+	next()
 };
 
 export const getPrivacyDependency = () => ({

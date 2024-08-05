@@ -9,6 +9,7 @@ import moment from "moment";
 import validUrl from "valid-url";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "../../../api/v1/user/updates/updateUser";
 import { limitStringLength } from "../../../util/string";
+import { insertDefaultPrivacyBuckets } from "../../../api/v1/privacy/privacy.assign.defaults";
 export interface syncOptions {
 	name: boolean;
 	avatar: boolean;
@@ -228,6 +229,12 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 			} else {
 				memberDataToSync.private = false;
 				memberDataToSync.preventTrusted = false;
+			}
+		}
+		else 
+		{
+			if (memberData.privacy?.visibility !== "private" && !privateByDefault) {
+				await insertDefaultPrivacyBuckets(userId, memberDataToSync, 'members')
 			}
 		}
 

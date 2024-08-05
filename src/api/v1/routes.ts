@@ -2,7 +2,7 @@
 import * as core from "express-serve-static-core";
 import { ApiKeyAccessType } from "../../modules/api/keys";
 import { isUserAuthenticated, isUserAppJwtAuthenticated } from "../../security/auth";
-import { validateBody, validateId, validateQuery, validateSelfOperation } from "../../util/validation";
+import { validateAreFriends, validateBody, validateId, validateQuery, validateSelfOperation } from "../../util/validation";
 import * as customFront from "./customFront";
 import * as member from "./member";
 import * as note from "./note";
@@ -36,8 +36,8 @@ import { getStartupData } from "./startup";
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
-	app.get("/v1/member/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), member.get);
-	app.get("/v1/members/:system", isUserAuthenticated(ApiKeyAccessType.Read), member.getMembers);
+	app.get("/v1/member/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), validateAreFriends, member.get);
+	app.get("/v1/members/:system", isUserAuthenticated(ApiKeyAccessType.Read), validateAreFriends, member.getMembers);
 	app.post("/v1/member/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(member.validatePostMemberSchema), validateId, member.add);
 	app.patch("/v1/member/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(member.validateMemberSchema), member.update);
 	app.patch("/v1/member/fields/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(member.validateUpdateMemberFieldsSchema), member.updateInfo);
@@ -51,21 +51,21 @@ export const setupV1routes = (app: core.Express) => {
 	app.delete("/v1/note/:id", isUserAuthenticated(ApiKeyAccessType.Delete), note.del);
 
 	// Custom front
-	app.get("/v1/customFront/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), customFront.get);
-	app.get("/v1/customFronts/:system", isUserAuthenticated(ApiKeyAccessType.Read), customFront.getCustomFronts);
+	app.get("/v1/customFront/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), validateAreFriends, customFront.get);
+	app.get("/v1/customFronts/:system", isUserAuthenticated(ApiKeyAccessType.Read), validateAreFriends, customFront.getCustomFronts);
 	app.post("/v1/customFront/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFront.validatePostCustomFrontSchema), validateId, customFront.add);
 	app.patch("/v1/customFront/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFront.validateCustomFrontSchema), customFront.update);
 	app.delete("/v1/customFront/:id", isUserAuthenticated(ApiKeyAccessType.Delete), customFront.del);
 
 	// Custom Fields
-	app.get("/v1/customField/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), customFields.getCustomField);
-	app.get("/v1/customFields/:system", isUserAuthenticated(ApiKeyAccessType.Read), customFields.getCustomFields);
+	app.get("/v1/customField/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), validateAreFriends, customFields.getCustomField);
+	app.get("/v1/customFields/:system", isUserAuthenticated(ApiKeyAccessType.Read), validateAreFriends, customFields.getCustomFields);
 	app.post("/v1/customField/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFields.validatePostCustomFieldSchema), validateId, customFields.addCustomField);
 	app.patch("/v1/customField/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(customFields.validatePatchCustomFieldSchema), customFields.updateCustomField);
 	app.delete("/v1/customField/:id", isUserAuthenticated(ApiKeyAccessType.Delete), customFields.deleteCustomField);
 
 	// Comments
-	app.get("/v1/comments/:type/:id", isUserAuthenticated(ApiKeyAccessType.Read), validateSelfOperation, comment.getCommentsForDocument);
+	app.get("/v1/comments/:type/:id", isUserAuthenticated(ApiKeyAccessType.Read), comment.getCommentsForDocument);
 	app.get("/v1/comment/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), validateSelfOperation, comment.get);
 	app.post("/v1/comment/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(comment.validateCommentSchema), validateId, comment.add);
 	app.patch("/v1/comment/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(comment.validateCommentPatchSchema), comment.update);
@@ -105,8 +105,8 @@ export const setupV1routes = (app: core.Express) => {
 	app.delete("/v1/frontHistory/:id", isUserAuthenticated(ApiKeyAccessType.Delete), frontHistory.del);
 
 	// Groups
-	app.get("/v1/group/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), group.get);
-	app.get("/v1/groups/:system", isUserAuthenticated(ApiKeyAccessType.Read), group.getGroups);
+	app.get("/v1/group/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), validateAreFriends, group.get);
+	app.get("/v1/groups/:system", isUserAuthenticated(ApiKeyAccessType.Read), validateAreFriends, group.getGroups);
 	app.post("/v1/group/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validatePostGroupSchema), validateId, group.add);
 	app.patch("/v1/group/members", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateSetMemberInGroupSchema), group.setMemberInGroups);
 	app.patch("/v1/group/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(group.validateGroupSchema), group.update);
@@ -188,7 +188,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/friends/requests/incoming", isUserAuthenticated(ApiKeyAccessType.Read), friend.getIngoingFriendRequests);
 	app.get("/v1/friends/requests/outgoing", isUserAuthenticated(ApiKeyAccessType.Read), friend.getOutgoingFriendRequests);
 	app.get("/v1/friends/getFrontValues", isUserAuthenticated(ApiKeyAccessType.Read), friend.getAllFriendFrontValues);
-	app.get("/v1/friend/:system/getFrontValue", isUserAuthenticated(ApiKeyAccessType.Read), friend.getFriendFrontValues);
+	app.get("/v1/friend/:system/getFrontValue", isUserAuthenticated(ApiKeyAccessType.Read), validateAreFriends, friend.getFriendFrontValues);
 	app.post("/v1/friends/request/add/:usernameOrId", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(friendActions.validateAddFrienqRequestSchema), friendActions.AddFriend);
 	app.post("/v1/friends/request/respond/:usernameOrId", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(friendActions.validateRespondToFrienqRequestQuerySchema), friendActions.RespondToFriendRequest);
 	app.delete("/v1/friends/request/:id", isUserAuthenticated(ApiKeyAccessType.Delete), friendActions.CancelFriendRequest);

@@ -6,7 +6,7 @@ import { ajv, getAvatarUuidSchema, validateSchema } from "../../util/validation"
 import { generateUserReport } from "./user/generateReport";
 import { update122 } from "./user/updates/update112";
 import { auth } from "firebase-admin";
-import { getFriendLevel, isTrustedFriend, logSecurityUserEvent } from "../../security";
+import { canSeeMembers, getFriendLevel, isTrustedFriend, logSecurityUserEvent } from "../../security";
 import moment from "moment";
 import * as minio from "minio";
 import * as Sentry from "@sentry/node";
@@ -17,7 +17,7 @@ import { getEmailForUser } from "./auth/auth.core";
 import { frameType } from "../types/frameType";
 import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
 import { canGenerateReport, decrementGenerationsLeft, reportBaseUrl, reportBaseUrl_V2, sendReport } from "../base/user";
-import archiver, { Archiver } from "archiver"
+import archiver, { Archiver } from "archiver";
 import promclient from "prom-client";
 
 import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3";
@@ -25,7 +25,7 @@ import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/c
 const s3 = new S3Client({
 	endpoint: process.env.OBJECT_HOST ?? "",
 	region: process.env.OBJECT_REGION ?? "none",
-	credentials: { accessKeyId: process.env.OBJECT_KEY ?? '', secretAccessKey: process.env.OBJECT_SECRET ?? ''}
+	credentials: { accessKeyId: process.env.OBJECT_KEY ?? "", secretAccessKey: process.env.OBJECT_SECRET ?? "" },
 });
 
 const minioClient = new minio.Client({
@@ -44,17 +44,16 @@ export const generateReport = async (req: Request, res: Response) => {
 	} else {
 		res.status(403).send("You do not have enough generations left in order to generate a new report");
 	}
-
 };
-const events_counter_reports= new promclient.Counter({
+const events_counter_reports = new promclient.Counter({
 	name: "apparyllis_api_generated_reports",
 	help: "Counter for generated reports",
 });
 
 const performReportGeneration = async (req: Request, res: Response) => {
-	events_counter_reports.inc()
-	const htmlFile = await generateUserReport(req.body, res.locals.uid)
-	sendReport(req, res, htmlFile)
+	events_counter_reports.inc();
+	const htmlFile = await generateUserReport(req.body, res.locals.uid);
+	sendReport(req, res, htmlFile);
 };
 
 export const getReports = async (req: Request, res: Response) => {
@@ -116,38 +115,37 @@ export const get = async (req: Request, res: Response) => {
 
 	// Remove fields that aren't shared to the friend
 	if (req.params.id !== res.locals.uid) {
-
 		const newFields: any = {};
-		const hasMigrated = await doesUserHaveVersion(req.params.id, FIELD_MIGRATION_VERSION)
-		if (hasMigrated)
-		{
-			const userFields = await getCollection("customFields").find({uid: req.params.id}).toArray()
 
-			for (let i = 0; i < userFields.length; ++i)
-			{
-				const field = userFields[i]
-				const accessResult = await getDocumentAccess(res.locals.uid, field, "customFields")
-				if (accessResult.access === true)
-				{
-					newFields[field._id.ToString()] = { name: field.name, order: field.order, type: field.type }
+		const canSee = await canSeeMembers(req.params.id, res.locals.uid);
+		if (canSee) {
+			const hasMigrated = await doesUserHaveVersion(req.params.id, FIELD_MIGRATION_VERSION);
+			if (hasMigrated) {
+				const userFields = await getCollection("customFields").find({ uid: req.params.id }).toArray();
+
+				for (let i = 0; i < userFields.length; ++i) {
+					const field = userFields[i];
+					const accessResult = await getDocumentAccess(res.locals.uid, field, "customFields");
+					if (accessResult.access === true) {
+						newFields[field._id.toString()] = { name: field.name, order: field.order, type: field.type };
+					}
 				}
-			}
-		}
-		else // Legacy custom fields
-		{
-			const friendLevel = await getFriendLevel(req.params.id, res.locals.uid);
-			const isATrustedFriends = isTrustedFriend(friendLevel);
+			} // Legacy custom fields
+			else {
+				const friendLevel = await getFriendLevel(req.params.id, res.locals.uid);
+				const isATrustedFriends = isTrustedFriend(friendLevel);
 
-			if (document.fields) {
-				Object.keys(document.fields).forEach((key: string) => {
-					const field = document.fields[key];
-					if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
-						newFields[key] = field;
-					}
-					if (field.private === false && field.preventTrusted === false) {
-						newFields[key] = field;
-					}
-				});
+				if (document.fields) {
+					Object.keys(document.fields).forEach((key: string) => {
+						const field = document.fields[key];
+						if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
+							newFields[key] = field;
+						}
+						if (field.private === false && field.preventTrusted === false) {
+							newFields[key] = field;
+						}
+					});
+				}
 			}
 		}
 
@@ -162,8 +160,7 @@ export const update = async (req: Request, res: Response) => {
 	setBody.lastOperationTime = res.locals.operationTime;
 
 	const userMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION);
-	if (userMigrated)
-	{
+	if (userMigrated) {
 		delete setBody.fields;
 	}
 
@@ -202,43 +199,38 @@ export const SetUsername = async (req: Request, res: Response) => {
 
 const deleteUploadedUserFolder = async (uid: string, prefix: string) => {
 	const deleteFolderPromise = new Promise<any>(async (resolve) => {
-
 		const recursiveDelete = async (token: string | undefined) => {
 			const params = {
 				Bucket: "simply-plural",
 				Prefix: `${prefix}/${uid}/`,
-				ContinuationToken: token
+				ContinuationToken: token,
 			};
 
 			try {
 				let listCommand = new ListObjectsV2Command(params);
 
-				const list = await s3.send(listCommand)
+				const list = await s3.send(listCommand);
 
 				if (list.NextContinuationToken) {
 					await recursiveDelete(list.NextContinuationToken);
 				}
 
 				if (list.KeyCount && list.Contents) {
-		
 					let deleteCommand = new DeleteObjectsCommand({
 						Bucket: "simply-plural",
 						Delete: {
-							Objects: list.Contents.map((item) => ({ Key: item.Key ?? "" }))
+							Objects: list.Contents.map((item) => ({ Key: item.Key ?? "" })),
 						},
 					});
 
-					await s3.send(deleteCommand)
+					await s3.send(deleteCommand);
 				}
-	
-			}
-			catch (e)
-			{
-				logger.log("error", e)
+			} catch (e) {
+				logger.log("error", e);
 			}
 		};
 
-		await recursiveDelete(undefined)
+		await recursiveDelete(undefined);
 
 		const listedObjects = await minioClient.listObjectsV2("spaces", `/${prefix}/${uid}/`);
 		if (listedObjects) {
@@ -281,7 +273,7 @@ export const deleteAccount = async (req: Request, res: Response) => {
 		return;
 	}
 
-	let email = await getEmailForUser(res.locals.uid)
+	let email = await getEmailForUser(res.locals.uid);
 
 	const userDoc = await getCollection("users").findOne({ uid: res.locals.uid, _id: res.locals.uid });
 	const username = userDoc?.username ?? "";
@@ -311,7 +303,9 @@ export const deleteAccount = async (req: Request, res: Response) => {
 	userLog(res.locals.uid, `Pre Delete User ${email} and username ${username}`);
 
 	if (process.env.PRETESTING !== "true") {
-		auth().deleteUser(res.locals.uid).catch((r) => undefined);
+		auth()
+			.deleteUser(res.locals.uid)
+			.catch((r) => undefined);
 		userLog(res.locals.uid, `Post Delete Firebase User ${email} and username ${username}`);
 	}
 
@@ -327,7 +321,7 @@ export const exportUserData = async (_req: Request, res: Response) => {
 		return;
 	}
 
-	const email = await getEmailForUser(res.locals.uid)
+	const email = await getEmailForUser(res.locals.uid);
 
 	await getCollection("private").updateOne({ uid: res.locals.uid, _id: res.locals.uid }, { $set: { lastExport: moment.now() } });
 	logSecurityUserEvent(res.locals.uid, "Exported user account", _req);
@@ -348,31 +342,45 @@ export const exportAvatars = async (req: Request, res: Response) => {
 	res.setHeader("Content-Type", "application/zip");
 	res.setHeader("Content-disposition", 'attachment; filename="' + filename + '"');
 
-	const arch = archiver('zip');
+	const arch = archiver("zip");
 
-	arch.pipe(res)
+	arch.pipe(res);
 
-	await fetchAllAvatars(req.query.uid?.toString() ?? "", async (name: String, data: Buffer) => 
-	{
-		arch.append(data, { name: name + ".png" })
+	await fetchAllAvatars(req.query.uid?.toString() ?? "", async (name: String, data: Buffer) => {
+		arch.append(data, { name: name + ".png" });
 	});
 
-	arch.finalize()
+	arch.finalize();
 
 	logSecurityUserEvent(res.locals.uid, "Exported user avatars", req);
 
 	res.status(200);
-}
+};
 
 export const setupNewUser = async (uid: string) => {
+	const friendData: { uid: string; name: string; icon: string; rank: string; desc: string; color: string; _id?: any } = {
+		uid,
+		name: "Friends",
+		icon: "🔓",
+		rank: "0|aaaaaa:",
+		desc: "A bucket for all your friends",
+		color: "#C99524",
+	};
+	const trustedFriendData: { uid: string; name: string; icon: string; rank: string; desc: string; color: string; _id?: any } = {
+		uid,
+		name: "Trusted friends",
+		icon: "🔒",
+		rank: "0|zzzzzz:",
+		desc: "A bucket for all your trusted friends",
+		color: "#1998A8",
+	};
 
-	const friendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any } = {uid, name: "Friends", icon: "🔓", rank: "0|aaaaaa:", desc: "A bucket for all your friends", color: "#C99524",}
-    const trustedFriendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any }  = {uid, name: "Trusted friends", icon: "🔒", rank: "0|zzzzzz:", desc: "A bucket for all your trusted friends", color: "#1998A8"}
-
-    await getCollection("privacyBuckets").insertOne(friendData)
-    await getCollection("privacyBuckets").insertOne(trustedFriendData)
+	await getCollection("privacyBuckets").insertOne(friendData);
+	await getCollection("privacyBuckets").insertOne(trustedFriendData);
 
 	userLog(uid, "Setup new user account");
+
+	await createUser(uid);
 };
 
 export const initializeCustomFields = async (uid: string) => {
@@ -382,10 +390,10 @@ export const initializeCustomFields = async (uid: string) => {
 		return;
 	}
 
-	const memberWithFields = await getCollection("members").findOne({ uid: uid, info: { $exists: true } }, { projection:{ _id: 1 } });
+	const memberWithFields = await getCollection("members").findOne({ uid: uid, info: { $exists: true } }, { projection: { _id: 1 } });
 	if (memberWithFields) {
 		update122(uid);
-	} 
+	}
 };
 
 const s_validateUserSchema = {
@@ -415,19 +423,19 @@ const s_validateUserSchema = {
 			},
 			additionalProperties: false,
 		},
-		frame: frameType
+		frame: frameType,
 	},
 	nullable: false,
 	additionalProperties: false,
 };
 
-const v_validateUserSchema = ajv.compile(s_validateUserSchema)
+const v_validateUserSchema = ajv.compile(s_validateUserSchema);
 
 export const validateUserSchema = (body: unknown): { success: boolean; msg: string } => {
 	return validateSchema(v_validateUserSchema, body);
 };
 
-const s_validateUsernameSchema =  {
+const s_validateUsernameSchema = {
 	type: "object",
 	properties: {
 		username: { type: "string", pattern: "^[a-zA-Z0-9-_]{1,35}$" },
@@ -436,7 +444,7 @@ const s_validateUsernameSchema =  {
 	additionalProperties: false,
 	required: ["username"],
 };
-const v_validateUsernameSchema = ajv.compile(s_validateUsernameSchema)
+const v_validateUsernameSchema = ajv.compile(s_validateUsernameSchema);
 
 export const validateUsernameSchema = (body: unknown): { success: boolean; msg: string } => {
 	return validateSchema(v_validateUsernameSchema, body);
@@ -452,13 +460,13 @@ const s_validateExportAvatarsSchema = {
 	additionalProperties: false,
 	required: ["key", "uid"],
 };
-const v_validateExportAvatarsSchema = ajv.compile(s_validateExportAvatarsSchema)
+const v_validateExportAvatarsSchema = ajv.compile(s_validateExportAvatarsSchema);
 
 export const validateExportAvatarsSchema = (body: unknown): { success: boolean; msg: string } => {
 	return validateSchema(v_validateExportAvatarsSchema, body);
 };
 
-const s_validateUserReportSchema =  {
+const s_validateUserReportSchema = {
 	type: "object",
 	properties: {
 		sendTo: {
@@ -503,7 +511,7 @@ const s_validateUserReportSchema =  {
 	additionalProperties: false,
 	required: ["sendTo"],
 };
-const v_validateUserReportSchema = ajv.compile(s_validateUserReportSchema)
+const v_validateUserReportSchema = ajv.compile(s_validateUserReportSchema);
 
 export const validateUserReportSchema = (body: unknown): { success: boolean; msg: string } => {
 	return validateSchema(v_validateUserReportSchema, body);

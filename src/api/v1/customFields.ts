@@ -7,6 +7,7 @@ import { ObjectId } from "mongodb";
 import { DiffProcessor } from "../../util/diff";
 import { Diff } from "deep-diff";
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults";
+import { canSeeMembers } from "../../security";
 
 export const NewFieldsVersion = 300
 
@@ -24,6 +25,15 @@ export const getCustomField = async (req: Request, res: Response) => {
 };
 
 export const getCustomFields = async (req: Request, res: Response) => {
+
+	if (req.params.system != res.locals.uid) {
+		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
+		if (!canSee) {
+			res.status(403).send("You are not authorized to see content of this user");
+			return;
+		}
+	}
+
 	if (!req.query.sortBy && !req.query.sortOrder)
 	{
 		req.query.sortBy = "order"

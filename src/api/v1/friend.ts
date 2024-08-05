@@ -112,10 +112,10 @@ export const updateFriend = async (req: Request, res: Response) => {
 };
 
 export const getFriendFrontValues = async (req: Request, res: Response) => {
-	const hasMigrated = await doesUserHaveVersion(req.params.id, FIELD_MIGRATION_VERSION)
+	const hasMigrated = await doesUserHaveVersion(req.params.system, FIELD_MIGRATION_VERSION)
 	if (hasMigrated)
 	{
-		const friendDoc = await getCollection("friends").findOne({ uid: req.params.id, frienduid: res.locals.uid });
+		const friendDoc = await getCollection("friends").findOne({ uid: req.params.system, frienduid: res.locals.uid });
 		if (!friendDoc)
 		{
 			res.status(404).send()
@@ -127,6 +127,8 @@ export const getFriendFrontValues = async (req: Request, res: Response) => {
 		if (friendSettingsDoc.seeFront === true) {
 			res.status(200).send({ frontString: friendDoc.frontString , customFrontString: friendDoc.customFrontString ?? "" });
 		}
+
+		res.status(403).send()
 	
 		return
 	}
@@ -148,9 +150,11 @@ export const getFriendFrontValues = async (req: Request, res: Response) => {
 			const front = await sharedFront.findOne({ uid: friendSettingsDoc.uid, _id: friendSettingsDoc.uid });
 			res.status(200).send({ frontString: front?.frontString ?? "", customFrontString: front?.customFrontString ?? "" });
 		}
+
+		return
 	}
 
-	res.status(404).send();
+	res.status(403).send();
 };
 
 export const getAllFriendFrontValues = async (_req: Request, res: Response) => {
@@ -199,6 +203,20 @@ export const getAllFriendFrontValues = async (_req: Request, res: Response) => {
 };
 
 export const getFriendFront = async (req: Request, res: Response) => {
+
+	const friendSettingsDoc = await getCollection("friends").findOne({ frienduid: res.locals.uid, uid: req.params.id });
+	if (!friendSettingsDoc)
+	{
+		res.status(403).send()
+		return
+	}
+
+	if (friendSettingsDoc.seeFront !== true)
+	{
+		res.status(403).send()
+		return
+	}
+
 	const friendFronts = await getCollection("frontHistory").find({ uid: req.params.id, live: true }).toArray();
 
 	const frontingList = [];
@@ -206,7 +224,7 @@ export const getFriendFront = async (req: Request, res: Response) => {
 
 	for (let i = 0; i < friendFronts.length; ++i) {
 		const { member, customStatus } = friendFronts[i];
-		const memberDoc = await getCollection("members").findOne({ _id: parseId(member) }, { projection:{ private: 1, preventTrusted: 1} });
+		const memberDoc = await getCollection("members").findOne({ _id: parseId(member) });
 
 		if (memberDoc) {
 			const canAccess = await getDocumentAccess(res.locals.uid, memberDoc, "members");
@@ -216,14 +234,15 @@ export const getFriendFront = async (req: Request, res: Response) => {
 					frontingStatuses[member] = customStatus;
 				}
 			}
-		}
-		const customFrontDoc = await getCollection("frontStatuses").findOne({ _id: parseId(member) }, { projection:{ private: 1, preventTrusted: 1} });
-		if (customFrontDoc) {
-			const canAccess = await getDocumentAccess(res.locals.uid, customFrontDoc, "frontStatuses");
-			if (canAccess.access === true) {
-				frontingList.push(member);
-				if (customStatus) {
-					frontingStatuses[member] = customStatus;
+		} else {
+			const customFrontDoc = await getCollection("frontStatuses").findOne({ _id: parseId(member) });
+			if (customFrontDoc) {
+				const canAccess = await getDocumentAccess(res.locals.uid, customFrontDoc, "frontStatuses");
+				if (canAccess.access === true) {
+					frontingList.push(member);
+					if (customStatus) {
+						frontingStatuses[member] = customStatus;
+					}
 				}
 			}
 		}

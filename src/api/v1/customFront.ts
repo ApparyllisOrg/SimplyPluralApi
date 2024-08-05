@@ -20,6 +20,15 @@ export const getCustomFronts = async (req: Request, res: Response) => {
 };
 
 export const get = async (req: Request, res: Response) => {
+
+	if (req.params.system != res.locals.uid) {
+		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
+		if (!canSee) {
+			res.status(403).send("You are not authorized to see content of this user");
+			return;
+		}
+	}
+
 	fetchSimpleDocument(req, res, "frontStatuses");
 };
 

@@ -234,7 +234,7 @@ export const notifyFrontDue = async (uid: string, _event: any) => {
 			}
 		
 			if (message.length > 0) {
-				notifyUser(uid, friend.uid, userDoc.username, message);
+				notifyUser(uid, friend.frienduid, userDoc.username, message);
 			}
 		}
 
