@@ -1,6 +1,8 @@
 import assert from "assert";
 import { getCollection } from "../../../../modules/mongo";
 import {LexoRank} from "lexorank";
+import * as Sentry from "@sentry/node";
+import { ObjectId } from "mongodb";
 
 // Create 2 new privacy buckets
 export const update300 = async (uid: string) => {
@@ -10,12 +12,61 @@ export const update300 = async (uid: string) => {
         await rollback300(uid)
     }
 
-    const friendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any } = {uid, name: "Friends", icon: "🔓", rank: "0|aaaaaa:", desc: "A bucket for all your friends", color: "#C99524",}
-    const trustedFriendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any }  = {uid, name: "Trusted friends", icon: "🔒", rank: "0|zzzzzz:", desc: "A bucket for all your trusted friends", color: "#1998A8"}
+    let friendBucketId : string | null | ObjectId = null
+    let trustedFriendBucketID : string | null | ObjectId  = null
+
+    // Attempt to find existing buckets, we may have registered our account after buckets version was live but while our app version was still lower, we don't want double buckets
+    {
+        const existingFriendBucket = await getCollection("privacyBuckets").findOne({uid, name: "Friends"})
+        if (existingFriendBucket)
+        {
+            friendBucketId = existingFriendBucket._id
+        }
+        const existingTrustedFriendBucket = await getCollection("privacyBuckets").findOne({uid, name: "Trusted friends"})
+        if (existingTrustedFriendBucket)
+        {
+            trustedFriendBucketID = existingTrustedFriendBucket._id
+        }
+    }
 
     // insertOne mutates the original object, adding _id as a valid parameter
-    const friend = await getCollection("privacyBuckets").insertOne(friendData)
-    const trustedFriend = await getCollection("privacyBuckets").insertOne(trustedFriendData)
+    if (friendBucketId === null)
+    {
+        const friendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any } = {uid, name: "Friends", icon: "🔓", rank: "0|aaaaaa:", desc: "A bucket for all your friends", color: "#C99524",}
+        const friend = await getCollection("privacyBuckets").insertOne(friendData)
+
+        friendBucketId = friendData._id
+    }
+    
+    if (trustedFriendBucketID === null)
+    {
+        const trustedFriendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any }  = {uid, name: "Trusted friends", icon: "🔒", rank: "0|zzzzzz:", desc: "A bucket for all your trusted friends", color: "#1998A8"}
+        const trustedFriend = await getCollection("privacyBuckets").insertOne(trustedFriendData)
+
+        trustedFriendBucketID = trustedFriendData._id
+    }
+
+    if (friendBucketId === null || trustedFriendBucketID === null)
+    {
+        if (friendBucketId === null)
+        {
+            Sentry.captureMessage("Failed to find or create a privacy bucket for friends", (scope) => {
+                scope.setExtra("uid", uid);
+                return scope;
+            })
+        }
+    
+        if (trustedFriendBucketID === null)
+        {
+            Sentry.captureMessage("Failed to find or create a privacy bucket for trusted friends", (scope) => {
+                scope.setExtra("uid", uid);
+                return scope;
+            })
+        }
+
+        // Halt all execution and prevent migration
+        throw new Error(`Failed to migrate user ${uid} to 300`)
+    }
 
     const applyBucketsToData = async (collection: string) => 
     {
@@ -31,11 +82,11 @@ export const update300 = async (uid: string) => {
             } 
             else if (member.private !== false)
             {
-                applyBucketsPromises.push(getCollection(collection).updateOne({uid, _id: member._id}, {$set: { buckets: [ trustedFriendData._id ]}}))
+                applyBucketsPromises.push(getCollection(collection).updateOne({uid, _id: member._id}, {$set: { buckets: [ trustedFriendBucketID ]}}))
             }
             else 
             {
-                applyBucketsPromises.push(getCollection(collection).updateOne({uid, _id: member._id}, {$set: { buckets: [ friendData._id ]}}))
+                applyBucketsPromises.push(getCollection(collection).updateOne({uid, _id: member._id}, {$set: { buckets: [ friendBucketId ]}}))
             }
         }
     
@@ -55,11 +106,11 @@ export const update300 = async (uid: string) => {
         const friendEntry = friends[i]
         if (friendEntry.seeMembers !== false && friendEntry.trusted !== false)
         {
-            applyFriendBucketsPromises.push(getCollection("friends").updateOne({uid, frienduid: friendEntry.frienduid}, {$set: { buckets: [ trustedFriendData._id ]}}))
+            applyFriendBucketsPromises.push(getCollection("friends").updateOne({uid, frienduid: friendEntry.frienduid}, {$set: { buckets: [ trustedFriendBucketID ]}}))
         }
         else if (friendEntry.seeMembers !== false)
         {
-            applyFriendBucketsPromises.push(getCollection("friends").updateOne({uid, frienduid: friendEntry.frienduid}, {$set: { buckets: [ friendData._id ]}}))
+            applyFriendBucketsPromises.push(getCollection("friends").updateOne({uid, frienduid: friendEntry.frienduid}, {$set: { buckets: [ friendBucketId ]}}))
         }
         else 
         {
@@ -117,11 +168,11 @@ export const update300 = async (uid: string) => {
         } 
         else if (field.private !== false)
         {
-            bucketsToAdd = [ trustedFriendData._id ]
+            bucketsToAdd = [ trustedFriendBucketID ]
         }
         else 
         {
-            bucketsToAdd =  [ friendData._id ]
+            bucketsToAdd =  [ friendBucketId ]
         }
 
         // oid = original id
