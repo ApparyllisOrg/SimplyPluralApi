@@ -1,6 +1,6 @@
 import * as Mongo from "../modules/mongo";
 import LRU from "lru-cache";
-import { getCollection } from "../modules/mongo";
+import { getCollection, parseId } from "../modules/mongo";
 import moment from "moment";
 import { auth } from "firebase-admin";
 import { Request } from "express";
@@ -13,8 +13,9 @@ const sharedFront = "sharedFront";
 const privateFront = "privateFront";
 const friends = "friends";
 const front = "front";
+const customFields = "customFields";
 
-export const friendReadCollections = [users, members, frontStatuses, groups, sharedFront, privateFront, friends, front];
+export const friendReadCollections = [users, members, frontStatuses, groups, sharedFront, privateFront, friends, front, customFields];
 
 export enum FriendLevel {
 	None = 0,
@@ -78,23 +79,6 @@ export const canSeeMembers = async (owner: string, requestor: string): Promise<b
 export const isPendingFriend = (friendLevel: FriendLevel): boolean => !!(friendLevel === FriendLevel.Pending);
 export const isFriend = (friendLevel: FriendLevel): boolean => !!(friendLevel === FriendLevel.Friends) || !!(friendLevel === FriendLevel.Trusted);
 export const isTrustedFriend = (friendLevel: FriendLevel): boolean => !!(friendLevel === FriendLevel.Trusted);
-
-export const canAccessDocument = async (requestor: string, owner: string, privateDoc: boolean, preventTrusted: boolean): Promise<boolean> => {
-	const friendLevel = await getFriendLevel(owner, requestor);
-	if (privateDoc === true) {
-		const trustedFriend: boolean = isTrustedFriend(friendLevel);
-		// Trusted and not prevent trusted.. give access
-		// eslint-disable-next-line sonarjs/prefer-single-boolean-return
-		if (trustedFriend && !preventTrusted) {
-			return true;
-		}
-
-		// Prevent trusted? Don't allow at all
-		// Not a trusted friend? Don't allow either
-		return false;
-	}
-	return !!(friendLevel === FriendLevel.Friends) || !!(friendLevel === FriendLevel.Trusted);
-};
 
 export const logSecurityUserEvent = async (uid: string, action: string, request: Request) => {
 	await getCollection("securityLogs").insertOne({ uid: uid, at: moment.now(), action, ip: request.header("x-forwarded-for") ?? request.ip });

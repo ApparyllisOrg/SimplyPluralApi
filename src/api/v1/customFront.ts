@@ -4,8 +4,9 @@ import { frontChange } from "../../modules/events/frontChange";
 import { getCollection } from "../../modules/mongo";
 import { canSeeMembers } from "../../security";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, deleteSimpleDocument } from "../../util";
-import { ajv, getPrivacyDependency, validateSchema } from "../../util/validation";
+import { ajv, getPrivacyDependency, validateSchema, getAvatarUuidSchema } from "../../util/validation";
 import { frameType } from "../types/frameType";
+import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults";
 
 export const getCustomFronts = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
@@ -19,11 +20,26 @@ export const getCustomFronts = async (req: Request, res: Response) => {
 };
 
 export const get = async (req: Request, res: Response) => {
+
+	if (req.params.system != res.locals.uid) {
+		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
+		if (!canSee) {
+			res.status(403).send("You are not authorized to see content of this user");
+			return;
+		}
+	}
+
 	fetchSimpleDocument(req, res, "frontStatuses");
 };
 
 export const add = async (req: Request, res: Response) => {
-	addSimpleDocument(req, res, "frontStatuses");
+
+	const insertBuckets = async (data: any) : Promise<void> =>
+	{
+		await insertDefaultPrivacyBuckets(res.locals.uid, data, 'customFronts')
+	}
+
+	addSimpleDocument(req, res, "frontStatuses", insertBuckets);
 };
 
 export const update = async (req: Request, res: Response) => {
@@ -55,7 +71,7 @@ const s_validateCustomFrontSchema = {
 		name: { type: "string" },
 		desc: { type: "string" },
 		avatarUrl: { type: "string" },
-		avatarUuid: { type: "string" },
+		avatarUuid: getAvatarUuidSchema(),
 		color: { type: "string" },
 		preventTrusted: { type: "boolean" },
 		private: { type: "boolean" },
@@ -66,6 +82,7 @@ const s_validateCustomFrontSchema = {
 	additionalProperties: false,
 	dependencies: getPrivacyDependency(),
 };
+
 const v_validateCustomFrontSchema = ajv.compile(s_validateCustomFrontSchema)
 
 export const validateCustomFrontSchema = (body: unknown): { success: boolean; msg: string } => {
@@ -78,14 +95,14 @@ const s_validatePostCustomFrontSchema = {
 		name: { type: "string" },
 		desc: { type: "string" },
 		avatarUrl: { type: "string" },
-		avatarUuid: { type: "string" },
+		avatarUuid: getAvatarUuidSchema(),
 		color: { type: "string" },
 		preventTrusted: { type: "boolean" },
 		private: { type: "boolean" },
 		supportDescMarkdown: { type: "boolean" },
 		frame: frameType
 	},
-	required: ["name", "private", "preventTrusted"],
+	required: ["name"],
 	nullable: false,
 	additionalProperties: false,
 	dependencies: getPrivacyDependency(),

@@ -21,6 +21,7 @@ import { requestEmail_Execution } from "./auth/auth.requestEmail";
 import { logOpenUsage as logDailyUsage } from "./events/open";
 import { migrateAccountFromFirebase } from "./auth/auth.migrate";
 import { fetchCollection } from "../../util";
+import { setupNewUser } from "./user";
 
 initializeApp({ projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY });
 
@@ -286,6 +287,8 @@ export const register = async (req: Request, res: Response) => {
 	await getCollection("accounts").insertOne({ uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode, verified: false, registeredAt: new Date() });
 	const jwt = await jwtForUser(newUserId, undefined, undefined);
 	res.status(200).send(jwt);
+
+	await setupNewUser(newUserId)
 
 	logSecurityUserEvent(newUserId, "Registered your user account", req);
 

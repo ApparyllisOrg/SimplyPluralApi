@@ -91,7 +91,7 @@ export const notifyUser = async (instigator: string, target: string, title: stri
 	}
 
 	const privateCollection = getCollection("private");
-	const privateData = await privateCollection.findOne({ uid: target });
+	const privateData = await privateCollection.findOne({ uid: target, _id: target });
 	if (privateData) {
 		const notificationLifetime = lifetime ?? 1000 * 60 * 60 * 6;
 

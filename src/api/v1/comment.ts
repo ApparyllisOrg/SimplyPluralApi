@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import { getCollection, parseId } from "../../modules/mongo";
-import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendDocuments, updateSimpleDocument } from "../../util";
+import { addSimpleDocument, deleteSimpleDocument, fetchSimpleDocument, sendQuery, updateSimpleDocument } from "../../util";
 import { ajv, validateSchema } from "../../util/validation";
 
 export const getCommentsForDocument = async (req: Request, res: Response) => {
-	const documents = await getCollection("comments").find({ uid: res.locals.uid, documentId: req.params.id, collection: req.params.type }).toArray();
-	sendDocuments(req, res, "comments", documents);
+	const query = await getCollection("comments").find({ uid: res.locals.uid, documentId: req.params.id, collection: req.params.type });
+	sendQuery(req, res, "comments", query.stream());
 };
 
 export const get = async (req: Request, res: Response) => {
@@ -22,7 +22,7 @@ export const add = async (req: Request, res: Response) => {
 		return;
 	}
 
-	const attachedDocument = await getCollection(req.body.collection).findOne({ _id: parseId(req.body.documentId) });
+	const attachedDocument = await getCollection(req.body.collection).findOne({ _id: parseId(req.body.documentId), uid: res.locals.uid });
 	if (!attachedDocument) {
 		res.status(404).send("Document not found for which you wish to add a comment");
 	} else {

@@ -9,9 +9,9 @@ const fileType = require('file-type');
 
 import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 
-const s3 = new S3Client({
+export const s3 = new S3Client({
 	endpoint: process.env.OBJECT_HOST ?? "",
-	region: process.env.OBJECT_REGION ?? "",
+	region: process.env.OBJECT_REGION ?? "none",
 	credentials: { accessKeyId: process.env.OBJECT_KEY ?? '', secretAccessKey: process.env.OBJECT_SECRET ?? ''}
 });
 

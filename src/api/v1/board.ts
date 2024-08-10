@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { addSimpleDocument, deleteSimpleDocument, fetchCollection, fetchSimpleDocument, sendDocuments, updateSimpleDocument } from "../../util";
+import { addSimpleDocument, deleteSimpleDocument, fetchCollection, fetchSimpleDocument, updateSimpleDocument } from "../../util";
 import { ajv, validateSchema } from "../../util/validation";
 
 export const getBoardMessagesForMember = async (req: Request, res: Response) => {

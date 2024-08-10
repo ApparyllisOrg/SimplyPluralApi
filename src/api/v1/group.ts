@@ -3,18 +3,41 @@ import { getCollection, parseId } from "../../modules/mongo";
 import { dispatchDelete, OperationType } from "../../modules/socket";
 import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchCollection, isMemberOrCustomFront, isMember } from "../../util";
 import { ajv, getPrivacyDependency, validateSchema } from "../../util/validation";
-import Ajv from "ajv";
+import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults";
+import { canSeeMembers } from "../../security";
 
 export const getGroups = async (req: Request, res: Response) => {
+	if (req.params.system != res.locals.uid) {
+		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
+		if (!canSee) {
+			res.status(403).send("You are not authorized to see content of this user");
+			return;
+		}
+	}
+
 	fetchCollection(req, res, "groups", {});
 };
 
 export const get = async (req: Request, res: Response) => {
+
+	if (req.params.system != res.locals.uid) {
+		const canSee = await canSeeMembers(req.params.system, res.locals.uid);
+		if (!canSee) {
+			res.status(403).send("You are not authorized to see content of this user");
+			return;
+		}
+	}
+
 	fetchSimpleDocument(req, res, "groups");
 };
 
 export const add = async (req: Request, res: Response) => {
-	addSimpleDocument(req, res, "groups");
+	const insertBuckets = async (data: any) : Promise<void> =>
+	{
+		await insertDefaultPrivacyBuckets(res.locals.uid, data, 'groups')
+	}
+
+	addSimpleDocument(req, res, "groups", insertBuckets);
 };
 
 export const setMemberInGroups = async (req: Request, res: Response) => {
@@ -90,7 +113,17 @@ export const update = async (req: Request, res: Response) => {
 };
 
 export const del = async (req: Request, res: Response) => {
+	const originalDocument = await getCollection("groups").findOne({ uid: res.locals.uid, _id: parseId(req.params.id) })
+	if (!originalDocument)
+	{
+		res.status(404).send()
+		return
+	}
+
 	await delGroupRecursive(req.params.id, res.locals.uid);
+
+	//logDeleteAudit(res.locals.uid, "groups", res.locals.operationTime, originalDocument)
+
 	res.status(200).send();
 };
 
@@ -117,7 +150,7 @@ const privateGroupRecursive = async (groupId: string, uid: string, priv: boolean
 	await getCollection("groups").updateOne({ uid, _id: parseId(groupId) }, { $set: { private: priv, preventTrusted } });
 };
 
-const groupSchema = {
+const s_validateGroupSchema = {
 	type: "object",
 	properties: {
 		parent: { type: "string" },
@@ -134,13 +167,13 @@ const groupSchema = {
 	additionalProperties: false,
 	dependencies: getPrivacyDependency(),
 };
-const groupValidate = ajv.compile(groupSchema)
+const v_validateGroupSchema = ajv.compile(s_validateGroupSchema)
 
 export const validateGroupSchema = (body: unknown): { success: boolean; msg: string } => {
-	return validateSchema(groupValidate, body);
+	return validateSchema(v_validateGroupSchema, body);
 };
 
-const setMembersInGroupSchema = {
+const s_validateSetMemberInGroupSchema = {
 	type: "object",
 	properties: {
 		member: { type: "string", pattern: "^[a-zA-Z0-9]{5,64}$" },
@@ -150,13 +183,13 @@ const setMembersInGroupSchema = {
 	additionalProperties: false,
 	required: ["member", "groups"],
 };
-const setMembersInGroupValidate = ajv.compile(setMembersInGroupSchema)
+const v_validateSetMemberInGroupSchema = ajv.compile(s_validateSetMemberInGroupSchema)
 
 export const validateSetMemberInGroupSchema = (body: unknown): { success: boolean; msg: string } => {
-	return validateSchema(setMembersInGroupValidate, body);
+	return validateSchema(v_validateSetMemberInGroupSchema, body);
 };
 
-const postGroupSchema = {
+const s_validatePostGroupSchema = {
 	type: "object",
 	properties: {
 		parent: { type: "string" },
@@ -169,13 +202,13 @@ const postGroupSchema = {
 		members: { type: "array", items: { type: "string" }, uniqueItems: true },
 		supportDescMarkdown: { type: "boolean" },
 	},
-	required: ["parent", "color", "private", "preventTrusted", "name", "desc", "emoji", "members"],
+	required: ["parent", "color", "name", "desc", "emoji", "members"],
 	nullable: false,
 	additionalProperties: false,
 	dependencies: getPrivacyDependency(),
 };
-const postGroupValidate = ajv.compile(postGroupSchema)
+const v_validatePostGroupSchema = ajv.compile(s_validatePostGroupSchema)
 
 export const validatePostGroupSchema = (body: unknown): { success: boolean; msg: string } => {
-	return validateSchema(postGroupValidate, body);
+	return validateSchema(v_validatePostGroupSchema, body);
 };

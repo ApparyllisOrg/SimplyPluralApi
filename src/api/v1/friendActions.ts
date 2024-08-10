@@ -5,6 +5,7 @@ import { notifyUser } from "../../modules/notifications/notifications";
 import { FriendLevel, getFriendLevel } from "../../security";
 
 import { ajv, validateSchema } from "../../util/validation";
+import { FIELD_MIGRATION_VERSION, doesUserHaveVersion } from "./user/updates/updateUser";
 
 // Todo: Add schema
 export const AddFriend = async (req: Request, res: Response) => {
@@ -94,21 +95,32 @@ export const validateAddFrienqRequestSchema = (body: unknown): { success: boolea
 	return validateSchema(v_validateAddFrienqRequestSchema, body);
 };
 
-const s_validateRespondToFrienqRequestQuerySchema = {
+
+
+const s_validatAddFrienqRequestV2Schema = {
 	type: "object",
 	properties: {
-		accepted: {
-			type: "string",
-			pattern: "^(true|false)$",
+		settings: {
+			type: "object",
+			properties: {
+				seeMembers: { type: "boolean" },
+				seeFront: { type: "boolean" },
+				getFrontNotif: { type: "boolean" },
+				message: { type: "string" },
+			},
+			nullable: false,
+			additionalProperties: false,
+			required: ["seeMembers", "seeFront", "getFrontNotif"],
 		},
 	},
 	nullable: false,
 	additionalProperties: false,
+	required: ["settings"],
 };
-const v_validateRespondToFrienqRequestQuerySchema = ajv.compile(s_validateRespondToFrienqRequestQuerySchema)
+const v_validatAddFrienqRequestV2Schema = ajv.compile(s_validatAddFrienqRequestV2Schema)
 
-export const validateRespondToFrienqRequestQuerySchema = (body: unknown): { success: boolean; msg: string } => {
-	return validateSchema(v_validateRespondToFrienqRequestQuerySchema, body);
+export const validatAddFrienqRequestV2Schema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validatAddFrienqRequestV2Schema, body);
 };
 
 const s_validateRespondToFrienqRequestSchema = {
@@ -135,17 +147,74 @@ const v_validateRespondToFrienqRequestSchema = ajv.compile(s_validateRespondToFr
 
 export const validateRespondToFrienqRequestSchema = (body: unknown): { success: boolean; msg: string } => {
 	return validateSchema(v_validateRespondToFrienqRequestSchema, body);
+}
+
+const s_validateRespondToFrienqRequestQuerySchema = {
+	type: "object",
+	properties: {
+		accepted: {
+			type: "string",
+			pattern: "^(true|false)$",
+		},
+	},
+	required: ["accepted"],
+	nullable: false,
+	additionalProperties: false,
+};
+const v_validateRespondToFrienqRequestQuerySchema = ajv.compile(s_validateRespondToFrienqRequestQuerySchema)
+
+export const validateRespondToFrienqRequestQuerySchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateRespondToFrienqRequestQuerySchema, body);
+};
+
+const s_validateRespondToFrienqRequestV2Schema = {
+	type: "object",
+	properties: {
+		settings: {
+			type: "object",
+			properties: {
+				seeMembers: { type: "boolean" },
+				seeFront: { type: "boolean" },
+				getFrontNotif: { type: "boolean" },
+			},
+			nullable: false,
+			additionalProperties: false,
+			required: ["seeMembers", "seeFront", "getFrontNotif"],
+		},
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["settings"],
+};
+const v_validateRespondToFrienqRequestV2Schema = ajv.compile(s_validateRespondToFrienqRequestV2Schema)
+
+export const validateRespondToFrienqRequestV2Schema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateRespondToFrienqRequestV2Schema, body);
 };
 
 export const RespondToFriendRequest = async (req: Request, res: Response) => {
 	const accept = req.query.accepted === "true";
 
 	if (accept) {
-		const validation = validateRespondToFrienqRequestSchema(req.body);
-		if (!validation.success) {
-			res.status(400).send(validation.msg);
-			return;
+		const migrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+
+		if (migrated)
+		{
+			const validation = validateRespondToFrienqRequestV2Schema(req.body);
+			if (!validation.success) {
+				res.status(400).send(validation.msg);
+				return;
+			}
 		}
+		else 
+		{
+			const validation = validateRespondToFrienqRequestSchema(req.body);
+			if (!validation.success) {
+				res.status(400).send(validation.msg);
+				return;
+			}
+		}
+		
 	}
 
 	const target = req.params.usernameOrId;
@@ -173,7 +242,7 @@ export const RespondToFriendRequest = async (req: Request, res: Response) => {
 		return;
 	}
 
-	res.status(200).send({ success: false, msg: "No pending friend requests with this user" });
+	res.status(404).send({ success: false, msg: "No pending friend requests with this user" });
 };
 
 export const AcceptFriendRequest = async (_sender: string, _receiver: string, accepted: boolean, settings: any) => {

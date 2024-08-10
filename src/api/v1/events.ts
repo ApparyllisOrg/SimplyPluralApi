@@ -21,7 +21,7 @@ export const event = async (req: Request, res: Response) => {
 
 // Track daily users anonymounsly by storing "lastOpen" in a user and if it's older than today, increment the daily usage count.
 export const openEvent = async (_req: Request, res: Response) => {
-	const privateUser = await getCollection("private").findOne({ uid: res.locals.uid });
+	const privateUser = await getCollection("private").findOne({ uid: res.locals.uid, _id: res.locals.uid });
 
 	if (!privateUser) {
 		res.status(404).send();

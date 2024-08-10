@@ -1,11 +1,11 @@
 import { Request, Response } from "express";
 import { getCollection } from "../../modules/mongo";
-import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendDocuments, deleteSimpleDocument } from "../../util";
+import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendQuery, deleteSimpleDocument } from "../../util";
 import { ajv, validateSchema } from "../../util/validation";
 
 export const getNotesForMember = async (req: Request, res: Response) => {
-	const documents = await getCollection("notes").find({ uid: req.params.system, member: req.params.member }).toArray();
-	sendDocuments(req, res, "notes", documents);
+	const documents = await getCollection("notes").find({ uid: req.params.system, member: req.params.member });
+	sendQuery(req, res, "notes", documents.stream());
 };
 
 export const get = async (req: Request, res: Response) => {

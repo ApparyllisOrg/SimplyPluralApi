@@ -5,6 +5,7 @@ import { auth } from "firebase-admin";
 import { getEmailRegex, getNewUid } from "./auth.core";
 import { namedArguments } from "../../../util/args";
 import { migrateAccountFromFirebase } from "./auth.migrate";
+import { setupNewUser } from "../user";
 
 //-------------------------------//
 // Get a new valid uid that can be used for a user
@@ -112,6 +113,7 @@ const registerSub = async (payload: TokenPayload): Promise<boolean> => {
 
 	if (!firebaseUser) {
 		const newUserId = await getNewUid();
+		await setupNewUser(newUserId)
 		await getCollection("accounts").insertOne({ uid: newUserId, sub: payload.sub, email: payload.email, verified: true, oAuth2: true, registeredAt: new Date() });
 		return true;
 	}

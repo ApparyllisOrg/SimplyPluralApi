@@ -49,7 +49,7 @@ export const fetchAllAvatars = async (uid: string, processAvatar: (name: String,
 // Export all data of a user
 //-------------------------------//
 export const exportData = async (uid: string): Promise<{ success: boolean; code: number; msg: string }> => {
-	const privateUser = await getCollection("private").findOne({ uid });
+	const privateUser = await getCollection("private").findOne({ uid, _id: uid });
 
 	if (!privateUser) {
 		return { success: false, code: 404, msg: "Can't find user" };
@@ -76,9 +76,7 @@ export const exportData = async (uid: string): Promise<{ success: boolean; code:
 			allData[actualName] = collectionData;
 		}
 	}
-
-	const email = await getEmailForUser(uid)
-
+	
 	const getFile = promisify(readFile);
 	let emailTemplate = await getFile("./templates/exportEmailTemplate.html", "utf-8");
 

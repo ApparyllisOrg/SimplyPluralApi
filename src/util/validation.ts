@@ -6,6 +6,7 @@ import addFormats from "ajv-formats";
 import Ajv, { ValidateFunction } from "ajv";
 import { ObjectId } from "mongodb";
 import moment from "moment";
+import { getCollection } from "../modules/mongo";
 
 export const ajv = new Ajv({ allErrors: true, $data: true, verbose: true });
 ajv.addFormat("fullEmail", RegExp("^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$", "i"))
@@ -40,6 +41,11 @@ export const validateQuery = (func: schemavalidation) => {
 
 export const validateBody = (func: schemavalidation) => {
 	return async (req: Request, res: Response, next: any) => {
+		if(req.body.constructor === Object && Object.keys(req.body).length === 0) {
+			res.status(400).send("You need to send at least one valid property.\nPossible causes:\n*No content-type was provided\n*No properties were sent");
+			return;
+		  }
+
 		const result = func(req.body);
 		if (!result.success) {
 			if (process.env.UNITTEST === "true") {
@@ -190,7 +196,40 @@ export const validateOperationTime = async (req: Request, res: Response, next: a
 	res.status(400).send("Operation-Time header is not a valid number");
 };
 
+// Pre-flight check that the requestor and the requested documents are of the same uid
+export const validateSelfOperation = async (req: Request, res: Response, next: any) => {
+
+	if (req.params.system !== res.locals.uid) {
+		res.status(401).send("You are not authorized to see content of this user");
+		return;
+	} 
+	
+	next();
+};
+
+// Pre-flight check that the requestor and the requested user id documents are friends
+export const validateAreFriends = async (req: Request, res: Response, next: any) => {
+
+	if (req.params.system === res.locals.uid) {
+		next()
+		return
+	}
+
+	const friendDoc = await getCollection("friends").findOne({ uid: req.params.system, frienduid: res.locals.uid });
+	if (!friendDoc)
+	{
+		res.status(403).send()
+		return
+	}
+	
+	next()
+};
+
 export const getPrivacyDependency = () => ({
 	private: { required: ["preventTrusted"] },
 	preventTrusted: { required: ["private"] },
 });
+
+export const getAvatarUuidSchema = () => (
+	{ type: "string", pattern: "^([a-zA-Z0-9\-]{0,128})$"}
+);
