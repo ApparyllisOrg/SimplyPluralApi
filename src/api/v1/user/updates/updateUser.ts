@@ -5,6 +5,7 @@ import { update122 } from "./update112"
 import { update150 } from "./update150"
 import { update151 } from "./update151"
 import { update300 } from "./update300"
+import { ObjectId } from "mongodb"
 
 export const versionMigrationList = [111, 149, 150, 300]
 
@@ -23,9 +24,10 @@ export const doesUserHaveVersion = async (uid: string, version: number): Promise
 		return false
 	}
 
-	const privateDoc = await getCollection("private").findOne({ uid, _id: uid }, { projection: { latestVersion: 1 } })
+	const privateDoc: { _id: string | ObjectId; latestVersion: number | undefined } = await getCollection("private").findOne({ uid, _id: uid }, { projection: { latestVersion: 1 } })
+
 	if (privateDoc) {
-		const hasVersion = privateDoc.latestVersion && privateDoc.latestVersion >= version
+		const hasVersion: boolean = privateDoc.latestVersion !== null && privateDoc.latestVersion !== undefined && privateDoc.latestVersion >= version
 		versionLRU.set(userVersionString, hasVersion)
 		return hasVersion
 	}
