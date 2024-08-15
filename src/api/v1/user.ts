@@ -1,7 +1,7 @@
 import { Request, Response } from "express"
 import { logger, userLog } from "../../modules/logger"
 import { db, getCollection, parseId } from "../../modules/mongo"
-import { fetchCollection, getDocumentAccess, sendDocument } from "../../util"
+import { fetchBucketsForFriend, fetchCollection, getDocumentAccess, sendDocument } from "../../util"
 import { ajv, getAvatarUuidSchema, validateSchema } from "../../util/validation"
 import { generateUserReport } from "./user/generateReport"
 import { update122 } from "./user/updates/update112"
@@ -121,13 +121,23 @@ export const get = async (req: Request, res: Response) => {
 		if (canSee) {
 			const hasMigrated = await doesUserHaveVersion(req.params.id, FIELD_MIGRATION_VERSION)
 			if (hasMigrated) {
-				const userFields = await getCollection("customFields").find({ uid: req.params.id }).toArray()
+				const friendBuckets = await fetchBucketsForFriend(res.locals.uid, req.params.id)
 
-				for (let i = 0; i < userFields.length; ++i) {
-					const field = userFields[i]
-					const accessResult = await getDocumentAccess(res.locals.uid, field, "customFields")
-					if (accessResult.access === true) {
+				const userFields = await getCollection("customFields")
+					.find({ uid: req.params.id, buckets: { $in: friendBuckets } })
+					.sort({ order: 1 })
+					.toArray()
+
+				const friendMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+				if (friendMigrated === true) {
+					for (let i = 0; i < userFields.length; ++i) {
+						const field = userFields[i]
 						newFields[field._id.toString()] = { name: field.name, order: field.order, type: field.type }
+					}
+				} else {
+					for (let i = 0; i < userFields.length; ++i) {
+						const field = userFields[i]
+						newFields[field._id.toString()] = { name: field.name, order: i, type: field.type }
 					}
 				}
 			} // Legacy custom fields
@@ -135,14 +145,23 @@ export const get = async (req: Request, res: Response) => {
 				const friendLevel = await getFriendLevel(req.params.id, res.locals.uid)
 				const isATrustedFriends = isTrustedFriend(friendLevel)
 
+				const friendMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+
 				if (document.fields) {
 					Object.keys(document.fields).forEach((key: string) => {
 						const field = document.fields[key]
 						if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
 							newFields[key] = field
+
+							if (friendMigrated === true) {
+								newFields[key].order = newFields[key].order.toString()
+							}
 						}
 						if (field.private === false && field.preventTrusted === false) {
 							newFields[key] = field
+							if (friendMigrated === true) {
+								newFields[key].order = newFields[key].order.toString()
+							}
 						}
 					})
 				}

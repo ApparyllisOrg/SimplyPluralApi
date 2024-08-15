@@ -6,7 +6,8 @@ import { expect } from "chai"
 import axios from "axios"
 import moment from "moment"
 import { notifyFrontDue } from "../../modules/events/frontChange"
-import { AccountState, registerAccount, setupFront, testFrontAccess, testNoFrontAccess, testNoTypeAccess, testTypeAccess } from "./access/utils"
+import { AccountState, registerAccount, setupFront, testCustomFieldsMemberAccess, testFrontAccess, testNoFrontAccess, testNoTypeAccess, testTypeAccess } from "./access/utils"
+import { getCollection } from "../../modules/mongo"
 
 describe("validate access across accounts", () => {
 	let acc1: AccountState = { id: "", token: "" } // Account sharing data
@@ -198,10 +199,6 @@ describe("validate access across accounts", () => {
 		}
 	}
 
-	mocha.test("Setup members access", async () => {
-		await setupTypeAccess("members", "v1/member", {})
-	})
-
 	mocha.test("Setup groups access", async () => {
 		await setupTypeAccess("groups", "v1/group", { desc: "", color: "", parent: "", emoji: "", members: [] })
 	})
@@ -212,6 +209,18 @@ describe("validate access across accounts", () => {
 
 	mocha.test("Setup custom fields access", async () => {
 		await setupTypeAccess("customFields", "v1/customField", { supportMarkdown: false, type: 0, order: "0|aaaaaa:" })
+	})
+
+	mocha.test("Setup members access", async () => {
+		const acc1Fields = await getCollection("customFields").find({ uid: acc1.id }).toArray()
+
+		const infoObject: { [key: string]: string } = {}
+
+		acc1Fields.forEach((field) => {
+			infoObject[field._id.toString()] = "SomeText"
+		})
+
+		await setupTypeAccess("members", "v1/member", { info: infoObject })
 	})
 
 	mocha.test("Setup front", async () => {
@@ -275,6 +284,11 @@ describe("validate access across accounts", () => {
 		await testCustomFieldsUerAccess(`v1/user/${acc1.id}`, acc3.token, ["Friend", "Trusted Friend"])
 		await testCustomFieldsUerAccess(`v1/user/${acc1.id}`, acc4.token, ["Friend"])
 		await testCustomFieldsUerAccess(`v1/user/${acc1.id}`, acc5.token, ["Friend", "Trusted Friend"])
+
+		await testCustomFieldsMemberAccess(`v1/members/${acc1.id}`, `v1/member/${acc1.id}`, `v1/customFields/${acc1.id}`, acc2.token, 1)
+		await testCustomFieldsMemberAccess(`v1/members/${acc1.id}`, `v1/member/${acc1.id}`, `v1/customFields/${acc1.id}`, acc3.token, 2)
+		await testCustomFieldsMemberAccess(`v1/members/${acc1.id}`, `v1/member/${acc1.id}`, `v1/customFields/${acc1.id}`, acc4.token, 1)
+		await testCustomFieldsMemberAccess(`v1/members/${acc1.id}`, `v1/member/${acc1.id}`, `v1/customFields/${acc1.id}`, acc5.token, 2)
 
 		{
 			const userResult = await axios.get(getTestAxiosUrl(`v1/user/${acc1.id}`), { headers: { authorization: acc6.token }, validateStatus: () => true })

@@ -60,6 +60,40 @@ export const testNoTypeAccess = async (url: string, singleUrl: string, token: st
 	}
 }
 
+export const testCustomFieldsMemberAccess = async (url: string, singleUrl: string, fieldsUrl: string, token: string, expectedMembers: number): Promise<void> => {
+	const contentResult = await axios.get(getTestAxiosUrl(url), { headers: { authorization: token }, validateStatus: () => true })
+
+	expect(contentResult.status).to.eq(200, contentResult.data)
+
+	const fieldsResult = await axios.get(getTestAxiosUrl(fieldsUrl), { headers: { authorization: token }, validateStatus: () => true })
+
+	expect(fieldsResult.status).to.eq(200, fieldsResult.data)
+
+	if (Array.isArray(contentResult.data)) {
+		expect(contentResult.data.length).to.eq(expectedMembers, `${url} -> Test type access received an array but array length is mismatched`)
+
+		for (let i = 0; i < expectedMembers; ++i) {
+			const member = contentResult.data[i].content
+			const memberInfo = member.info
+
+			for (let x = 0; x < fieldsResult.data.length; ++x) {
+				expect(memberInfo[fieldsResult.data[x].id]).not.to.be.undefined
+			}
+
+			const id = contentResult.data[i].id
+
+			const singleContentResult = await axios.get(getTestAxiosUrl(`${singleUrl}/${id}`), { headers: { authorization: token }, validateStatus: () => true })
+
+			expect(singleContentResult.status).to.eq(200, singleContentResult.data)
+
+			for (let x = 0; x < fieldsResult.data.length; ++x) {
+				expect(singleContentResult.data.content.info[fieldsResult.data[x].id]).not.to.be.undefined
+			}
+		}
+	} else {
+		assert(false, "Test type access received a non-array")
+	}
+}
 export const testTypeAccess = async (url: string, singleUrl: string, token: string, expectedNames: string[]): Promise<void> => {
 	const contentResult = await axios.get(getTestAxiosUrl(url), { headers: { authorization: token }, validateStatus: () => true })
 
