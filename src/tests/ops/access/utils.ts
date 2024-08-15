@@ -31,7 +31,7 @@ export const registerAccount = async (accountNumber: number, account: AccountSta
 	return account
 }
 
-export const testNoTypeAccess = async (url: string, singleUrl: string, token: string, fullAccessToken: string): Promise<void> => {
+export const testNoTypeAccess = async (url: string, singleUrl: string, token: string, fullAccessToken: string, expectCode: number = 403): Promise<void> => {
 	const contentResult = await axios.get(getTestAxiosUrl(url), { headers: { authorization: token }, validateStatus: () => true })
 
 	expect(contentResult.status).to.eq(403, contentResult.data)
@@ -51,8 +51,7 @@ export const testNoTypeAccess = async (url: string, singleUrl: string, token: st
 				const typeId = passingContentResult.data[i].id
 
 				const singleContentResult = await axios.get(getTestAxiosUrl(`${singleUrl}/${typeId}`), { headers: { authorization: token }, validateStatus: () => true })
-
-				expect(singleContentResult.status).to.eq(403, JSON.stringify(singleContentResult.data))
+				expect(singleContentResult.status).to.eq(expectCode, JSON.stringify(singleContentResult.data))
 			}
 		} else {
 			assert(false, "Test no type access received a non-array")
@@ -94,7 +93,7 @@ export const testCustomFieldsMemberAccess = async (url: string, singleUrl: strin
 		assert(false, "Test type access received a non-array")
 	}
 }
-export const testTypeAccess = async (url: string, singleUrl: string, token: string, expectedNames: string[]): Promise<void> => {
+export const testTypeAccess = async (url: string, singleUrl: string, token: string, expectedNames: string[], skipSingleCheck?: boolean): Promise<void> => {
 	const contentResult = await axios.get(getTestAxiosUrl(url), { headers: { authorization: token }, validateStatus: () => true })
 
 	expect(contentResult.status).to.eq(200, contentResult.data)
@@ -107,12 +106,14 @@ export const testTypeAccess = async (url: string, singleUrl: string, token: stri
 			const foundName = containsWhere(contentResult.data, (doc) => doc.name === name)
 			expect(foundName).to.eq(true, `${url} -> Test type access received but values mismatch. Tried to find ${name}`)
 			if (foundName) {
-				const typeId = getIdWhere(contentResult.data, (doc) => doc.name === name)
+				if (skipSingleCheck !== true) {
+					const typeId = getIdWhere(contentResult.data, (doc) => doc.name === name)
 
-				const singleContentResult = await axios.get(getTestAxiosUrl(`${singleUrl}/${typeId}`), { headers: { authorization: token }, validateStatus: () => true })
+					const singleContentResult = await axios.get(getTestAxiosUrl(`${singleUrl}/${typeId}`), { headers: { authorization: token }, validateStatus: () => true })
 
-				expect(singleContentResult.status).to.eq(200, singleContentResult.data)
-				expect(singleContentResult.data.content.name).to.eq(name, "Tried to get single content but name mismatched")
+					expect(singleContentResult.status).to.eq(200, singleContentResult.data)
+					expect(singleContentResult.data.content.name).to.eq(name, "Tried to get single content but name mismatched")
+				}
 			}
 		}
 	} else {
