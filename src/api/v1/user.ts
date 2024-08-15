@@ -154,13 +154,13 @@ export const get = async (req: Request, res: Response) => {
 							newFields[key] = field
 
 							if (friendMigrated === true) {
-								newFields[key].order = newFields.order.toString()
+								newFields[key].order = newFields[key].order.toString()
 							}
 						}
 						if (field.private === false && field.preventTrusted === false) {
 							newFields[key] = field
 							if (friendMigrated === true) {
-								newFields[key].order = newFields.order.toString()
+								newFields[key].order = newFields[key].order.toString()
 							}
 						}
 					})
