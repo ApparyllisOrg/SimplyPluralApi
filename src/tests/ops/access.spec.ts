@@ -6,7 +6,7 @@ import { expect } from "chai"
 import axios from "axios"
 import moment from "moment"
 import { notifyFrontDue } from "../../modules/events/frontChange"
-import { AccountState, registerAccount, setupFront, testCustomFieldsMemberAccess, testFrontAccess, testNoFrontAccess, testNoTypeAccess, testTypeAccess } from "./access/utils"
+import { AccountState, registerAccount, setupFront, testCustomFieldsMemberAccess, testFriendAccess, testFrontAccess, testNoFrontAccess, testNoTypeAccess, testTypeAccess } from "./access/utils"
 import { getCollection } from "../../modules/mongo"
 
 describe("validate access across accounts", () => {
@@ -290,6 +290,11 @@ describe("validate access across accounts", () => {
 		await testCustomFieldsMemberAccess(`v1/members/${acc1.id}`, `v1/member/${acc1.id}`, `v1/customFields/${acc1.id}`, acc4.token, 1)
 		await testCustomFieldsMemberAccess(`v1/members/${acc1.id}`, `v1/member/${acc1.id}`, `v1/customFields/${acc1.id}`, acc5.token, 2)
 
+		await testFriendAccess(`v1/friends`, acc1.id, acc2.token, ["Friend"])
+		await testFriendAccess(`v1/friends`, acc1.id, acc3.token, ["Friend", "Trusted Friend"])
+		await testFriendAccess(`v1/friends`, acc1.id, acc4.token, ["Friend"])
+		await testFriendAccess(`v1/friends`, acc1.id, acc5.token, ["Friend", "Trusted Friend"])
+
 		{
 			const userResult = await axios.get(getTestAxiosUrl(`v1/user/${acc1.id}`), { headers: { authorization: acc6.token }, validateStatus: () => true })
 			expect(userResult.status).to.eq(200, userResult.data)
@@ -304,6 +309,13 @@ describe("validate access across accounts", () => {
 			const userResult = await axios.get(getTestAxiosUrl(`v1/user/${acc1.id}`), { headers: { authorization: acc7.token }, validateStatus: () => true })
 			expect(userResult.status).to.eq(403, userResult.data)
 		}
+	})
+
+	mocha.test("Test friends access", async () => {
+		await testFriendAccess(`v1/friends`, acc1.id, acc2.token, ["Friend"])
+		await testFriendAccess(`v1/friends`, acc1.id, acc3.token, ["Friend", "Trusted Friend"])
+		await testFriendAccess(`v1/friends`, acc1.id, acc4.token, ["Friend"])
+		await testFriendAccess(`v1/friends`, acc1.id, acc5.token, ["Friend", "Trusted Friend"])
 	})
 
 	mocha.test("Test front access", async () => {

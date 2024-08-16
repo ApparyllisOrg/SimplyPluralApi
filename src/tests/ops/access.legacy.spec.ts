@@ -5,7 +5,7 @@ import { containsWhereDirect, getTestAxiosUrl, postDocument, sleep } from "../ut
 import { expect } from "chai"
 import axios from "axios"
 import { FIELD_MIGRATION_VERSION } from "../../api/v1/user/updates/updateUser"
-import { AccountState, registerAccount, setupFront, testCustomFieldsMemberAccess, testFrontAccess, testNoFrontAccess, testNoTypeAccess, testTypeAccess } from "./access/utils"
+import { AccountState, registerAccount, setupFront, testCustomFieldsMemberAccess, testFriendAccess, testFrontAccess, testNoFrontAccess, testNoTypeAccess, testTypeAccess } from "./access/utils"
 import { ObjectId } from "mongodb"
 
 describe("validate legacy access across accounts", () => {
@@ -329,6 +329,13 @@ describe("validate legacy access across accounts", () => {
 
 		await testNoCustomFieldAccess(`v1/members/${acc1_legacy.id}`, acc6_legacy.token)
 		await testNoCustomFieldAccess(`v1/members/${acc1_legacy.id}`, acc7_legacy.token)
+	})
+
+	mocha.test("Test legacy friends access", async () => {
+		await testFriendAccess(`v1/friends`, acc1_legacy.id, acc2_legacy.token, ["Friend"])
+		await testFriendAccess(`v1/friends`, acc1_legacy.id, acc3_legacy.token, ["Friend", "Trusted Friend"])
+		await testFriendAccess(`v1/friends`, acc1_legacy.id, acc4_legacy.token, ["Friend"])
+		await testFriendAccess(`v1/friends`, acc1_legacy.id, acc5_legacy.token, ["Friend", "Trusted Friend"])
 	})
 
 	mocha.test("Setup front", async () => {

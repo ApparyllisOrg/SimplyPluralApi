@@ -19,5 +19,6 @@ export const parseForAllowedReadValues = async (data: documentObject, requestorU
 	if (data && data.uid !== requestorUid) {
 		delete data["comments"]
 		delete data["buckets"]
+		delete data["lastOperationTime"]
 	}
 }
