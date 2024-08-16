@@ -298,6 +298,15 @@ describe("validate legacy access across accounts", () => {
 			{ id: "trustedFriendField", data: "Trusted Friend Data" },
 		])
 
+		// Skip single check, you cannot use get of a single document on custom fields that are legacy
+		await testTypeAccess(`v1/customFields/${acc1_legacy.id}`, `v1/customField/${acc1_legacy.id}`, acc2_legacy.token, ["Friend Name"], true)
+		await testTypeAccess(`v1/customFields/${acc1_legacy.id}`, `v1/customField/${acc1_legacy.id}`, acc3_legacy.token, ["Friend Name", "Trusted Friend Name"], true)
+		await testTypeAccess(`v1/customFields/${acc1_legacy.id}`, `v1/customField/${acc1_legacy.id}`, acc4_legacy.token, ["Friend Name"], true)
+		await testTypeAccess(`v1/customFields/${acc1_legacy.id}`, `v1/customField/${acc1_legacy.id}`, acc5_legacy.token, ["Friend Name", "Trusted Friend Name"], true)
+
+		await testNoTypeAccess(`v1/customFields/${acc1_legacy.id}`, `v1/customField/${acc1_legacy.id}`, acc6_legacy.token, acc3_legacy.token, 404)
+		await testNoTypeAccess(`v1/customFields/${acc1_legacy.id}`, `v1/customField/${acc1_legacy.id}`, acc7_legacy.token, acc3_legacy.token, 403)
+
 		await testCustomFieldsMemberAccess(`v1/members/${acc1_legacy.id}`, `v1/member/${acc1_legacy.id}`, `v1/customFields/${acc1_legacy.id}`, acc2_legacy.token, 1)
 		await testCustomFieldsMemberAccess(`v1/members/${acc1_legacy.id}`, `v1/member/${acc1_legacy.id}`, `v1/customFields/${acc1_legacy.id}`, acc3_legacy.token, 2)
 		await testCustomFieldsMemberAccess(`v1/members/${acc1_legacy.id}`, `v1/member/${acc1_legacy.id}`, `v1/customFields/${acc1_legacy.id}`, acc4_legacy.token, 1)

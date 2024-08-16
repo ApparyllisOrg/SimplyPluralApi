@@ -7,7 +7,7 @@ import { ObjectId } from "mongodb"
 import { DiffProcessor } from "../../util/diff"
 import { Diff } from "deep-diff"
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults"
-import { canSeeMembers } from "../../security"
+import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security"
 import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "./user/updates/updateUser"
 
 export const NewFieldsVersion = 300
@@ -37,7 +37,54 @@ export const getCustomFields = async (req: Request, res: Response) => {
 			const friendBuckets = await fetchBucketsForFriend(res.locals.uid, req.params.system)
 			fetchCollectionPermissionsPreflighted(req, res, "customFields", { buckets: { $in: friendBuckets } })
 		} else {
-			fetchCollection(req, res, "customFields", {})
+			// If user did not yet migrate transform legacy fields into up-to-date format fields so that newer app versions can fetch custom fields of legacy accounts
+
+			const friendUser = await getCollection("users").findOne({ uid: req.params.system, _id: req.params.system })
+			const legacyFriendFields:
+				| undefined
+				| {
+						[key: string]: {
+							name: string
+							order: number | string
+							private: boolean
+							preventTrusted: boolean
+							type: number
+						}
+				  } = friendUser.fields
+
+			const friendLevel = await getFriendLevel(req.params.system, res.locals.uid)
+			const isATrustedFriends = isTrustedFriend(friendLevel)
+
+			const friendMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+
+			const transformedForClientReadFields: any[] = []
+
+			if (legacyFriendFields) {
+				Object.keys(legacyFriendFields).forEach((key: string) => {
+					const field = legacyFriendFields[key]
+					if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
+						const newField = field
+
+						if (friendMigrated === true) {
+							newField.order = field.order.toString()
+						}
+
+						transformedForClientReadFields.push({ id: key, exists: true, content: newField })
+					}
+
+					if (field.private === false && field.preventTrusted === false) {
+						const newField = field
+
+						if (friendMigrated === true) {
+							newField.order = field.order.toString()
+						}
+
+						transformedForClientReadFields.push({ id: key, exists: true, content: newField })
+					}
+				})
+			}
+
+			res.status(200).send(transformedForClientReadFields)
 		}
 	} else {
 		if (!req.query.sortBy && !req.query.sortOrder) {
