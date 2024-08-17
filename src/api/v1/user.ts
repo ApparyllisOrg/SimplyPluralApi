@@ -21,6 +21,7 @@ import archiver, { Archiver } from "archiver"
 import promclient from "prom-client"
 
 import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3"
+import { filterFields } from "./user/user.fields"
 
 const s3 = new S3Client({
 	endpoint: process.env.OBJECT_HOST ?? "",
@@ -115,59 +116,7 @@ export const get = async (req: Request, res: Response) => {
 
 	// Remove fields that aren't shared to the friend
 	if (req.params.id !== res.locals.uid) {
-		const newFields: any = {}
-
-		const canSee = await canSeeMembers(req.params.id, res.locals.uid)
-		if (canSee) {
-			const hasMigrated = await doesUserHaveVersion(req.params.id, FIELD_MIGRATION_VERSION)
-			if (hasMigrated) {
-				const friendBuckets = await fetchBucketsForFriend(res.locals.uid, req.params.id)
-
-				const userFields = await getCollection("customFields")
-					.find({ uid: req.params.id, buckets: { $in: friendBuckets } })
-					.sort({ order: 1 })
-					.toArray()
-
-				const friendMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
-				if (friendMigrated === true) {
-					for (let i = 0; i < userFields.length; ++i) {
-						const field = userFields[i]
-						newFields[field._id.toString()] = { name: field.name, order: field.order, type: field.type }
-					}
-				} else {
-					for (let i = 0; i < userFields.length; ++i) {
-						const field = userFields[i]
-						newFields[field._id.toString()] = { name: field.name, order: i, type: field.type }
-					}
-				}
-			} // Legacy custom fields
-			else {
-				const friendLevel = await getFriendLevel(req.params.id, res.locals.uid)
-				const isATrustedFriends = isTrustedFriend(friendLevel)
-
-				const friendMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
-
-				if (document.fields) {
-					Object.keys(document.fields).forEach((key: string) => {
-						const field = document.fields[key]
-						if (field.private === true && field.preventTrusted === false && isATrustedFriends) {
-							newFields[key] = field
-
-							if (friendMigrated === true) {
-								newFields[key].order = newFields[key].order.toString()
-							}
-						}
-						if (field.private === false && field.preventTrusted === false) {
-							newFields[key] = field
-							if (friendMigrated === true) {
-								newFields[key].order = newFields[key].order.toString()
-							}
-						}
-					})
-				}
-			}
-		}
-
+		const newFields = await filterFields(res.locals.uid, req.params.id, document.fields)
 		document.fields = newFields
 	}
 

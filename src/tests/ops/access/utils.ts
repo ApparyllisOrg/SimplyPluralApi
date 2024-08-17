@@ -2,7 +2,7 @@ import axios from "axios"
 import { assert, expect } from "chai"
 import { decode } from "jsonwebtoken"
 import { getCollection } from "../../../modules/mongo"
-import { containsWhere, getIdWhere, getTestAxiosUrl, postDocument } from "../../utils"
+import { containsWhere, containsWhereDirect, getIdWhere, getTestAxiosUrl, postDocument } from "../../utils"
 import * as mocha from "mocha"
 import moment from "moment"
 import { ObjectId } from "mongodb"
@@ -118,6 +118,35 @@ export const testTypeAccess = async (url: string, singleUrl: string, token: stri
 		}
 	} else {
 		assert(false, "Test type access received a non-array")
+	}
+}
+
+export const testFriendAccess = async (url: string, targetUid: string, token: string, expectedNames: string[]): Promise<void> => {
+	const contentResult = await axios.get(getTestAxiosUrl(url), { headers: { authorization: token }, validateStatus: () => true })
+
+	expect(contentResult.status).to.eq(200, contentResult.data)
+
+	const results = contentResult.data.results
+	if (Array.isArray(results)) {
+		expect(results.length).to.eq(1, contentResult.data)
+
+		for (let i = 0; i < results.length; ++i) {
+			const userResult = results[i]
+			if (userResult.id === targetUid) {
+				const fields = userResult.content.fields
+				if (Array.isArray(fields)) {
+					expect(fields.length).to.eq(expectedNames.length, `${url} -> Test type access received an array but array length is mismatched`)
+
+					for (let i = 0; i < expectedNames.length; ++i) {
+						const name = expectedNames[i]
+						const foundName = containsWhereDirect(fields, (doc) => doc.name === name)
+						expect(foundName).to.eq(true, `${url} -> Test type access received but values mismatch. Tried to find ${name}`)
+					}
+				} else {
+					assert(false, "Test type access received a non-array")
+				}
+			}
+		}
 	}
 }
 
