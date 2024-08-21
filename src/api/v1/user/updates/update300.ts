@@ -81,11 +81,14 @@ export const update300 = async (uid: string) => {
 		for (let i = 0; i < collectionData.length; ++i) {
 			const member = collectionData[i]
 			if (member.private !== false && member.preventTrusted !== false) {
+				// private true, prevent trusted true
 				applyBucketsPromises.push(getCollection(collection).updateOne({ uid, _id: member._id }, { $set: { buckets: [] } }))
 			} else if (member.private !== false) {
-				applyBucketsPromises.push(getCollection(collection).updateOne({ uid, _id: member._id }, { $set: { buckets: [trustedFriendBucketID, friendBucketId] } }))
+				// Private true, prevent trusted false
+				applyBucketsPromises.push(getCollection(collection).updateOne({ uid, _id: member._id }, { $set: { buckets: [trustedFriendBucketID] } }))
 			} else {
-				applyBucketsPromises.push(getCollection(collection).updateOne({ uid, _id: member._id }, { $set: { buckets: [friendBucketId] } }))
+				// Private false, prevent trusted irrelevant
+				applyBucketsPromises.push(getCollection(collection).updateOne({ uid, _id: member._id }, { $set: { buckets: [friendBucketId, trustedFriendBucketID] } }))
 			}
 		}
 
@@ -103,8 +106,10 @@ export const update300 = async (uid: string) => {
 	for (let i = 0; i < friends.length; ++i) {
 		const friendEntry = friends[i]
 		if (friendEntry.seeMembers !== false && friendEntry.trusted !== false) {
-			applyFriendBucketsPromises.push(getCollection("friends").updateOne({ uid, frienduid: friendEntry.frienduid }, { $set: { buckets: [trustedFriendBucketID, friendBucketId] } }))
+			// Can see members true, trusted true
+			applyFriendBucketsPromises.push(getCollection("friends").updateOne({ uid, frienduid: friendEntry.frienduid }, { $set: { buckets: [friendBucketId, trustedFriendBucketID] } }))
 		} else if (friendEntry.seeMembers !== false) {
+			// Can see members true, trusted false
 			applyFriendBucketsPromises.push(getCollection("friends").updateOne({ uid, frienduid: friendEntry.frienduid }, { $set: { buckets: [friendBucketId] } }))
 		} else {
 			// This friend has no permissions to see data
@@ -167,11 +172,14 @@ export const update300 = async (uid: string) => {
 		let bucketsToAdd: any[] = []
 
 		if (field.private !== false && field.preventTrusted !== false) {
+			// Private true, prevent trusted true
 			// Do nothing, assign no buckets
 		} else if (field.private !== false) {
-			bucketsToAdd = [trustedFriendBucketID, friendBucketId]
+			// Private true, prevent trusted false
+			bucketsToAdd = [trustedFriendBucketID]
 		} else {
-			bucketsToAdd = [friendBucketId]
+			// Private false, prevent trusted irrelevant
+			bucketsToAdd = [friendBucketId, trustedFriendBucketID]
 		}
 
 		// oid = original id
