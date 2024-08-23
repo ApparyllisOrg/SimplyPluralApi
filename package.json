@@ -8,7 +8,7 @@
 		"start:watch": "ts-node-dev --inspect=5859 --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config --inspect --nologs=true",
 		"build": "tsc",
 		"lint": "eslint src/**/**/*",
-		"test": "mocha --require ts-node/register 'src/tests/**/*spec.ts' --timeout=300000 --delay -r dotenv/config --exit --nologs=true --verbose --development=false --jwt_key=J2JaTklLcjhOQykhdCM9YG9LUU8ycHlLL0soOX0xeSN2RTUgNHU1SDYsZ19vTQ==, --without_google=true --messages_key=f9CYjd2dDE?UbH4tjRS2Ji_!SgA2!+Ky --password_key=jegjQ9HT9f3H3_r=2NM_zRKhqZEKLY?rjyawtKL5LpQsvput7vz4Fcj!wZvR  --password_seperator=_rxCcfxpFd=Jx9xiRu9FPTh2erP!bc4JTxgCYKewcT_zMMJwSZgd2FS94a5w --LOCALEVENTS=true",
+		"test": "mocha --require ts-node/register 'src/tests/**/*spec.ts' --fail-zero --timeout=300000 --delay -r dotenv/config --exit --nologs=true --verbose --development=false --jwt_key=J2JaTklLcjhOQykhdCM9YG9LUU8ycHlLL0soOX0xeSN2RTUgNHU1SDYsZ19vTQ==, --without_google=true --messages_key=f9CYjd2dDE?UbH4tjRS2Ji_!SgA2!+Ky --password_key=jegjQ9HT9f3H3_r=2NM_zRKhqZEKLY?rjyawtKL5LpQsvput7vz4Fcj!wZvR  --password_seperator=_rxCcfxpFd=Jx9xiRu9FPTh2erP!bc4JTxgCYKewcT_zMMJwSZgd2FS94a5w --LOCALEVENTS=true",
 		"test:watch": "mocha --require ts-node/register 'src/tests/**/*.ts' --watch --watch-files 'src/tests/**/*.ts' --delay -r dotenv/config --exit --nologs=true --verbose --development=false --without_google=true"
 	},
 	"dependencies": {
@@ -45,6 +45,7 @@
 		"@typescript-eslint/parser": "^4.33.0",
 		"accounting": "^0.4.1",
 		"ajv": "^8.16.0",
+		"ajv-errors": "^3.0.0",
 		"ajv-formats": "^2.1.1",
 		"archiver": "^7.0.1",
 		"aws-sdk": "^2.1079.0",
@@ -62,6 +63,7 @@
 		"firebase": "^9.8.3",
 		"firebase-admin": "^12.1.0",
 		"google-auth-library": "^9.6.3",
+		"grapheme-splitter": "^1.0.4",
 		"helmet": "^5.1.0",
 		"jsonwebtoken": "^9.0.0",
 		"jszip": "^3.10.1",
