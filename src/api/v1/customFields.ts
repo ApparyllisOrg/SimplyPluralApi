@@ -84,7 +84,7 @@ const s_validatePostCustomFieldSchema = {
 	properties: {
 		name: { type: "string" },
 		type: { type: "number" },
-		order: { type: "string", pattern: "^0\|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
+		order: { type: "string", pattern: "^0\|[a-z0-9]{6,}(:)?[a-z0-9]{0,}$" },
 		supportMarkdown: { type: "boolean" },
 	},
 	required: ["name", "supportMarkdown", "type", "order"],
@@ -102,7 +102,7 @@ const s_validatePatchCustomFieldSchema = {
 	properties: {
 		name: { type: "string" },
 		type: { type: "number" },
-		order: { type: "string", pattern: "^0\|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
+		order: { type: "string", pattern: "^0\|[a-z0-9]{6,}(:)?[a-z0-9]{0,}$" },
 		supportMarkdown: { type: "boolean" },
 	},
 	required: [],
