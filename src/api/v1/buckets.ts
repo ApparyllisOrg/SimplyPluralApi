@@ -55,7 +55,7 @@ const s_validateBucketSchema = {
 		desc: { type: "string", maxLength: 500, minLength: 0 },
 		color: { type: "string", maxLength: 10 },
 		icon: { type: "string", format: "emoji3" },
-		rank: { type: "string", pattern: "^0|[a-z0-9]{6,}:[a-z0-9]{0,}$" },
+		rank: { type: "string", pattern: "^0\|[a-z0-9]{6,}(:)?[a-z0-9]{0,}$" },
 	},
 	required: ["name", "desc", "color", "icon", "rank"],
 	nullable: false,

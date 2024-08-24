@@ -26,7 +26,7 @@ export interface ChangeEventNative {
 	operationType: OperationType;
 }
 
-const listenCollections = ["members", "frontStatuses", "notes", "polls", "automatedReminders", "repeatedReminders", "frontHistory", "comments", "groups", "channels", "channelCategories", "chatMessages", "boardMessages", "customFields"];
+const listenCollections = ["members", "frontStatuses", "notes", "polls", "automatedReminders", "repeatedReminders", "frontHistory", "comments", "groups", "channels", "channelCategories", "chatMessages", "boardMessages", "customFields", "privacyBuckets"];
 
 let _wss: WebSocket.Server | null = null;
 const connections = new Map<string, Connection>();
