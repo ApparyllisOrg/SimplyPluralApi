@@ -1,228 +1,221 @@
-import assert from "assert";
-import { getCollection } from "../../../../modules/mongo";
-import {LexoRank} from "lexorank";
-import * as Sentry from "@sentry/node";
-import { ObjectId } from "mongodb";
+import assert from "assert"
+import { getCollection } from "../../../../modules/mongo"
+import { LexoRank } from "lexorank"
+import * as Sentry from "@sentry/node"
+import { ObjectId } from "mongodb"
 
 // Create 2 new privacy buckets
 export const update300 = async (uid: string) => {
+	if (process.env.DEVELOPMENT === "true") {
+		await rollback300(uid)
+	}
 
-    if (process.env.DEVELOPMENT === "true")
-    {
-        await rollback300(uid)
-    }
+	let friendBucketId: string | null | ObjectId = null
+	let trustedFriendBucketID: string | null | ObjectId = null
 
-    let friendBucketId : string | null | ObjectId = null
-    let trustedFriendBucketID : string | null | ObjectId  = null
+	// Attempt to find existing buckets, we may have registered our account after buckets version was live but while our app version was still lower, we don't want double buckets
+	{
+		const existingFriendBucket = await getCollection("privacyBuckets").findOne({ uid, name: "Friends" })
+		if (existingFriendBucket) {
+			friendBucketId = existingFriendBucket._id
+		}
+		const existingTrustedFriendBucket = await getCollection("privacyBuckets").findOne({ uid, name: "Trusted friends" })
+		if (existingTrustedFriendBucket) {
+			trustedFriendBucketID = existingTrustedFriendBucket._id
+		}
+	}
 
-    // Attempt to find existing buckets, we may have registered our account after buckets version was live but while our app version was still lower, we don't want double buckets
-    {
-        const existingFriendBucket = await getCollection("privacyBuckets").findOne({uid, name: "Friends"})
-        if (existingFriendBucket)
-        {
-            friendBucketId = existingFriendBucket._id
-        }
-        const existingTrustedFriendBucket = await getCollection("privacyBuckets").findOne({uid, name: "Trusted friends"})
-        if (existingTrustedFriendBucket)
-        {
-            trustedFriendBucketID = existingTrustedFriendBucket._id
-        }
-    }
+	// insertOne mutates the original object, adding _id as a valid parameter
+	if (friendBucketId === null) {
+		const friendData: { uid: string; name: string; icon: string; rank: string; desc: string; color: string; _id?: any } = {
+			uid,
+			name: "Friends",
+			icon: "🔓",
+			rank: "0|aaaaaa:",
+			desc: "A bucket for all your friends",
+			color: "#C99524",
+		}
+		const friend = await getCollection("privacyBuckets").insertOne(friendData)
 
-    // insertOne mutates the original object, adding _id as a valid parameter
-    if (friendBucketId === null)
-    {
-        const friendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any } = {uid, name: "Friends", icon: "🔓", rank: "0|aaaaaa:", desc: "A bucket for all your friends", color: "#C99524",}
-        const friend = await getCollection("privacyBuckets").insertOne(friendData)
+		friendBucketId = friendData._id
+	}
 
-        friendBucketId = friendData._id
-    }
-    
-    if (trustedFriendBucketID === null)
-    {
-        const trustedFriendData : {uid: string, name: string, icon: string, rank: string, desc: string, color: string, _id?: any }  = {uid, name: "Trusted friends", icon: "🔒", rank: "0|zzzzzz:", desc: "A bucket for all your trusted friends", color: "#1998A8"}
-        const trustedFriend = await getCollection("privacyBuckets").insertOne(trustedFriendData)
+	if (trustedFriendBucketID === null) {
+		const trustedFriendData: { uid: string; name: string; icon: string; rank: string; desc: string; color: string; _id?: any } = {
+			uid,
+			name: "Trusted friends",
+			icon: "🔒",
+			rank: "0|zzzzzz:",
+			desc: "A bucket for all your trusted friends",
+			color: "#1998A8",
+		}
+		const trustedFriend = await getCollection("privacyBuckets").insertOne(trustedFriendData)
 
-        trustedFriendBucketID = trustedFriendData._id
-    }
+		trustedFriendBucketID = trustedFriendData._id
+	}
 
-    if (friendBucketId === null || trustedFriendBucketID === null)
-    {
-        if (friendBucketId === null)
-        {
-            Sentry.captureMessage("Failed to find or create a privacy bucket for friends", (scope) => {
-                scope.setExtra("uid", uid);
-                return scope;
-            })
-        }
-    
-        if (trustedFriendBucketID === null)
-        {
-            Sentry.captureMessage("Failed to find or create a privacy bucket for trusted friends", (scope) => {
-                scope.setExtra("uid", uid);
-                return scope;
-            })
-        }
+	if (friendBucketId === null || trustedFriendBucketID === null) {
+		if (friendBucketId === null) {
+			Sentry.captureMessage("Failed to find or create a privacy bucket for friends", (scope) => {
+				scope.setExtra("uid", uid)
+				return scope
+			})
+		}
 
-        // Halt all execution and prevent migration
-        throw new Error(`Failed to migrate user ${uid} to 300`)
-    }
+		if (trustedFriendBucketID === null) {
+			Sentry.captureMessage("Failed to find or create a privacy bucket for trusted friends", (scope) => {
+				scope.setExtra("uid", uid)
+				return scope
+			})
+		}
 
-    const applyBucketsToData = async (collection: string) => 
-    {
-        const collectionData = await getCollection(collection).find({ uid }).toArray();
+		// Halt all execution and prevent migration
+		throw new Error(`Failed to migrate user ${uid} to 300`)
+	}
 
-        const applyBucketsPromises = []
-        
-        for (let i = 0; i < collectionData.length; ++i) {
-            const member = collectionData[i];
-            if (member.private !== false && member.preventTrusted !== false)
-            {
-                applyBucketsPromises.push(getCollection(collection).updateOne({uid, _id: member._id}, {$set: { buckets: [ ]}}))
-            } 
-            else if (member.private !== false)
-            {
-                applyBucketsPromises.push(getCollection(collection).updateOne({uid, _id: member._id}, {$set: { buckets: [ trustedFriendBucketID ]}}))
-            }
-            else 
-            {
-                applyBucketsPromises.push(getCollection(collection).updateOne({uid, _id: member._id}, {$set: { buckets: [ friendBucketId ]}}))
-            }
-        }
-    
-        await Promise.all(applyBucketsPromises)
-    }
+	const applyBucketsToData = async (collection: string) => {
+		const collectionData = await getCollection(collection).find({ uid }).toArray()
 
-    await applyBucketsToData("members")
-    await applyBucketsToData("groups")
-    await applyBucketsToData("frontStatuses")
+		const applyBucketsPromises = []
 
-    const applyFriendBucketsPromises = []
+		for (let i = 0; i < collectionData.length; ++i) {
+			const member = collectionData[i]
+			if (member.private !== false && member.preventTrusted !== false) {
+				// private true, prevent trusted true
+				applyBucketsPromises.push(getCollection(collection).updateOne({ uid, _id: member._id }, { $set: { buckets: [] } }))
+			} else if (member.private !== false) {
+				// Private true, prevent trusted false
+				applyBucketsPromises.push(getCollection(collection).updateOne({ uid, _id: member._id }, { $set: { buckets: [trustedFriendBucketID] } }))
+			} else {
+				// Private false, prevent trusted irrelevant
+				applyBucketsPromises.push(getCollection(collection).updateOne({ uid, _id: member._id }, { $set: { buckets: [friendBucketId, trustedFriendBucketID] } }))
+			}
+		}
 
-    const friends = await getCollection("friends").find({ uid }).toArray()
+		await Promise.all(applyBucketsPromises)
+	}
 
-    for (let i = 0; i < friends.length; ++i)
-    {
-        const friendEntry = friends[i]
-        if (friendEntry.seeMembers !== false && friendEntry.trusted !== false)
-        {
-            applyFriendBucketsPromises.push(getCollection("friends").updateOne({uid, frienduid: friendEntry.frienduid}, {$set: { buckets: [ trustedFriendBucketID ]}}))
-        }
-        else if (friendEntry.seeMembers !== false)
-        {
-            applyFriendBucketsPromises.push(getCollection("friends").updateOne({uid, frienduid: friendEntry.frienduid}, {$set: { buckets: [ friendBucketId ]}}))
-        }
-        else 
-        {
-            // This friend has no permissions to see data
-        }
-    }
+	await applyBucketsToData("members")
+	await applyBucketsToData("groups")
+	await applyBucketsToData("frontStatuses")
 
-    await Promise.all(applyFriendBucketsPromises)
+	const applyFriendBucketsPromises = []
 
-    const user = await getCollection("users").findOne({ _id: uid, uid })
-    assert(user)
+	const friends = await getCollection("friends").find({ uid }).toArray()
 
-    if (!user.fields)
-    {
-        // User has no custom fields to migrate
-        return;
-    }
+	for (let i = 0; i < friends.length; ++i) {
+		const friendEntry = friends[i]
+		if (friendEntry.seeMembers !== false && friendEntry.trusted !== false) {
+			// Can see members true, trusted true
+			applyFriendBucketsPromises.push(getCollection("friends").updateOne({ uid, frienduid: friendEntry.frienduid }, { $set: { buckets: [friendBucketId, trustedFriendBucketID] } }))
+		} else if (friendEntry.seeMembers !== false) {
+			// Can see members true, trusted false
+			applyFriendBucketsPromises.push(getCollection("friends").updateOne({ uid, frienduid: friendEntry.frienduid }, { $set: { buckets: [friendBucketId] } }))
+		} else {
+			// This friend has no permissions to see data
+		}
+	}
 
-    const fields :  {[key: string] : {name: string, order: number | string, private: boolean, preventTrusted: boolean, type: number, supportMarkdown: boolean }} = user.fields
+	await Promise.all(applyFriendBucketsPromises)
 
-    const createFieldsPromises : any[] = []
+	const user = await getCollection("users").findOne({ _id: uid, uid })
+	assert(user)
 
-    const fieldKeys = Object.keys(fields)
+	getCollection("private").updateOne(
+		{ uid, _id: uid },
+		{
+			$set: {
+				auditContentChanges: true,
+				auditRetention: 7,
+				hideAudits: false,
+				defaultPrivacySettings: {
+					members: [],
+					groups: [],
+					customFronts: [],
+					customFields: [],
+				},
+			},
+		}
+	)
 
-    // We can assume numbers pre-migration
-    fieldKeys.sort((a, b) => (fields[a].order as number) - (fields[b].order as number))
+	if (!user.fields) {
+		// User has no custom fields to migrate
+		return
+	}
 
-    if (fieldKeys.length == 1)
-    {
-        fields[fieldKeys[0]].order = "0|aaaaaa:"
-    }
-    else if (fieldKeys.length >= 2)
-    {
-        fields[fieldKeys[0]].order = "0|aaaaaa:"
-        fields[fieldKeys[fieldKeys.length - 1]].order = "0|zzzzzz:"
+	const fields: { [key: string]: { name: string; order: number | string; private: boolean; preventTrusted: boolean; type: number; supportMarkdown: boolean } } = user.fields
 
-        for (let i = 1; i < fieldKeys.length - 1; ++i)
-        {
-            const parsedPrevRank = LexoRank.parse(fields[fieldKeys[i - 1]].order as string);
-            const parsedNextRank = LexoRank.parse(fields[fieldKeys[fieldKeys.length - 1]].order as string);
+	const createFieldsPromises: any[] = []
 
-            fields[fieldKeys[i]].order = parsedPrevRank.between(parsedNextRank).format()
-        }
-    }
+	const fieldKeys = Object.keys(fields)
 
-    fieldKeys.forEach((key) =>
-    {
-        const field = fields[key]!
+	// We can assume numbers pre-migration
+	fieldKeys.sort((a, b) => (fields[a].order as number) - (fields[b].order as number))
 
-        let bucketsToAdd : any[] = []
+	if (fieldKeys.length == 1) {
+		fields[fieldKeys[0]].order = "0|aaaaaa:"
+	} else if (fieldKeys.length >= 2) {
+		fields[fieldKeys[0]].order = "0|aaaaaa:"
+		fields[fieldKeys[fieldKeys.length - 1]].order = "0|zzzzzz:"
 
-        if (field.private !== false && field.preventTrusted !== false)
-        {
-            // Do nothing, assign no buckets
-        } 
-        else if (field.private !== false)
-        {
-            bucketsToAdd = [ trustedFriendBucketID ]
-        }
-        else 
-        {
-            bucketsToAdd =  [ friendBucketId ]
-        }
+		for (let i = 1; i < fieldKeys.length - 1; ++i) {
+			const parsedPrevRank = LexoRank.parse(fields[fieldKeys[i - 1]].order as string)
+			const parsedNextRank = LexoRank.parse(fields[fieldKeys[fieldKeys.length - 1]].order as string)
 
-        // oid = original id
-        createFieldsPromises.push(getCollection("customFields").insertOne({uid, name: field.name, order: field.order, type: field.type, supportMarkdown: field.supportMarkdown ,buckets: bucketsToAdd, oid: key }))
-    });
+			fields[fieldKeys[i]].order = parsedPrevRank.between(parsedNextRank).format()
+		}
+	}
 
-    await Promise.all(createFieldsPromises)
+	fieldKeys.forEach((key) => {
+		const field = fields[key]!
 
+		let bucketsToAdd: any[] = []
 
-    const createdFields = await getCollection("customFields").find({uid}).toArray()
+		if (field.private !== false && field.preventTrusted !== false) {
+			// Private true, prevent trusted true
+			// Do nothing, assign no buckets
+		} else if (field.private !== false) {
+			// Private true, prevent trusted false
+			bucketsToAdd = [trustedFriendBucketID]
+		} else {
+			// Private false, prevent trusted irrelevant
+			bucketsToAdd = [friendBucketId, trustedFriendBucketID]
+		}
 
-    const renameOperation : { [key: string] : string } = {}
+		// oid = original id
+		createFieldsPromises.push(
+			getCollection("customFields").insertOne({ uid, name: field.name, order: field.order, type: field.type, supportMarkdown: field.supportMarkdown, buckets: bucketsToAdd, oid: key })
+		)
+	})
 
-    createdFields.forEach((field) => 
-    {
-        renameOperation[`info.${field.oid}`] = `info.${field._id}`
-    })
+	await Promise.all(createFieldsPromises)
 
-    getCollection("members").updateMany({ uid }, { $rename: renameOperation})
+	const createdFields = await getCollection("customFields").find({ uid }).toArray()
 
-    getCollection("private").updateOne({uid, _id: uid}, { $set: { 
-        auditContentChanges: true,
-         auditRetention: 7, 
-         hideAudits: false, 
-         defaultPrivacySettings: {
-            members: [],
-            groups: [], 
-            customFronts:[], 
-            customFields: []
-        }
-     }})
-};
+	const renameOperation: { [key: string]: string } = {}
 
-const rollback300 = async (uid: string) =>
-{
-    const createdFields = await getCollection("customFields").find({uid}).toArray()
+	createdFields.forEach((field) => {
+		renameOperation[`info.${field.oid}`] = `info.${field._id}`
+	})
 
-    const renameOperation : { [key: string] : string } = {}
+	getCollection("members").updateMany({ uid }, { $rename: renameOperation })
+}
 
-    createdFields.forEach((field) => 
-    {
-        renameOperation[`info.${field._id.toString()}`] = `info.${field.oid}`
-    })
+const rollback300 = async (uid: string) => {
+	const createdFields = await getCollection("customFields").find({ uid }).toArray()
 
-    await getCollection("members").updateMany({ uid }, { $rename: renameOperation})
+	const renameOperation: { [key: string]: string } = {}
 
-    await getCollection("customFields").deleteMany({ uid })
-    await getCollection("privacyBuckets").deleteMany({ uid })
-    await getCollection("members").updateMany({ uid }, { $unset: { buckets: ""}})
-    await getCollection("frontStatuses").updateMany({ uid }, { $unset: { buckets: ""}})
-    await getCollection("groups").updateMany({ uid }, { $unset: { buckets: ""}})
-    await getCollection("friends").updateMany({ uid }, { $unset: { buckets: ""}})
+	createdFields.forEach((field) => {
+		renameOperation[`info.${field._id.toString()}`] = `info.${field.oid}`
+	})
+
+	//await getCollection("members").updateMany({ uid }, { $rename: renameOperation })
+
+	//await getCollection("customFields").deleteMany({ uid })
+	//await getCollection("privacyBuckets").deleteMany({ uid })
+	await getCollection("members").updateMany({ uid }, { $unset: { buckets: "" } })
+	await getCollection("frontStatuses").updateMany({ uid }, { $unset: { buckets: "" } })
+	await getCollection("groups").updateMany({ uid }, { $unset: { buckets: "" } })
+	await getCollection("friends").updateMany({ uid }, { $unset: { buckets: "" } })
 }
