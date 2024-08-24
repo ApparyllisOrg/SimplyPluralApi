@@ -4,25 +4,22 @@
 name: Deploy Release API
 
 on:
-  workflow_dispatch:
-    inputs:
-      logLevel:
-        description: "Log level"
-        required: true
-        default: "warning"
-  push:
-    branches: [release]
+    workflow_dispatch:
+        inputs:
+            logLevel:
+                description: "Log level"
+                required: true
+                default: "warning"
+    push:
+        branches: [release]
 
 jobs:
-  build:
-    runs-on: prod2
-    steps:
-      - uses: actions/checkout@v2
-        with:
-          ref: release
-      - run: npm install
-      - run: npm run build
-      - run: cp /home/actions_runner/.env ./dist/.env
-      - run: cp /home/actions_runner/spGoogle.json ./dist/spGoogle.json
-      - run: cp -R ./templates ./dist/templates
-      - run: pm2 restart all
+    build:
+        runs-on: prod2
+        steps:
+            - uses: actions/checkout@v2
+              with:
+                  ref: release
+            - run: npm i
+            - run: npm run build
+            - run: /home/actions_runner/start_server.sh
