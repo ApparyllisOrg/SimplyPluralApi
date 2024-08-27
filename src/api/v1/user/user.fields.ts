@@ -17,7 +17,7 @@ export const filterFields = async (friend: string, owner: string, inFields: any)
 				.sort({ order: 1 })
 				.toArray()
 
-			const friendMigrated = await doesUserHaveVersion(owner, FIELD_MIGRATION_VERSION)
+			const friendMigrated = await doesUserHaveVersion(friend, FIELD_MIGRATION_VERSION)
 			if (friendMigrated === true) {
 				for (let i = 0; i < userFields.length; ++i) {
 					const field = userFields[i]
@@ -34,7 +34,7 @@ export const filterFields = async (friend: string, owner: string, inFields: any)
 			const friendLevel = await getFriendLevel(owner, friend)
 			const isATrustedFriends = isTrustedFriend(friendLevel)
 
-			const friendMigrated = await doesUserHaveVersion(owner, FIELD_MIGRATION_VERSION)
+			const friendMigrated = await doesUserHaveVersion(friend, FIELD_MIGRATION_VERSION)
 
 			if (inFields) {
 				Object.keys(inFields).forEach((key: string) => {
