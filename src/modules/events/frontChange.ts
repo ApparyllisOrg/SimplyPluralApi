@@ -198,7 +198,7 @@ export const notifyFrontDue = async (uid: string, _event: any) => {
 			const accessResult = await getDocumentAccess(friend.frienduid, member, "members")
 			if (accessResult.access === true) {
 				fronterNames.push(member.name)
-				if (member.preventsFrontNotifs !== true) {
+				if (member.preventsFrontNotifs != undefined && member.preventsFrontNotifs != null && member.preventsFrontNotifs !== true) {
 					fronterNotificationNames.push(member.name)
 				}
 			}
