@@ -224,14 +224,14 @@ export const notifyFrontDue = async (uid: string, _event: any) => {
 		if (getFrontNotif) {
 			const theirFriendSettings = await getCollection("friends").findOne({ frienduid: uid, uid: friend.frienduid })
 			if (theirFriendSettings && theirFriendSettings["getTheirFrontNotif"] === true) {
-				if (frontString !== friend.frontString || customFrontString !== friend.customFrontString) {
+				if (frontNotificationString !== friend.frontNotificationString || customFrontString !== friend.customFrontString) {
 					let message = ""
 
-					if (frontString.length > 0) {
+					if (frontNotificationString.length > 0) {
 						if (customFrontString.length > 0) {
-							message = "Fronting: " + frontString + " \n" + "Custom fronting: " + customFrontString
+							message = "Fronting: " + frontNotificationString + " \n" + "Custom fronting: " + customFrontString
 						} else {
-							message = "Fronting: " + frontString
+							message = "Fronting: " + frontNotificationString
 						}
 					} else if (customFrontString.length > 0) {
 						message = "Custom fronting: " + customFrontString
