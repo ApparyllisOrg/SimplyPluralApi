@@ -84,6 +84,7 @@ const s_validateCustomFrontSchema = {
 		private: { type: "boolean" },
 		supportDescMarkdown: { type: "boolean" },
 		frame: frameType,
+		preventsFrontNotifs: { type: "boolean" }
 	},
 	nullable: false,
 	additionalProperties: false,
@@ -108,6 +109,7 @@ const s_validatePostCustomFrontSchema = {
 		private: { type: "boolean" },
 		supportDescMarkdown: { type: "boolean" },
 		frame: frameType,
+		preventsFrontNotifs: { type: "boolean" }
 	},
 	required: ["name"],
 	nullable: false,
