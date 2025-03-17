@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://apparyllis.com/wp-content/uploads/2021/12/SimplyPlural-NoBg.png" style="width:250px; height:250px"/>
+  <img src="https://app.apparyllis.com/SimplyPlural-NoBg.png" style="width:250px; height:250px"/>
 </div>  
 
 [![Docker](https://github.com/ApparyllisOrg/SimplyPluralApi/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/ApparyllisOrg/SimplyPluralApi/actions/workflows/docker.yml)
