@@ -6,7 +6,7 @@ import { ajv, getAvatarUuidSchema, validateSchema } from "../../util/validation"
 import { generateUserReport } from "./user/generateReport"
 import { update122 } from "./user/updates/update112"
 import { auth } from "firebase-admin"
-import { canSeeMembers, getFriendLevel, isTrustedFriend, logSecurityUserEvent } from "../../security"
+import { logSecurityUserEvent } from "../../security"
 import moment from "moment"
 import * as Sentry from "@sentry/node"
 import { ERR_FUNCTIONALITY_EXPECTED_VALID } from "../../modules/errors"
@@ -20,7 +20,7 @@ import promclient from "prom-client"
 
 import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3"
 import { filterFields } from "./user/user.fields"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "../../util/version"
 import { storageController } from "../../modules/storage/storageController"
 
 export const generateReport = async (req: Request, res: Response) => {
@@ -104,7 +104,7 @@ export const update = async (req: Request, res: Response) => {
 	const setBody = req.body
 	setBody.lastOperationTime = res.locals.operationTime
 
-	const userMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+	const userMigrated = await doesUserHaveVersion(res.locals.uid, ONE_ELEVEN)
 	if (userMigrated) {
 		delete setBody.fields
 	}

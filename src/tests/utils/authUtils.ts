@@ -1,17 +1,19 @@
 import axios from "axios"
 import { assert, expect } from "chai"
 import { decode } from "jsonwebtoken"
-import { getCollection } from "../../../modules/mongo"
-import { containsWhere, containsWhereDirect, getIdWhere, getTestAxiosUrl, postDocument } from "../../utils"
+import { getCollection } from "../../modules/mongo"
+import { containsWhere, containsWhereDirect, getIdWhere, getTestAxiosUrl, postDocument } from "../utils"
 import * as mocha from "mocha"
 import moment from "moment"
 import { ObjectId } from "mongodb"
 
 export type AccountState = { id: string; token: string }
 
-export const registerAccount = async (accountNumber: number, account: AccountState, version?: number): Promise<AccountState> => {
+let nextAccountNumber = 0
+
+export const registerAccount = async (account: AccountState, version?: number): Promise<AccountState> => {
 	const password = "APasswordTh3tFitsTh3Regexp!"
-	const email = `test-access-${accountNumber}@apparyllis.com`
+	const email = `test-access-${nextAccountNumber}@apparyllis.com`
 
 	const payload = version !== undefined ? { email, password, version } : { email, password }
 
@@ -26,12 +28,12 @@ export const registerAccount = async (accountNumber: number, account: AccountSta
 	const firstAcc = await getCollection("accounts").findOne({ email })
 	assert(firstAcc)
 
-	accountNumber++
+	nextAccountNumber++
 
 	return account
 }
 
-export const testNoTypeAccess = async (url: string, singleUrl: string, token: string, fullAccessToken: string, expectCode: number = 403): Promise<void> => {
+export const testNoTypeAccess = async (url: string, singleUrl: string, token: string, fullAccessToken: string, expectCode = 403): Promise<void> => {
 	const contentResult = await axios.get(getTestAxiosUrl(url), { headers: { authorization: token }, validateStatus: () => true })
 
 	expect(contentResult.status).to.eq(403, contentResult.data)
@@ -196,11 +198,7 @@ export const setupFront = async (id: string, token: string) => {
 
 			for (let i = 0; i < passingContentResult.data.length; ++i) {
 				const typeId = passingContentResult.data[i].id
-				const postfrontEntry = await axios.post(
-					getTestAxiosUrl(`v1/frontHistory`),
-					{ custom: false, live: true, startTime: moment.now(), member: typeId },
-					{ headers: { authorization: token }, validateStatus: () => true }
-				)
+				const postfrontEntry = await axios.post(getTestAxiosUrl(`v1/frontHistory`), { custom: false, live: true, startTime: moment.now(), member: typeId }, { headers: { authorization: token }, validateStatus: () => true })
 				expect(postfrontEntry.status).to.eq(200, postfrontEntry.data)
 			}
 		}
@@ -216,11 +214,7 @@ export const setupFront = async (id: string, token: string) => {
 
 			for (let i = 0; i < passingContentResult.data.length; ++i) {
 				const typeId = passingContentResult.data[i].id
-				const postfrontEntry = await axios.post(
-					getTestAxiosUrl(`v1/frontHistory`),
-					{ custom: true, live: true, startTime: moment.now(), member: typeId },
-					{ headers: { authorization: token }, validateStatus: () => true }
-				)
+				const postfrontEntry = await axios.post(getTestAxiosUrl(`v1/frontHistory`), { custom: true, live: true, startTime: moment.now(), member: typeId }, { headers: { authorization: token }, validateStatus: () => true })
 				expect(postfrontEntry.status).to.eq(200, postfrontEntry.data)
 			}
 		}

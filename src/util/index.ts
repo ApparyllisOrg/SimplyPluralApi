@@ -12,7 +12,7 @@ import { diff } from "deep-diff"
 import { DiffProcessor, logAudit, logCreatedAudit, logDeleteAudit } from "./diff"
 import internal, { Stream, Transform } from "stream"
 import assert from "assert"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "./version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "./version"
 
 export function transformResultForClientRead(value: documentObject, requestorUid: string) {
 	parseForAllowedReadValues(value, requestorUid)
@@ -33,7 +33,7 @@ export const getDocumentAccess = async (requestor: string, document: documentObj
 		return { access: true, statusCode: 200, message: "" }
 	}
 
-	const migratedUser = await doesUserHaveVersion(document.uid, FIELD_MIGRATION_VERSION)
+	const migratedUser = await doesUserHaveVersion(document.uid, ONE_ELEVEN)
 	if (migratedUser) {
 		if (collection === "friends") {
 			if (document.frienduid == requestor) {

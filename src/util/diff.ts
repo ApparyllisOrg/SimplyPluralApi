@@ -3,7 +3,7 @@ import { ObjectId } from "mongodb"
 import { getCollection } from "../modules/mongo"
 import { limitStringLength } from "./string"
 import moment from "moment"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "./version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "./version"
 
 const auditCollections = ["members", "groups", "customFields", "frontStatuses"]
 
@@ -16,7 +16,7 @@ export const logAudit = async (uid: string, _id: string | ObjectId, collection: 
 		return
 	}
 
-	const hasVersion = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION)
+	const hasVersion = await doesUserHaveVersion(uid, ONE_ELEVEN)
 	if (!hasVersion) {
 		return
 	}
@@ -119,7 +119,7 @@ export const logCreatedAudit = async (uid: string, _id: string | ObjectId, colle
 		return
 	}
 
-	const hasVersion = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION)
+	const hasVersion = await doesUserHaveVersion(uid, ONE_ELEVEN)
 	if (!hasVersion) {
 		return
 	}
@@ -143,7 +143,7 @@ export const logDeleteAudit = async (uid: string, collection: string, t: number,
 		return
 	}
 
-	const hasVersion = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION)
+	const hasVersion = await doesUserHaveVersion(uid, ONE_ELEVEN)
 	if (!hasVersion) {
 		return
 	}

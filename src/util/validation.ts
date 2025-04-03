@@ -10,9 +10,9 @@ import { getCollection } from "../modules/mongo"
 
 import GraphemeSplitter = require("grapheme-splitter")
 
-var splitter = new GraphemeSplitter()
+const splitter = new GraphemeSplitter()
 
-var Ajv = require("ajv")
+const Ajv = require("ajv")
 export const ajv = new Ajv({ allErrors: true, $data: true, verbose: false })
 
 require("ajv-errors")(ajv)
@@ -118,6 +118,21 @@ export const validateParams = (req: Request, res: Response) => {
 	}
 
 	return false
+}
+
+export const validateParamsSchema = (func: schemavalidation) => {
+	return async (req: Request, res: Response, next: any) => {
+		const result = func(req.params)
+		if (!result.success) {
+			if (process.env.UNITTEST === "true") {
+				console.error(`URL Params error: ${result.msg}`)
+			}
+
+			res.status(400).send(`URL Params error: ${result.msg}`)
+		} else {
+			next()
+		}
+	}
 }
 
 const getSchema = {

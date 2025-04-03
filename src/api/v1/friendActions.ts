@@ -5,7 +5,7 @@ import { notifyUser } from "../../modules/notifications/notifications"
 import { FriendLevel, getFriendLevel } from "../../security"
 
 import { ajv, validateSchema } from "../../util/validation"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "../../util/version"
 
 // Todo: Add schema
 export const AddFriend = async (req: Request, res: Response) => {
@@ -194,7 +194,7 @@ export const RespondToFriendRequest = async (req: Request, res: Response) => {
 	const accept = req.query.accepted === "true"
 
 	if (accept) {
-		const migrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+		const migrated = await doesUserHaveVersion(res.locals.uid, ONE_ELEVEN)
 
 		if (migrated) {
 			const validation = validateRespondToFrienqRequestV2Schema(req.body)

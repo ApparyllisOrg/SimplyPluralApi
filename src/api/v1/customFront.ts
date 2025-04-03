@@ -7,7 +7,7 @@ import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchColl
 import { ajv, getPrivacyDependency, validateSchema, getAvatarUuidSchema } from "../../util/validation"
 import { frameType } from "../types/frameType"
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "../../util/version"
 
 export const getCustomFronts = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
@@ -17,7 +17,7 @@ export const getCustomFronts = async (req: Request, res: Response) => {
 			return
 		}
 
-		const userMigrated = await doesUserHaveVersion(req.params.system, FIELD_MIGRATION_VERSION)
+		const userMigrated = await doesUserHaveVersion(req.params.system, ONE_ELEVEN)
 		if (userMigrated) {
 			const friendBuckets = await fetchBucketsForFriend(res.locals.uid, req.params.system)
 			fetchCollectionPermissionsPreflighted(req, res, "frontStatuses", { buckets: { $in: friendBuckets } })

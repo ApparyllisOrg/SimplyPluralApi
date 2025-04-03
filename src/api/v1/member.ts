@@ -13,10 +13,10 @@ import { limitStringLength } from "../../util/string"
 import { ObjectId } from "mongodb"
 import { Transform } from "stream"
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "../../util/version"
 
 export const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]): Promise<void> => {
-	const hasMigrated = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION)
+	const hasMigrated = await doesUserHaveVersion(uid, ONE_ELEVEN)
 	if (hasMigrated) {
 		const friendDoc = await getCollection("friends").findOne({ uid, frienduid: res.locals.uid })
 		const buckets = friendDoc.buckets ?? []
@@ -78,7 +78,7 @@ export const getMembers = async (req: Request, res: Response) => {
 	}
 
 	if (req.params.system != res.locals.uid) {
-		const migrated = await doesUserHaveVersion(req.params.system, FIELD_MIGRATION_VERSION)
+		const migrated = await doesUserHaveVersion(req.params.system, ONE_ELEVEN)
 		if (migrated) {
 			const friendDoc = await getCollection("friends").findOne({ uid: req.params.system, frienduid: res.locals.uid })
 
@@ -207,7 +207,7 @@ const updateDiffProcessor: DiffProcessor = async (uid: string, difference: Diff<
 export const update = async (req: Request, res: Response) => {
 	// If user passes in info, but we migrated to FIELD_MIGRATION_VERSION we need to reject this, as 1.11+ has its own dedicated fields update route
 	if (req.body.info) {
-		const hasMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+		const hasMigrated = await doesUserHaveVersion(res.locals.uid, ONE_ELEVEN)
 		if (hasMigrated) {
 			delete req.body.info
 		}
@@ -223,7 +223,7 @@ export const update = async (req: Request, res: Response) => {
 }
 
 export const updateInfo = async (req: Request, res: Response) => {
-	const hasMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+	const hasMigrated = await doesUserHaveVersion(res.locals.uid, ONE_ELEVEN)
 	if (!hasMigrated) {
 		res.status(400).send("This route is only available for users who have updated to 1.11")
 		return

@@ -7,23 +7,15 @@ import promclient from "prom-client"
 const fileType = require("file-type")
 
 import { storageController } from "../../modules/storage/storageController"
+import { doesUserHaveVersion, ONE_TWELVE } from "../../util/version"
 
-const update_avatar_counter = new promclient.Counter({
+export const update_avatar_counter = new promclient.Counter({
 	name: "apparyllis_api_avatar_upload",
 	help: "Counter for avatar uploads",
 })
 
-export const Store = async (req: Request, res: Response) => {
-	const result = await isUserVerified(res.locals.uid)
-	if (result === false) {
-		res.status(403).send("You need to verify your account to upload images")
-		return false
-	}
-
-	const path = `avatars/${res.locals.uid}/${req.params.dashedid}`
-
+export const validateAvatar = async (req: Request, res: Response): Promise<boolean> => {
 	const buffer = Buffer.from(req.body["buffer"])
-
 	const resolvedFileType = await fileType.fromBuffer(buffer)
 
 	if (!resolvedFileType) {
@@ -37,6 +29,31 @@ export const Store = async (req: Request, res: Response) => {
 		res.status(400).send(`File type not valid. Only JPG and PNG are supported. Your file type is ${mime}`)
 		return false
 	}
+
+	return true
+}
+
+export const Store = async (req: Request, res: Response) => {
+	const result = await isUserVerified(res.locals.uid)
+	if (result === false) {
+		res.status(403).send("You need to verify your account to upload images")
+		return false
+	}
+
+	const userHasTwelve = await doesUserHaveVersion(res.locals.uid, ONE_TWELVE)
+	if (userHasTwelve) {
+		res.status(400).send("Please update your app to the latest version to upload images, or use the web-app.")
+		return false
+	}
+
+	const isValidAvatar = await validateAvatar(req, res)
+	if (!isValidAvatar) {
+		return false
+	}
+
+	const path = `avatars/${res.locals.uid}/${req.params.dashedid}`
+
+	const buffer = Buffer.from(req.body["buffer"])
 
 	update_avatar_counter.inc()
 
@@ -69,6 +86,12 @@ export const Delete = async (req: Request, res: Response) => {
 	const result = await isUserVerified(res.locals.uid)
 	if (result === false) {
 		res.status(403).send("You need to verify your account to delete images")
+		return false
+	}
+
+	const userHasTwelve = await doesUserHaveVersion(res.locals.uid, ONE_TWELVE)
+	if (userHasTwelve) {
+		res.status(400).send("Please update your app to the latest version to delete images, or use the web-app.")
 		return false
 	}
 

@@ -9,7 +9,7 @@ import moment from "moment"
 import validUrl from "valid-url"
 import { limitStringLength } from "../../../util/string"
 import { insertDefaultPrivacyBuckets } from "../../../api/v1/privacy/privacy.assign.defaults"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "../../../util/version"
 export interface syncOptions {
 	name: boolean
 	avatar: boolean
@@ -224,7 +224,7 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 		memberDataToSync.uid = userId
 		memberDataToSync.pkId = pkMemberId
 
-		const migratedToBuckets = await doesUserHaveVersion(userId, FIELD_MIGRATION_VERSION)
+		const migratedToBuckets = await doesUserHaveVersion(userId, ONE_ELEVEN)
 		if (migratedToBuckets === false) {
 			if (memberData.privacy?.visibility === "private" || privateByDefault) {
 				memberDataToSync.private = true
