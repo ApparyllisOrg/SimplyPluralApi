@@ -7,6 +7,12 @@ import { storageController } from "../../../modules/storage/storageController"
 import { userLog } from "../../../modules/logger"
 import { ajv, validateSchema } from "../../../util/validation"
 
+const validateAvatarUuid = (avatarUuid: string) => {
+	// Ensure regexp matches the correct uid format
+	// Invalid regexp could lead to unintentional deletion
+	return RegExp("^([a-zA-Z0-9-]{1,128})$").test(avatarUuid)
+}
+
 export const StoreAvatarForObject = async (req: Request, res: Response, collection: string, id: string, previousAvatarUuid: string) => {
 	const result = await isUserVerified(res.locals.uid)
 	if (result === false) {
@@ -31,8 +37,10 @@ export const StoreAvatarForObject = async (req: Request, res: Response, collecti
 		await getCollection(collection).updateOne({ uid: res.locals.uid, _id: parseId(id) }, { $set: { avatarUuid } })
 
 		if (previousAvatarUuid && previousAvatarUuid.length > 0) {
-			const path = `avatars/${res.locals.uid}/${previousAvatarUuid}`
-			await storageController?.delete(path)
+			if (validateAvatarUuid(previousAvatarUuid)) {
+				const path = `avatars/${res.locals.uid}/${previousAvatarUuid}`
+				await storageController?.delete(path)
+			}
 		}
 
 		res.status(200).send({ url: `https://serve.apparyllis.com/avatars/${path}`, avatarUuid: avatarUuid })
@@ -50,6 +58,13 @@ export const DeleteAvatarForObject = async (req: Request, res: Response, collect
 	}
 
 	if (previousAvatarUuid && previousAvatarUuid.length > 0) {
+		// If avatarUuid is not a valid regex, simply unset the avatar field as no avatar could belong to it
+		if (!validateAvatarUuid(previousAvatarUuid)) {
+			await getCollection(collection).updateOne({ uid: res.locals.uid, _id: parseId(id) }, { $unset: { avatarUuid: "" } })
+			res.status(200).send("Avatar field was unset, previous avatar could not be found")
+			return
+		}
+
 		const path = `avatars/${res.locals.uid}/${previousAvatarUuid}`
 
 		const deleteResult = await storageController?.delete(path)

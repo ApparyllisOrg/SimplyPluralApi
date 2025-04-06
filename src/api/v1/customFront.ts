@@ -7,7 +7,7 @@ import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchColl
 import { ajv, getPrivacyDependency, validateSchema, getAvatarUuidSchema } from "../../util/validation"
 import { frameType } from "../types/frameType"
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults"
-import { doesUserHaveVersion, ONE_ELEVEN } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN, ONE_TWELVE } from "../../util/version"
 
 export const getCustomFronts = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
@@ -51,6 +51,14 @@ export const add = async (req: Request, res: Response) => {
 
 export const update = async (req: Request, res: Response) => {
 	updateSimpleDocument(req, res, "frontStatuses")
+
+	// If user passes in avataruuid, but we migrated to ONE_TWELVE we need to reject this, as 1.12+ has its own dedicated avatar changes routes
+	if (req.body.avatarUuid !== undefined) {
+		const hasOneTwelve = await doesUserHaveVersion(res.locals.uid, ONE_TWELVE)
+		if (hasOneTwelve) {
+			delete req.body.avatarUuid
+		}
+	}
 
 	// If this cf is fronting, we need to notify and update current fronters
 	const fhLive = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.params.id, live: true })

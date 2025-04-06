@@ -13,7 +13,7 @@ import { limitStringLength } from "../../util/string"
 import { ObjectId } from "mongodb"
 import { Transform } from "stream"
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults"
-import { doesUserHaveVersion, ONE_ELEVEN } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN, ONE_TWELVE } from "../../util/version"
 
 export const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]): Promise<void> => {
 	const hasMigrated = await doesUserHaveVersion(uid, ONE_ELEVEN)
@@ -205,11 +205,19 @@ const updateDiffProcessor: DiffProcessor = async (uid: string, difference: Diff<
 }
 
 export const update = async (req: Request, res: Response) => {
-	// If user passes in info, but we migrated to FIELD_MIGRATION_VERSION we need to reject this, as 1.11+ has its own dedicated fields update route
+	// If user passes in info, but we migrated to ONE_ELEVEN we need to reject this, as 1.11+ has its own dedicated fields update route
 	if (req.body.info) {
-		const hasMigrated = await doesUserHaveVersion(res.locals.uid, ONE_ELEVEN)
-		if (hasMigrated) {
+		const hasOneEleven = await doesUserHaveVersion(res.locals.uid, ONE_ELEVEN)
+		if (hasOneEleven) {
 			delete req.body.info
+		}
+	}
+
+	// If user passes in avataruuid, but we migrated to ONE_TWELVE we need to reject this, as 1.12+ has its own dedicated avatar changes routes
+	if (req.body.avatarUuid !== undefined) {
+		const hasOneTwelve = await doesUserHaveVersion(res.locals.uid, ONE_TWELVE)
+		if (hasOneTwelve) {
+			delete req.body.avatarUuid
 		}
 	}
 
@@ -297,7 +305,7 @@ const s_validateMemberSchema = {
 		pronouns: { type: "string" },
 		pkId: { type: "string" },
 		color: { type: "string" },
-		avatarUuid: { type: "string" },
+		avatarUuid: getAvatarUuidSchema(),
 		avatarUrl: { type: "string" },
 		private: { type: "boolean" },
 		preventTrusted: { type: "boolean" },

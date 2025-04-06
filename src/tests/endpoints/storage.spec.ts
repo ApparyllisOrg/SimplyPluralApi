@@ -127,6 +127,7 @@ describe("Validate storage endpoints", () => {
 				mocha.test("Test delete", async () => {
 					const result = await axios.delete(getTestAxiosUrl(`v2/avatar/member/${memberId}`), { headers: { authorization: acc.token }, validateStatus: () => true })
 					expect(result.status, result.data).to.eq(200)
+					expect(result.data).to.eq("Deleted avatar")
 
 					const member = await getCollection("members").findOne({ uid: acc.id, _id: parseId(memberId!) })
 					expect(member.avatarUuid).to.eq(undefined)
@@ -171,6 +172,7 @@ describe("Validate storage endpoints", () => {
 				mocha.test("Test delete", async () => {
 					const result = await axios.delete(getTestAxiosUrl(`v2/avatar/customFront/${customFrontId}`), { headers: { authorization: acc.token }, validateStatus: () => true })
 					expect(result.status, result.data).to.eq(200)
+					expect(result.data).to.eq("Deleted avatar")
 
 					const frontStatus = await getCollection("frontStatuses").findOne({ uid: acc.id, _id: parseId(customFrontId!) })
 					expect(frontStatus.avatarUuid).to.eq(undefined)
@@ -208,10 +210,122 @@ describe("Validate storage endpoints", () => {
 				mocha.test("Test delete", async () => {
 					const result = await axios.delete(getTestAxiosUrl(`v2/avatar/user`), { headers: { authorization: acc.token }, validateStatus: () => true })
 					expect(result.status, result.data).to.eq(200)
+					expect(result.data).to.eq("Deleted avatar")
 
 					const user = await getCollection("users").findOne({ uid: acc.id, _id: acc.id })
 					expect(user.avatarUuid).to.eq(undefined)
 				})
+			})
+
+			describe("Test upload guards", async () => {
+				let firstMemberId = ""
+				let secondMemberId = ""
+
+				mocha.before("Setup test members", async () => {
+					{
+						const result = await axios.post(getTestAxiosUrl(`v1/member`), { name: "Test" }, { headers: { authorization: acc.token }, validateStatus: () => true })
+						expect(result.status, result.data).to.eq(200)
+						firstMemberId = result.data
+
+						await getCollection("members").updateOne({ uid: acc.id, _id: parseId(firstMemberId) }, { $set: { avatarUuid: "/../foo/foobar" } })
+					}
+
+					{
+						const result = await axios.post(getTestAxiosUrl(`v1/member`), { name: "Test" }, { headers: { authorization: acc.token }, validateStatus: () => true })
+						expect(result.status, result.data).to.eq(200)
+						secondMemberId = result.data
+
+						await getCollection("members").updateOne({ uid: acc.id, _id: parseId(secondMemberId) }, { $set: { avatarUuid: "/%2e%2e%2f/foo/foobar" } })
+					}
+				})
+
+				mocha.test("Test upload replacement", async () => {
+					const image = await createPNG()
+					{
+						const result = await axios.post(getTestAxiosUrl(`v2/avatar/member/${firstMemberId}`), { buffer: image }, { headers: { authorization: acc.token }, validateStatus: () => true, responseType: "text", transformResponse: [(v) => v] })
+						expect(result.status, result.data).to.eq(200)
+					}
+
+					{
+						const result = await axios.post(getTestAxiosUrl(`v2/avatar/member/${secondMemberId}`), { buffer: image }, { headers: { authorization: acc.token }, validateStatus: () => true, responseType: "text", transformResponse: [(v) => v] })
+						expect(result.status, result.data).to.eq(200)
+					}
+				})
+			})
+
+			describe("Test delete guards", async () => {
+				let firstMemberId = ""
+				let secondMemberId = ""
+
+				mocha.before("Setup test members", async () => {
+					{
+						const result = await axios.post(getTestAxiosUrl(`v1/member`), { name: "Test" }, { headers: { authorization: acc.token }, validateStatus: () => true })
+						expect(result.status, result.data).to.eq(200)
+						firstMemberId = result.data
+
+						await getCollection("members").updateOne({ uid: acc.id, _id: parseId(firstMemberId) }, { $set: { avatarUuid: "/../foo/foobar" } })
+					}
+
+					{
+						const result = await axios.post(getTestAxiosUrl(`v1/member`), { name: "Test" }, { headers: { authorization: acc.token }, validateStatus: () => true })
+						expect(result.status, result.data).to.eq(200)
+						secondMemberId = result.data
+
+						await getCollection("members").updateOne({ uid: acc.id, _id: parseId(secondMemberId) }, { $set: { avatarUuid: "/%2e%2e%2f/foo/foobar" } })
+					}
+				})
+
+				mocha.test("Test delete", async () => {
+					{
+						const result = await axios.delete(getTestAxiosUrl(`v2/avatar/member/${firstMemberId}`), { headers: { authorization: acc.token }, validateStatus: () => true })
+						expect(result.status, result.data).to.eq(200)
+
+						const member = await getCollection("members").findOne({ uid: acc.id, _id: parseId(firstMemberId) })
+						expect(member.avatarUuid).to.eq(undefined)
+						expect(result.data).to.eq("Avatar field was unset, previous avatar could not be found")
+					}
+
+					{
+						const result = await axios.delete(getTestAxiosUrl(`v2/avatar/member/${secondMemberId}`), { headers: { authorization: acc.token }, validateStatus: () => true })
+						expect(result.status, result.data).to.eq(200)
+
+						const member = await getCollection("members").findOne({ uid: acc.id, _id: parseId(secondMemberId) })
+						expect(member.avatarUuid).to.eq(undefined)
+						expect(result.data).to.eq("Avatar field was unset, previous avatar could not be found")
+					}
+				})
+			})
+		})
+
+		describe("Test prevention of setting avatarUuid", async () => {
+			mocha.test("Test member", async () => {
+				await getCollection("members").updateOne({ uid: acc.id, _id: parseId(memberId!) }, { $set: { avatarUuid: "bar" } })
+
+				const result = await axios.patch(getTestAxiosUrl(`v1/member/${memberId}`), { avatarUuid: "foo" }, { headers: { authorization: acc.token }, validateStatus: () => true })
+				expect(result.status, result.data).to.eq(200)
+
+				const dbResult = await getCollection("members").findOne({ uid: acc.id, _id: parseId(memberId!) })
+				expect(dbResult.avatarUuid).to.eq("bar")
+			})
+
+			mocha.test("Test custom front", async () => {
+				await getCollection("frontStatuses").updateOne({ uid: acc.id, _id: parseId(customFrontId!) }, { $set: { avatarUuid: "bar" } })
+
+				const result = await axios.patch(getTestAxiosUrl(`v1/customFront/${customFrontId!}`), { avatarUuid: "foo" }, { headers: { authorization: acc.token }, validateStatus: () => true })
+				expect(result.status, result.data).to.eq(200)
+
+				const dbResult = await getCollection("frontStatuses").findOne({ uid: acc.id, _id: parseId(customFrontId!) })
+				expect(dbResult.avatarUuid).to.eq("bar")
+			})
+
+			mocha.test("Test user", async () => {
+				await getCollection("users").updateOne({ uid: acc.id, _id: acc.id }, { $set: { avatarUuid: "bar" } })
+
+				const result = await axios.patch(getTestAxiosUrl(`v1/user/${acc.id}`), { avatarUuid: "foo" }, { headers: { authorization: acc.token }, validateStatus: () => true })
+				expect(result.status, result.data).to.eq(200)
+
+				const dbResult = await getCollection("users").findOne({ uid: acc.id, _id: acc.id })
+				expect(dbResult.avatarUuid).to.eq("bar")
 			})
 		})
 	})

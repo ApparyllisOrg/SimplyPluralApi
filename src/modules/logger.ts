@@ -1,7 +1,7 @@
 import winston, { format } from "winston"
 import dotenv from "dotenv"
 import "winston-daily-rotate-file"
-import { namedArguments } from "../util/args"
+import { isUnitTestActive, namedArguments } from "../util/args"
 
 dotenv.config()
 const logPrefix = process.env.LOGPREFIX ?? process.env.DBNAME ?? ""
@@ -52,6 +52,11 @@ export const logger = winston.createLogger({
 
 export const userLog = (uid: string, message: string) => {
 	const msg = `USER: [${uid}] ${message}`
+
+	if (isUnitTestActive()) {
+		return
+	}
+
 	if (process.env.DEVELOPMENT) {
 		console.log(msg)
 	}
@@ -59,6 +64,10 @@ export const userLog = (uid: string, message: string) => {
 }
 
 export const log = (message: string) => {
+	if (isUnitTestActive()) {
+		return
+	}
+
 	const msg = `SYSTEM: ${message}`
 	if (process.env.DEVELOPMENT) {
 		console.log(msg)
@@ -67,6 +76,10 @@ export const log = (message: string) => {
 }
 
 export const logSecurity = (message: string) => {
+	if (isUnitTestActive()) {
+		return
+	}
+
 	if (process.env.DEVELOPMENT) {
 		console.log(message)
 	}
