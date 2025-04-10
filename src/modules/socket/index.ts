@@ -1,16 +1,17 @@
-import WebSocket from "ws";
-import http from "http";
+import WebSocket from "ws"
+import http from "http"
 
-import * as Mongo from "../mongo";
-import * as DatabaseAccess from "../../security";
+import * as DatabaseAccess from "../../security"
 
-import { transformResultForClientRead } from "../../util";
+import { transformResultForClientRead } from "../../util"
 
-import Connection from "./connection";
-import crypto from "crypto";
+import Connection from "./connection"
+import crypto from "crypto"
 
-import promclient from "prom-client";
-import { decryptMessage } from "../../api/v1/chat/chat.core";
+import promclient from "prom-client"
+import { decryptMessage } from "../../api/v1/chat/chat.core"
+import { db, getCollection, parseId } from "../mongo"
+import { ChangeStreamDocument } from "mongodb"
 
 export enum OperationType {
 	Read,
@@ -20,20 +21,22 @@ export enum OperationType {
 }
 
 export interface ChangeEventNative {
-	uid: string;
-	documentId: string;
-	collection: string;
-	operationType: OperationType;
+	uid: string
+	documentId: string
+	collection: string
+	operationType: OperationType
 }
 
-const listenCollections = ["members", "frontStatuses", "notes", "polls", "automatedReminders", "repeatedReminders", "frontHistory", "comments", "groups", "channels", "channelCategories", "chatMessages", "boardMessages", "customFields", "privacyBuckets"];
+const listenCollections = ["members", "frontStatuses", "notes", "polls", "automatedReminders", "repeatedReminders", "frontHistory", "comments", "groups", "channels", "channelCategories", "chatMessages", "boardMessages", "customFields", "privacyBuckets"]
 
-let _wss: WebSocket.Server | null = null;
-const connections = new Map<string, Connection>();
+let _wss: WebSocket.Server | null = null
+const connections = new Map<string, Connection>()
 
-export const onConnectionDestroyed = (uniqueId: string) => connections.delete(uniqueId);
+const SOCKET_NOTIFICATIONS_COLLECTION = "socketNotifications"
 
-export const init = (server: http.Server) => {
+export const onConnectionDestroyed = (uniqueId: string) => connections.delete(uniqueId)
+
+export const init = async (server: http.Server) => {
 	_wss = new WebSocket.Server({
 		server,
 		path: "/v1/socket",
@@ -52,81 +55,112 @@ export const init = (server: http.Server) => {
 			concurrencyLimit: 10,
 			threshold: 100,
 		},
-	});
+	})
 
 	new promclient.Gauge({
 		name: "apparyllis_api_sockets",
 		help: "Amount of sockets currently connected to the server",
 		collect() {
-			this.set(_wss?.clients.size ?? 0);
+			this.set(_wss?.clients.size ?? 0)
 		},
-	});
+	})
 
 	_wss.on("connection", (ws) => {
-		const uniqueId = crypto.randomBytes(64).toString("base64");
-		ws?.on("close", () => connections.delete(uniqueId));
+		const uniqueId = crypto.randomBytes(64).toString("base64")
+		ws?.on("close", () => {
+			connections.delete(uniqueId)
+		})
 
-		ws.send("{}");
-		connections.set(uniqueId, new Connection(ws, ""));
-	});
+		ws.send("{}")
+		connections.set(uniqueId, new Connection(ws, ""))
+	})
 
 	if (process.env.SOCKETEMIT === "true") {
 		listenCollections.forEach((collection) => {
-			const changeStream = Mongo.getCollection(collection).watch([], { fullDocument: "updateLookup" });
+			const changeStream = getCollection(collection).watch([], { fullDocument: "updateLookup" })
 			changeStream.on("change", (next) => {
-				dispatch(next);
-			});
-		});
+				dispatch(next)
+			})
+		})
+
+		// This could be improved to a redis/redis-like solution, but currently out of scope
+
+		// Idempotent action, will do nothing if index already exists
+		await getCollection(SOCKET_NOTIFICATIONS_COLLECTION).createIndex(
+			{
+				t: 1,
+			},
+			{ expireAfterSeconds: 100, name: "TTL" }
+		)
+
+		const changeStream = getCollection(SOCKET_NOTIFICATIONS_COLLECTION).watch([{ $match: { operationType: "insert" } }], { fullDocument: "updateLookup" })
+		changeStream.on("change", emitSocketNotification)
+
+		console.log("Listening to socket notifications")
 	}
-};
+}
 
 const stringToOperationType = (type: string): OperationType => {
 	if (type === "insert") {
-		return OperationType.Add;
+		return OperationType.Add
 	}
 
 	if (type === "update") {
-		return OperationType.Update;
+		return OperationType.Update
 	}
 
 	if (type === "delete") {
-		return OperationType.Delete;
+		return OperationType.Delete
 	}
 
-	return OperationType.Add;
-};
+	return OperationType.Add
+}
 
 const operationTypeToString = (type: OperationType): string => {
 	if (type === OperationType.Add) {
-		return "insert";
+		return "insert"
 	}
 
 	if (type === OperationType.Update) {
-		return "update";
+		return "update"
 	}
 
 	if (type === OperationType.Delete) {
-		return "delete";
+		return "delete"
 	}
 
-	return "insert";
-};
+	return "insert"
+}
 
-export const getUserConnections = (uid: string) => [...connections.values()].filter((conn) => conn.uid === uid);
+export const getUserConnections = (uid: string) => [...connections.values()].filter((conn) => conn.uid === uid)
 
 export async function notify(uid: string, title: string, message: string) {
-	const payload = { msg: "notification", title, message };
+	getCollection(SOCKET_NOTIFICATIONS_COLLECTION).insertOne({ uid, title, message, t: new Date() })
+}
 
-	for (const conn of getUserConnections(uid)) {
-		conn.send(payload);
+const emitSocketNotification = (event: ChangeStreamDocument<any>) => {
+	if (event.operationType === "insert") {
+		if (process.env.DEVELOPMENT) {
+			console.log(`Socket Notification: ${event.fullDocument}`)
+		}
+
+		const { uid, title, message } = event.fullDocument
+
+		const payload = { msg: "notification", title, message }
+
+		const connections: Connection[] = getUserConnections(uid)
+
+		for (const conn of connections) {
+			conn.send(payload)
+		}
 	}
 }
 
 export async function dispatch(event: any) {
-	const document = event.fullDocument;
+	const document = event.fullDocument
 
 	if (!document) {
-		return;
+		return
 	}
 
 	const innerEventData: ChangeEventNative = {
@@ -134,10 +168,10 @@ export async function dispatch(event: any) {
 		operationType: stringToOperationType(event.operationType),
 		uid: event.fullDocument.uid,
 		collection: event.ns.coll,
-	};
+	}
 
-	const owner = document.uid;
-	if (!DatabaseAccess.friendReadCollections.includes(event.ns.coll)) return dispatchInner(owner, innerEventData);
+	const owner = document.uid
+	if (!DatabaseAccess.friendReadCollections.includes(event.ns.coll)) return dispatchInner(owner, innerEventData)
 
 	// Disabled for now, we would need to handle things differently on the SDK side, right now updates
 	// Are expected self-owned and we don't send uid alongside it. It would show friend members
@@ -159,44 +193,50 @@ export async function dispatch(event: any) {
 		friends.forEach(f => dispatchInner(f, innerEventData));
 		*/
 
-	dispatchInner(owner, innerEventData);
+	dispatchInner(owner, innerEventData)
 }
 
 export const dispatchDelete = async (event: ChangeEventNative) => {
-	const result = { operationType: "delete", id: event.documentId, content: {} };
-	const payload = { msg: "update", target: event.collection, results: [result] };
+	const result = { operationType: "delete", id: event.documentId, content: {} }
+	const payload = { msg: "update", target: event.collection, results: [result] }
 
-	for (const conn of getUserConnections(event.uid)) {
-		conn.send(payload);
+	const connections: Connection[] = getUserConnections(event.uid)
+
+	for (const conn of connections) {
+		conn.send(payload)
 	}
-};
+}
 
 async function dispatchInner(uid: any, event: ChangeEventNative) {
-	let result: { operationType: string; content: any; id: any } = { operationType: "", content: undefined, id: "" };
+	let result: { operationType: string; content: any; id: any } = { operationType: "", content: undefined, id: "" }
 	if (event.operationType === OperationType.Delete) {
-		result = { operationType: "delete", id: event.documentId, content: {} };
+		result = { operationType: "delete", id: event.documentId, content: {} }
 	} else {
-		const document = await Mongo.getCollection(event.collection).findOne({ _id: Mongo.parseId(event.documentId) });
-		result = { operationType: operationTypeToString(event.operationType), ...transformResultForClientRead(document, event.uid) };
+		const document = await getCollection(event.collection).findOne({ _id: parseId(event.documentId) })
+		result = { operationType: operationTypeToString(event.operationType), ...transformResultForClientRead(document, event.uid) }
 	}
 
 	// TODO: Make this more modular for like a type handler.. we don't want to hardcode all manual changes to returned content
 	if (event.collection == "chatMessages" && result.operationType != "delete") {
-		result.content.message = decryptMessage(result.content.message, result.content.iv);
-		delete result.content.iv;
+		result.content.message = decryptMessage(result.content.message, result.content.iv)
+		delete result.content.iv
 	}
 
-	const payload = { msg: "update", target: event.collection, results: [result] };
+	const payload = { msg: "update", target: event.collection, results: [result] }
 
-	for (const conn of getUserConnections(uid)) {
-		conn.send(payload);
+	const connections: Connection[] = getUserConnections(uid)
+
+	for (const conn of connections) {
+		conn.send(payload)
 	}
 }
 
 export async function dispatchCustomEvent(data: { uid: string; type: string; data: string }) {
-	const payload = { msg: data.type, data: data.data };
+	const payload = { msg: data.type, data: data.data }
 
-	for (const conn of getUserConnections(data.uid)) {
-		conn.send(payload);
+	const connections: Connection[] = getUserConnections(data.uid)
+
+	for (const conn of connections) {
+		conn.send(payload)
 	}
 }

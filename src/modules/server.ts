@@ -133,7 +133,7 @@ export const startServer = async (app: any, mongourl: string) => {
 	// make sure MongoDB is initialized before anything else runs
 	await Mongo.init(true, mongourl)
 
-	socket.init(server)
+	await socket.init(server)
 
 	const port = process.env.PORT ?? 3000
 	server.listen(port, () => logger.info(`Initiating Apparyllis API at :${port}`))

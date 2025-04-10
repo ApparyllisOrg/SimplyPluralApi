@@ -1,71 +1,83 @@
-import WebSocket from "ws";
-import { isUserSuspended } from "../../security";
-import { validateToken } from "../../security/auth";
-import { userLog } from "../logger";
+import WebSocket from "ws"
+import { isUserSuspended } from "../../security"
+import { validateToken } from "../../security/auth"
+import { userLog } from "../logger"
 
-export type destroyCallback = () => void;
+export type destroyCallback = () => void
 export default class Connection {
 	constructor(private ws: WebSocket | undefined, public uid: string | undefined) {
-		ws?.on("close", this.onClose);
-		ws?.on("error", this.onError);
-		ws?.on("message", this.onMessage);
+		ws?.on("close", this.onClose)
+		ws?.on("error", this.onError)
+		ws?.on("message", this.onMessage)
 		ws?.on("pong", () => {
-			ws.ping();
-		});
+			ws.ping()
+		})
 	}
 
 	private onMessage = async (message: string) => {
 		if (message == "ping") {
-			return this.send("pong");
+			return this.send("pong")
 		}
 
-		let json;
+		let json
 		try {
-			json = JSON.parse(message);
+			json = JSON.parse(message)
 		} catch (e) {
-			return this.send(JSON.stringify({ msg: "Invalid message, cannot parse Json." }));
+			return this.send(JSON.stringify({ msg: "Invalid message, cannot parse Json." }))
 		}
 
-		if (json.op == null) return this.send(JSON.stringify({ msg: "Missing 'op' in message." }));
+		if (json.op == null) return this.send(JSON.stringify({ msg: "Missing 'op' in message." }))
 
 		if ((json.op as string) == "authenticate") {
-			return this.handleAuth(json.token);
+			const token: any = json.token
+			if (typeof token === "string") {
+				return this.handleAuth(token)
+			} else {
+				return this.send(JSON.stringify({ msg: "Invalid token" }))
+			}
 		}
-	};
+	}
 
 	private handleAuth = async (token: string) => {
-		const resolvedToken = await validateToken(token);
+		const resolvedToken = await validateToken(token)
 
 		if (resolvedToken.accessType == 0) {
-			return this.send({ msg: "Authentication violation: Token is missing or invalid. Goodbye :)" }, true);
+			return this.send({ msg: "Authentication violation: Token is missing or invalid. Goodbye :)" }, true)
 		}
 
-		const isSuspended = await isUserSuspended(resolvedToken.uid!);
+		const isSuspended = await isUserSuspended(resolvedToken.uid!)
 		if (isSuspended) {
-			return this.send({ msg: "Authentication violation: Your account is suspended" }, true);
+			return this.send({ msg: "Authentication violation: Your account is suspended" }, true)
 		}
 
-		this.uid = resolvedToken.uid;
-		this.send({ msg: "Successfully authenticated", resolvedToken });
-	};
+		this.uid = resolvedToken.uid
+		this.send({ msg: "Successfully authenticated", resolvedToken })
+	}
 
 	private onClose() {
-		this.ws?.removeAllListeners();
-		this.ws = undefined;
-		this.uid = undefined;
+		this.ws?.removeAllListeners()
+		this.ws = undefined
+		this.uid = undefined
 	}
 
 	private onError(err: any) {
 		try {
-			userLog(this.uid ?? "undefined user", err.toString());
+			userLog(this.uid ?? "undefined user", err.toString())
 		} catch (e) {
-			userLog(this.uid ?? "undefined user", "Websocket error occurred");
+			userLog(this.uid ?? "undefined user", "Websocket error occurred")
 		}
 	}
 
 	async send(data: any, close = false) {
-		if (typeof data === "string") this.ws?.send(data);
-		else this.ws?.send(JSON.stringify(data));
-		if (close) this.ws?.close();
+		if (!this.isOpen()) {
+			return
+		}
+		if (typeof data === "string") this.ws?.send(data)
+		else this.ws?.send(JSON.stringify(data))
+		if (close) this.ws?.close()
+	}
+
+	isOpen() {
+		return this.ws?.readyState === WebSocket.OPEN
 	}
 }
