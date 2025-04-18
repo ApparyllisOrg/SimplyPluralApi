@@ -76,12 +76,32 @@ export const validateSchema = (validate: ValidateFunction<unknown>, body: unknow
 	} else {
 		let fullError = ""
 		validate.errors?.forEach((err) => {
-			if (err.keyword == "additionalProperties") {
+			if (err.keyword === "additionalProperties") {
 				fullError += `Error at ${err.params.additionalProperty}, this is not a valid property name.`
-			} else if (err.keyword == "type") {
-				fullError += `Error at ${err.instancePath}, the property must be of type ${err.schema}.`
+			} else if (err.keyword === "type") {
+				const types = err.params.type
+				if (Array.isArray(types)) {
+					fullError += `Error at ${err.instancePath}, the property must be one of the following types: ${types.join(", ")}.`
+				} else {
+					fullError += `Error at ${err.instancePath}, the property ${err.message}.`
+				}
+			} else if (err.keyword === "pattern") {
+				fullError += `Error at ${err.instancePath}, ${err.message}`
+			} else if (err.keyword === "enum") {
+				const allowedValues = err.params.allowedValues
+				if (Array.isArray(allowedValues)) {
+					fullError += `Error at ${err.instancePath}, ${err.message}: ${allowedValues.join(", ")}`
+				} else {
+					fullError += `Error at ${err.instancePath}, ${err.message}}`
+				}
+			} else if (err.keyword === "required") {
+				if (err.instancePath) {
+					fullError += `Property ${err.instancePath} ${err.message}`
+				} else {
+					fullError += `${err.message}`
+				}
 			} else {
-				fullError += `Error at ${JSON.stringify(err.params)} with error ${err.message}`
+				fullError += `Error at ${err.instancePath} with error ${err.message}`
 			}
 			fullError += "\n"
 		})
