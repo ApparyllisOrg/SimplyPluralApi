@@ -101,6 +101,13 @@ export const update = async (req: Request, res: Response) => {
 			req.body.startTime = Math.min(moment.now(), Number(req.body.startTime))
 		}
 
+		if (frontingDoc.live === true && req.body.live === false) {
+			if (!req.body.endTime) {
+				res.status(400).send("You cannot remove someone from front without specifying an endtime.")
+				return
+			}
+		}
+
 		if (req.body.endTime) {
 			req.body.endTime = Math.min(moment.now(), Number(req.body.endTime))
 		}
@@ -114,7 +121,7 @@ export const update = async (req: Request, res: Response) => {
 			frontChange(res.locals.uid, true, req.body.member ?? frontingDoc.member, true)
 		}
 	} else {
-		res.status(404).send("Unable to find front document to remove")
+		res.status(404).send("Unable to find front document to update")
 	}
 }
 
