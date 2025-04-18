@@ -8,6 +8,7 @@ import { ajv, getPrivacyDependency, validateSchema, getAvatarUuidSchema } from "
 import { frameType } from "../types/frameType"
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults"
 import { doesUserHaveVersion, ONE_ELEVEN, ONE_TWELVE } from "../../util/version"
+import { insertDefaultUserColor } from "../../util/defaults"
 
 export const getCustomFronts = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
@@ -45,6 +46,8 @@ export const add = async (req: Request, res: Response) => {
 	const insertBuckets = async (data: any): Promise<void> => {
 		await insertDefaultPrivacyBuckets(res.locals.uid, data, "customFronts")
 	}
+
+	await insertDefaultUserColor(req, res)
 
 	addSimpleDocument(req, res, "frontStatuses", insertBuckets)
 }
@@ -109,15 +112,15 @@ const s_validatePostCustomFrontSchema = {
 	type: "object",
 	properties: {
 		name: { type: "string" },
-		desc: { type: "string" },
-		avatarUrl: { type: "string" },
+		desc: { type: "string", default: "" },
+		avatarUrl: { type: "string", default: "" },
 		avatarUuid: getAvatarUuidSchema(),
 		color: { type: "string" },
-		preventTrusted: { type: "boolean" },
-		private: { type: "boolean" },
-		supportDescMarkdown: { type: "boolean" },
+		preventTrusted: { type: "boolean", default: true },
+		private: { type: "boolean", default: true },
+		supportDescMarkdown: { type: "boolean", default: true },
 		frame: frameType,
-		preventsFrontNotifs: { type: "boolean" },
+		preventsFrontNotifs: { type: "boolean", default: false },
 	},
 	required: ["name"],
 	nullable: false,

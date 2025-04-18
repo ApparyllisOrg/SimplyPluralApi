@@ -3,7 +3,7 @@ import { NextFunction } from "express"
 import { Request, Response } from "express"
 import addFormats from "ajv-formats"
 
-import { ValidateFunction } from "ajv"
+import Ajv, { ValidateFunction } from "ajv"
 import { ObjectId } from "mongodb"
 import moment from "moment"
 import { getCollection } from "../modules/mongo"
@@ -12,8 +12,7 @@ import GraphemeSplitter = require("grapheme-splitter")
 
 const splitter = new GraphemeSplitter()
 
-const Ajv = require("ajv")
-export const ajv = new Ajv({ allErrors: true, $data: true, verbose: false })
+export const ajv = new Ajv({ allErrors: true, $data: true, verbose: false, useDefaults: true })
 
 require("ajv-errors")(ajv)
 

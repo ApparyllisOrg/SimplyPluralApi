@@ -336,6 +336,13 @@ export const addSimpleDocument = async (req: Request, res: Response, collection:
 		})
 
 	if (result.insertedId.toString().length <= 0) {
+		// Try to find a document at that id already, if one exists but insertedId is empty, then said document already existed
+		const existingDocAtId = await Mongo.getCollection(collection).findOne({ _id: dataObj._id }, { projection: { _id: 1 } })
+		if (existingDocAtId) {
+			res.status(400).send("Cannot add document, a document with that object id already exists.")
+			return
+		}
+
 		res.status(500).send("Server processed your request, however was unable to enter a document into the database")
 		return
 	}

@@ -14,6 +14,7 @@ import { ObjectId } from "mongodb"
 import { Transform } from "stream"
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults"
 import { doesUserHaveVersion, ONE_ELEVEN, ONE_TWELVE } from "../../util/version"
+import { insertDefaultUserColor } from "../../util/defaults"
 
 export const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]): Promise<void> => {
 	const hasMigrated = await doesUserHaveVersion(uid, ONE_ELEVEN)
@@ -168,6 +169,8 @@ export const add = async (req: Request, res: Response) => {
 	const insertBuckets = async (data: any): Promise<void> => {
 		await insertDefaultPrivacyBuckets(res.locals.uid, data, "members")
 	}
+
+	await insertDefaultUserColor(req, res)
 
 	addSimpleDocument(req, res, "members", insertBuckets)
 }
@@ -335,26 +338,26 @@ export const validateMemberSchema = (body: unknown): { success: boolean; msg: st
 const s_validatePostMemberSchema = {
 	type: "object",
 	properties: {
-		name: { type: "string" },
-		desc: { type: "string" },
-		pronouns: { type: "string" },
-		pkId: { type: "string" },
+		name: { type: "string", default: "" },
+		desc: { type: "string", default: "" },
+		pronouns: { type: "string", default: "" },
+		pkId: { type: "string", default: "" },
 		color: { type: "string" },
 		avatarUuid: getAvatarUuidSchema(),
-		avatarUrl: { type: "string" },
-		private: { type: "boolean" },
-		preventTrusted: { type: "boolean" },
-		preventsFrontNotifs: { type: "boolean" },
+		avatarUrl: { type: "string", default: "" },
+		private: { type: "boolean", default: true },
+		preventTrusted: { type: "boolean", default: true },
+		preventsFrontNotifs: { type: "boolean", default: false },
 		info: {
 			type: "object",
 			properties: {
 				"*": { type: "string" },
 			},
 		},
-		supportDescMarkdown: { type: "boolean" },
-		archived: { type: "boolean" },
-		receiveMessageBoardNotifs: { type: "boolean" },
-		archivedReason: { type: "string", maxLength: 150 },
+		supportDescMarkdown: { type: "boolean", default: true },
+		archived: { type: "boolean", default: false },
+		receiveMessageBoardNotifs: { type: "boolean", default: true },
+		archivedReason: { type: "string", maxLength: 150, default: "" },
 		frame: frameType,
 	},
 	required: ["name"],
