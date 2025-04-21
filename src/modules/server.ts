@@ -41,8 +41,23 @@ export const initializeServer = async () => {
 	app.use(express.json({ limit: "3mb" }))
 
 	if (process.env.DEVELOPMENT && process.env.UNITTEST !== "true") {
-		const logRequest = async (req: Request, _res: Response, next: NextFunction) => {
-			console.log(`${req.method} => ${req.url}`)
+		const logRequest = async (req: Request, res: Response, next: NextFunction) => {
+			console.log(`[START] ${req.method} => ${req.url}`)
+
+			const tNowStart = Date.now()
+
+			res.on("finish", () => {
+				const tNowEnd = Date.now()
+				const diff = (tNowEnd - tNowStart) / 1000.0
+				console.log(`[END] ${req.method} => ${req.url} => [${res.statusCode}] => ${diff}s`)
+			})
+
+			res.on("error", (err: Error) => {
+				const tNowEnd = Date.now()
+				const diff = (tNowEnd - tNowStart) / 1000.0
+				console.log(`[ERR] ${req.method} => ${req.url} => ${err.message} => ${diff}s`)
+			})
+
 			next()
 		}
 

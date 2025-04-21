@@ -52,6 +52,11 @@ export const add = async (req: Request, res: Response) => {
 			res.status(409).send("This member is already set to be fronting. Remove them from front prior to adding them to front")
 			return
 		}
+
+		if (req.body.endTime !== undefined) {
+			res.status(400).send("When live is true, endTime must be unset")
+			return
+		}
 	}
 
 	const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member)
@@ -60,8 +65,11 @@ export const add = async (req: Request, res: Response) => {
 		return
 	}
 
+	if (req.body.endTime) {
+		req.body.endTime = Math.min(moment.now(), Number(req.body.endTime))
+	}
+
 	req.body.startTime = Math.min(moment.now(), Number(req.body.startTime))
-	req.body.endTime = Math.min(moment.now(), Number(req.body.endTime))
 
 	// Start time cannot be larger than endTime
 	if (req.body.startTime >= req.body.endTime) {
@@ -75,21 +83,39 @@ export const add = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
 	const frontingDoc = await getCollection("frontHistory").findOne({ _id: parseId(req.params.id) })
 	if (frontingDoc) {
-		if (frontingDoc.live === false && req.body.live === true) {
-			res.status(409).send("You cannot update a front history entry to live, if you wish to add someone to front, use POST instead.")
+		const removingFromFront = frontingDoc.live === true && req.body.live === false
+
+		if (removingFromFront && !req.body.endTime) {
+			res.status(400).send("You cannot remove someone from front without specifying an endtime.")
 			return
 		}
 
-		if (req.body.member != null && req.body.member != undefined && frontingDoc.live === true) {
-			// Only allow changing of a member value to a valid member value
-			if (req.body.member != frontingDoc.member) {
-				const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member)
-				if (!isValidMemberId) {
-					res.status(404).send("This member does not exist for this account")
-					return
-				}
-			}
+		const updatingLiveEntry = frontingDoc.live === true && !removingFromFront
 
+		if (updatingLiveEntry && req.body.endTime !== undefined) {
+			res.status(400).send("When updating a live front history entry, endTime must be unset")
+			return
+		}
+
+		const readdingToFront = frontingDoc.live === false && req.body.live === true
+
+		if (readdingToFront) {
+			res.status(409).send("You cannot update a front history entry to live when it was not live anymore, if you wish to add someone to front, use POST instead.")
+			return
+		}
+
+		const changingMember = req.body.member != null && req.body.member != undefined && req.body.member != frontingDoc.member
+
+		// Only allow changing of a member value to a valid member value
+		if (changingMember) {
+			const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member)
+			if (!isValidMemberId) {
+				res.status(404).send("This member does not exist for this account")
+				return
+			}
+		}
+
+		if (changingMember && updatingLiveEntry) {
 			const alreadyFrontingDoc = await getCollection("frontHistory").findOne({ member: req.body.member, live: true })
 			if (alreadyFrontingDoc && alreadyFrontingDoc._id != req.params.id) {
 				res.status(409).send("You cannot change an active front entry to this member, they are already fronting")
@@ -97,19 +123,17 @@ export const update = async (req: Request, res: Response) => {
 			}
 		}
 
+		// If updating startTime, ensure it's not > now
 		if (req.body.startTime) {
 			req.body.startTime = Math.min(moment.now(), Number(req.body.startTime))
 		}
 
-		if (frontingDoc.live === true && req.body.live === false) {
-			if (!req.body.endTime) {
-				res.status(400).send("You cannot remove someone from front without specifying an endtime.")
-				return
-			}
-		}
+		const startTime = Number(req.body.startTime ?? frontingDoc.startTime)
 
+		// If updating startTime, ensure it's not > now or startTime
 		if (req.body.endTime) {
 			req.body.endTime = Math.min(moment.now(), Number(req.body.endTime))
+			req.body.endTime = Math.min(startTime, Number(req.body.endTime))
 		}
 
 		await updateSimpleDocument(req, res, "frontHistory")
@@ -123,6 +147,23 @@ export const update = async (req: Request, res: Response) => {
 	} else {
 		res.status(404).send("Unable to find front document to update")
 	}
+}
+
+export const dotProduct = (a: number[], b: number[]) => {
+	if (!Array.isArray(a) || !Array.isArray(b)) {
+		throw new Error("Both inputs must be arrays")
+	}
+
+	if (a.length !== b.length) {
+		throw new Error("Arrays must have the same length")
+	}
+
+	let result = 0
+	for (let i = 0; i < a.length; i++) {
+		result += a[i] * b[i]
+	}
+
+	return result
 }
 
 export const del = async (req: Request, res: Response) => {
