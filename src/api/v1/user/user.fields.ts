@@ -1,14 +1,14 @@
 import { getCollection } from "../../../modules/mongo"
 import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../../security"
 import { fetchBucketsForFriend } from "../../../util"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "../../../util/version"
 
 export const filterFields = async (friend: string, owner: string, inFields: any) => {
 	const newFields: any = {}
 
 	const canSee = await canSeeMembers(owner, friend)
 	if (canSee) {
-		const hasMigrated = await doesUserHaveVersion(owner, FIELD_MIGRATION_VERSION)
+		const hasMigrated = await doesUserHaveVersion(owner, ONE_ELEVEN)
 		if (hasMigrated) {
 			const friendBuckets = await fetchBucketsForFriend(friend, owner)
 
@@ -17,7 +17,7 @@ export const filterFields = async (friend: string, owner: string, inFields: any)
 				.sort({ order: 1 })
 				.toArray()
 
-			const friendMigrated = await doesUserHaveVersion(friend, FIELD_MIGRATION_VERSION)
+			const friendMigrated = await doesUserHaveVersion(friend, ONE_ELEVEN)
 			if (friendMigrated === true) {
 				for (let i = 0; i < userFields.length; ++i) {
 					const field = userFields[i]
@@ -34,7 +34,7 @@ export const filterFields = async (friend: string, owner: string, inFields: any)
 			const friendLevel = await getFriendLevel(owner, friend)
 			const isATrustedFriends = isTrustedFriend(friendLevel)
 
-			const friendMigrated = await doesUserHaveVersion(friend, FIELD_MIGRATION_VERSION)
+			const friendMigrated = await doesUserHaveVersion(friend, ONE_ELEVEN)
 
 			if (inFields) {
 				Object.keys(inFields).forEach((key: string) => {

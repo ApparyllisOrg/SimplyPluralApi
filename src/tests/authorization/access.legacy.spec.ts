@@ -4,9 +4,9 @@ import { getCollection } from "../../modules/mongo"
 import { containsWhereDirect, getTestAxiosUrl, postDocument, sleep } from "../utils"
 import { expect } from "chai"
 import axios from "axios"
-import { AccountState, registerAccount, setupFront, testCustomFieldsMemberAccess, testFriendAccess, testFrontAccess, testNoFrontAccess, testNoTypeAccess, testTypeAccess } from "./access/utils"
+import { AccountState, registerAccount, setupFront, testCustomFieldsMemberAccess, testFriendAccess, testFrontAccess, testNoFrontAccess, testNoTypeAccess, testTypeAccess } from "../utils/authUtils"
 import { ObjectId } from "mongodb"
-import { FIELD_MIGRATION_VERSION } from "../../util/version"
+import { ONE_ELEVEN } from "../../util/version"
 
 describe("validate legacy access across accounts", () => {
 	let acc1_legacy: AccountState = { id: "", token: "" } // Legacy Account sharing data
@@ -19,17 +19,17 @@ describe("validate legacy access across accounts", () => {
 
 	mocha.test("Setup legacy test accounts", async () => {
 		// Register sharing account
-		acc1_legacy = await registerAccount(13, acc1_legacy)
+		acc1_legacy = await registerAccount(acc1_legacy)
 
 		// Register legacy accounts
-		acc2_legacy = await registerAccount(7, acc2_legacy)
-		acc3_legacy = await registerAccount(8, acc3_legacy)
-		acc4_legacy = await registerAccount(9, acc4_legacy)
-		acc5_legacy = await registerAccount(10, acc5_legacy)
-		acc6_legacy = await registerAccount(11, acc6_legacy)
-		acc7_legacy = await registerAccount(12, acc7_legacy)
+		acc2_legacy = await registerAccount(acc2_legacy)
+		acc3_legacy = await registerAccount(acc3_legacy)
+		acc4_legacy = await registerAccount(acc4_legacy)
+		acc5_legacy = await registerAccount(acc5_legacy)
+		acc6_legacy = await registerAccount(acc6_legacy)
+		acc7_legacy = await registerAccount(acc7_legacy)
 
-		await getCollection("private").updateMany({ uid: { $in: [acc1_legacy.id, acc2_legacy.id, acc3_legacy.id, acc4_legacy.id, acc5_legacy.id, acc6_legacy.id, acc7_legacy.id] } }, { $set: { latestVersion: FIELD_MIGRATION_VERSION - 1 } })
+		await getCollection("private").updateMany({ uid: { $in: [acc1_legacy.id, acc2_legacy.id, acc3_legacy.id, acc4_legacy.id, acc5_legacy.id, acc6_legacy.id, acc7_legacy.id] } }, { $set: { latestVersion: ONE_ELEVEN - 1 } })
 	})
 
 	mocha.test("Befriend legacy test accounts", async () => {

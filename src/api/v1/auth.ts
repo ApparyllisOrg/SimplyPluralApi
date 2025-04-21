@@ -132,7 +132,7 @@ export const refreshToken = async (req: Request, res: Response) => {
 				return
 			}
 
-			let email = await getEmailForUser(validResult.decoded.sub)
+			const email = await getEmailForUser(validResult.decoded.sub)
 
 			if (!email) {
 				res.status(401).send("Cannot refresh, unable to find your account from this refresh token")
@@ -248,7 +248,7 @@ export const changePassword = async (req: Request, res: Response) => {
 		}
 	}
 
-	res.status(401).send("Failed to change password")
+	res.status(401).send(result.msg)
 }
 
 export const requestEmailFromUsername = async (req: Request, res: Response) => {

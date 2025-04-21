@@ -98,13 +98,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/fronters/", isUserAuthenticated(ApiKeyAccessType.Read), frontHistory.getFronters)
 
 	// Front History
-	app.get(
-		"/v1/frontHistory/:system",
-		isUserAuthenticated(ApiKeyAccessType.Read),
-		validateSelfOperation,
-		validateQuery(frontHistory.validateGetfrontHistorychema),
-		frontHistory.getFrontHistoryInRange
-	)
+	app.get("/v1/frontHistory/:system", isUserAuthenticated(ApiKeyAccessType.Read), validateSelfOperation, validateQuery(frontHistory.validateGetfrontHistorychema), frontHistory.getFrontHistoryInRange)
 	app.get("/v1/frontHistory", isUserAuthenticated(ApiKeyAccessType.Read), frontHistory.getFrontHistory)
 	app.get("/v1/frontHistory/member/:id", isUserAuthenticated(ApiKeyAccessType.Read), frontHistory.getFrontHistoryForMember)
 	app.get("/v1/frontHistory/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), validateSelfOperation, frontHistory.get)
@@ -149,7 +143,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/board/:id", isUserAuthenticated(ApiKeyAccessType.Read), board.get)
 	app.get("/v1/board/member/:id", isUserAuthenticated(ApiKeyAccessType.Read), board.getBoardMessagesForMember)
 	app.post("/v1/board/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(board.validateBoardMessageSchema), board.add)
-	app.patch("/v1/board/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(board.validateCommentPatchSchema), board.update)
+	app.patch("/v1/board/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(board.validateBoardPatchSchema), board.update)
 	app.delete("/v1/board/:id", isUserAuthenticated(ApiKeyAccessType.Delete), board.del)
 
 	// Chat channels
@@ -198,12 +192,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.get("/v1/friends/getFrontValues", isUserAuthenticated(ApiKeyAccessType.Read), friend.getAllFriendFrontValues)
 	app.get("/v1/friend/:system/getFrontValue", isUserAuthenticated(ApiKeyAccessType.Read), validateAreFriends, friend.getFriendFrontValues)
 	app.post("/v1/friends/request/add/:usernameOrId", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(friendActions.validateAddFrienqRequestSchema), friendActions.AddFriend)
-	app.post(
-		"/v1/friends/request/respond/:usernameOrId",
-		isUserAuthenticated(ApiKeyAccessType.Write),
-		validateQuery(friendActions.validateRespondToFrienqRequestQuerySchema),
-		friendActions.RespondToFriendRequest
-	)
+	app.post("/v1/friends/request/respond/:usernameOrId", isUserAuthenticated(ApiKeyAccessType.Write), validateQuery(friendActions.validateRespondToFrienqRequestQuerySchema), friendActions.RespondToFriendRequest)
 	app.delete("/v1/friends/request/:id", isUserAuthenticated(ApiKeyAccessType.Delete), friendActions.CancelFriendRequest)
 	app.delete("/v1/friends/remove/:id", isUserAuthenticated(ApiKeyAccessType.Delete), friendActions.RemoveFriend)
 
@@ -217,20 +206,8 @@ export const setupV1routes = (app: core.Express) => {
 	app.delete("/v1/avatar/:dashedid", isUserAppJwtAuthenticated, storage.Delete)
 
 	// Sync members
-	app.patch(
-		"/v1/integrations/pluralkit/sync/member/:id",
-		isUserAuthenticated(ApiKeyAccessType.Write),
-		validateBody(pk.validateSyncMemberSchema),
-		validateQuery(pk.validateSyncDirectionSchema),
-		pk.performSyncMember
-	)
-	app.patch(
-		"/v1/integrations/pluralkit/sync/members",
-		isUserAuthenticated(ApiKeyAccessType.Write),
-		validateBody(pk.validateSyncMembersSchema),
-		validateQuery(pk.validateSyncDirectionSchema),
-		pk.performSyncAllMembers
-	)
+	app.patch("/v1/integrations/pluralkit/sync/member/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(pk.validateSyncMemberSchema), validateQuery(pk.validateSyncDirectionSchema), pk.performSyncMember)
+	app.patch("/v1/integrations/pluralkit/sync/members", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(pk.validateSyncMembersSchema), validateQuery(pk.validateSyncDirectionSchema), pk.performSyncAllMembers)
 
 	// Tokens
 	app.get("/v1/tokens", isUserAppJwtAuthenticated, token.getAll)

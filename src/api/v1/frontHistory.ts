@@ -1,10 +1,10 @@
-import { Request, Response } from "express";
-import moment from "moment";
-import { frontChange } from "../../modules/events/frontChange";
-import { getCollection, parseId } from "../../modules/mongo";
-import { documentObject } from "../../modules/mongo/baseTypes";
-import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendQuery, deleteSimpleDocument, fetchCollection, isMemberOrCustomFront, isCustomFront } from "../../util";
-import { ajv, validateSchema } from "../../util/validation";
+import { Request, Response } from "express"
+import moment from "moment"
+import { frontChange } from "../../modules/events/frontChange"
+import { getCollection, parseId } from "../../modules/mongo"
+import { documentObject } from "../../modules/mongo/baseTypes"
+import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, sendQuery, deleteSimpleDocument, fetchCollection, isMemberOrCustomFront, isCustomFront } from "../../util"
+import { ajv, validateSchema } from "../../util/validation"
 
 export const getFrontTimeRangeQuery = (req: Request, res: Response) => {
 	return {
@@ -19,118 +19,149 @@ export const getFrontTimeRangeQuery = (req: Request, res: Response) => {
 				],
 			},
 		],
-	};
-};
+	}
+}
 
 export const getFrontHistoryInRange = async (req: Request, res: Response) => {
-	const query = getFrontTimeRangeQuery(req, res);
+	const query = getFrontTimeRangeQuery(req, res)
 	const dbQuery = await getCollection("frontHistory").find(query)
 	sendQuery(req, res, "frontHistory", dbQuery.stream())
-};
+}
 
 export const getFrontHistory = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "frontHistory", {})
-};
+}
 
 export const getFrontHistoryForMember = async (req: Request, res: Response) => {
 	fetchCollection(req, res, "frontHistory", { member: req.params.id })
-};
+}
 
 export const getFronters = async (req: Request, res: Response) => {
 	const query = getCollection("frontHistory").find({ uid: res.locals.uid, live: true })
 	sendQuery(req, res, "frontHistory", query.stream())
-};
+}
 
 export const get = async (req: Request, res: Response) => {
-	fetchSimpleDocument(req, res, "frontHistory");
-};
+	fetchSimpleDocument(req, res, "frontHistory")
+}
 
 export const add = async (req: Request, res: Response) => {
 	if (req.body.live === true) {
-		const potentiallyFrontingDoc = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.body.member, live: true });
+		const potentiallyFrontingDoc = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.body.member, live: true })
 		if (potentiallyFrontingDoc) {
-			res.status(409).send("This member is already set to be fronting. Remove them from front prior to adding them to front");
-			return;
+			res.status(409).send("This member is already set to be fronting. Remove them from front prior to adding them to front")
+			return
+		}
+
+		if (req.body.endTime !== undefined) {
+			res.status(400).send("When live is true, endTime must be unset")
+			return
 		}
 	}
 
-	const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member);
+	const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member)
 	if (!isValidMemberId) {
-		res.status(404).send("This member does not exist for this account");
-		return;
+		res.status(404).send("This member does not exist for this account")
+		return
 	}
 
-	req.body.startTime = Math.min(moment.now(), Number(req.body.startTime));
-	req.body.endTime = Math.min(moment.now(), Number(req.body.endTime));
+	if (req.body.endTime) {
+		req.body.endTime = Math.min(moment.now(), Number(req.body.endTime))
+	}
+
+	req.body.startTime = Math.min(moment.now(), Number(req.body.startTime))
 
 	// Start time cannot be larger than endTime
 	if (req.body.startTime >= req.body.endTime) {
-		req.body.startTime = req.body.endTime - 1;
+		req.body.startTime = req.body.endTime - 1
 	}
 
-	await addSimpleDocument(req, res, "frontHistory");
-	frontChange(res.locals.uid, false, req.body.member, true);
-};
+	await addSimpleDocument(req, res, "frontHistory")
+	frontChange(res.locals.uid, false, req.body.member, true)
+}
 
 export const update = async (req: Request, res: Response) => {
-	const frontingDoc = await getCollection("frontHistory").findOne({ _id: parseId(req.params.id) });
+	const frontingDoc = await getCollection("frontHistory").findOne({ _id: parseId(req.params.id) })
 	if (frontingDoc) {
-		if (frontingDoc.live === false && req.body.live === true) {
-			res.status(409).send("You cannot update a front history entry to live, if you wish to add someone to front, use POST instead.");
-			return;
+		const removingFromFront = frontingDoc.live === true && req.body.live === false
+
+		if (removingFromFront && !req.body.endTime) {
+			res.status(400).send("You cannot remove someone from front without specifying an endtime.")
+			return
 		}
 
-		if (req.body.member != null && req.body.member != undefined && frontingDoc.live === true) {
-			// Only allow changing of a member value to a valid member value
-			if (req.body.member != frontingDoc.member) {
-				const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member);
-				if (!isValidMemberId) {
-					res.status(404).send("This member does not exist for this account");
-					return;
-				}
-			}
+		const updatingLiveEntry = frontingDoc.live === true && !removingFromFront
 
-			const alreadyFrontingDoc = await getCollection("frontHistory").findOne({ member: req.body.member, live: true });
+		if (updatingLiveEntry && req.body.endTime !== undefined) {
+			res.status(400).send("When updating a live front history entry, endTime must be unset")
+			return
+		}
+
+		const readdingToFront = frontingDoc.live === false && req.body.live === true
+
+		if (readdingToFront) {
+			res.status(409).send("You cannot update a front history entry to live when it was not live anymore, if you wish to add someone to front, use POST instead.")
+			return
+		}
+
+		const changingMember = req.body.member != null && req.body.member != undefined && req.body.member != frontingDoc.member
+
+		// Only allow changing of a member value to a valid member value
+		if (changingMember) {
+			const isValidMemberId = await isMemberOrCustomFront(res.locals.uid, req.body.member)
+			if (!isValidMemberId) {
+				res.status(404).send("This member does not exist for this account")
+				return
+			}
+		}
+
+		if (changingMember && updatingLiveEntry) {
+			const alreadyFrontingDoc = await getCollection("frontHistory").findOne({ member: req.body.member, live: true })
 			if (alreadyFrontingDoc && alreadyFrontingDoc._id != req.params.id) {
-				res.status(409).send("You cannot change an active front entry to this member, they are already fronting");
-				return;
+				res.status(409).send("You cannot change an active front entry to this member, they are already fronting")
+				return
 			}
 		}
 
+		// If updating startTime, ensure it's not > now
 		if (req.body.startTime) {
-			req.body.startTime = Math.min(moment.now(), Number(req.body.startTime));
+			req.body.startTime = Math.min(moment.now(), Number(req.body.startTime))
 		}
 
+		const startTime = Number(req.body.startTime ?? frontingDoc.startTime)
+
+		// If updating startTime, ensure it's not > now or startTime
 		if (req.body.endTime) {
-			req.body.endTime = Math.min(moment.now(), Number(req.body.endTime));
+			req.body.endTime = Math.min(moment.now(), Number(req.body.endTime))
+			req.body.endTime = Math.min(startTime, Number(req.body.endTime))
 		}
 
-		await updateSimpleDocument(req, res, "frontHistory");
+		await updateSimpleDocument(req, res, "frontHistory")
 
-		const isCustom = await isCustomFront(res.locals.uid, req.body.member ?? frontingDoc.member);
-		await getCollection("frontHistory").updateOne({ _id: parseId(req.params.id) }, { $set: { custom: isCustom } });
+		const isCustom = await isCustomFront(res.locals.uid, req.body.member ?? frontingDoc.member)
+		await getCollection("frontHistory").updateOne({ _id: parseId(req.params.id) }, { $set: { custom: isCustom } })
 
 		if (frontingDoc.live === true && req.body.live === false) {
-			frontChange(res.locals.uid, true, req.body.member ?? frontingDoc.member, true);
+			frontChange(res.locals.uid, true, req.body.member ?? frontingDoc.member, true)
 		}
 	} else {
-		res.status(404).send("Unable to find front document to remove");
+		res.status(404).send("Unable to find front document to update")
 	}
-};
+}
 
 export const del = async (req: Request, res: Response) => {
-	const frontingDoc = await getCollection("frontHistory").findOne({ _id: parseId(req.params.id) });
+	const frontingDoc = await getCollection("frontHistory").findOne({ _id: parseId(req.params.id) })
 
 	// Delete all attached comments
-	await getCollection("comments").deleteMany({ documentId: req.params.id, uid: res.locals.uid, collection: "frontHistory" });
+	await getCollection("comments").deleteMany({ documentId: req.params.id, uid: res.locals.uid, collection: "frontHistory" })
 
 	// If a fronting document is deleted, and it's a live one, notify front change
 	if (frontingDoc && frontingDoc.live === true) {
-		frontChange(res.locals.uid, true, frontingDoc.member, true);
+		frontChange(res.locals.uid, true, frontingDoc.member, true)
 	}
 
-	deleteSimpleDocument(req, res, "frontHistory");
-};
+	deleteSimpleDocument(req, res, "frontHistory")
+}
 
 const s_validatefrontHistoryPostSchema = {
 	type: "object",
@@ -140,18 +171,18 @@ const s_validatefrontHistoryPostSchema = {
 		startTime: { type: "number", format: "int64" },
 		endTime: { type: "number", format: "int64" },
 		member: { type: "string" },
-		customStatus: { type: "string", maxLength: 50 },
+		customStatus: { type: "string", maxLength: 50, default: "" },
 	},
 	nullable: false,
 	additionalProperties: false,
 	required: ["custom", "live", "startTime", "member"],
-};
+}
 
 const v_validatefrontHistoryPostSchema = ajv.compile(s_validatefrontHistoryPostSchema)
 
 export const validatefrontHistoryPostSchema = (body: unknown): { success: boolean; msg: string } => {
-	return validateSchema(v_validatefrontHistoryPostSchema, body);
-};
+	return validateSchema(v_validatefrontHistoryPostSchema, body)
+}
 
 const s_validatefrontHistoryPatchSchema = {
 	type: "object",
@@ -165,13 +196,13 @@ const s_validatefrontHistoryPatchSchema = {
 	},
 	nullable: false,
 	additionalProperties: false,
-};
+}
 
 const v_validatefrontHistoryPatchSchema = ajv.compile(s_validatefrontHistoryPatchSchema)
 
 export const validatefrontHistoryPatchSchema = (body: unknown): { success: boolean; msg: string } => {
-	return validateSchema(v_validatefrontHistoryPatchSchema, body);
-};
+	return validateSchema(v_validatefrontHistoryPatchSchema, body)
+}
 
 const s_validateGetfrontHistorySchema = {
 	type: "object",
@@ -181,11 +212,11 @@ const s_validateGetfrontHistorySchema = {
 	},
 	nullable: false,
 	required: ["startTime", "endTime"],
-};
+}
 const v_validateGetfrontHistorySchema = ajv.compile(s_validateGetfrontHistorySchema)
 
 // Query params so we have to use string pattern comparison
 // Query proeprties are always strings
 export const validateGetfrontHistorychema = (body: unknown): { success: boolean; msg: string } => {
-	return validateSchema(v_validateGetfrontHistorySchema, body);
-};
+	return validateSchema(v_validateGetfrontHistorySchema, body)
+}

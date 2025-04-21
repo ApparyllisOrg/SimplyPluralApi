@@ -1,11 +1,11 @@
-import * as assert from "assert";
-import * as mocha from "mocha";
-import { validateUserReportSchema } from "../../api/v1/user";
+import * as assert from "assert"
+import * as mocha from "mocha"
+import { validateUserReportSchema } from "../../api/v1/user"
 
 describe("validate generate report schemas", () => {
 	mocha.test("Test valid generate report schema", () => {
 		const result = validateUserReportSchema({
-			sendTo: "celeste@saltypandastudios.com",
+			sendTo: "valid@apparyllis.com",
 			frontHistory: {
 				privacyLevel: 2,
 				start: 0,
@@ -20,21 +20,21 @@ describe("validate generate report schemas", () => {
 			customFronts: {
 				privacyLevel: 2,
 			},
-		});
+		})
 
-		assert.strictEqual(result.success, true, result.msg);
-	});
+		assert.strictEqual(result.success, true, result.msg)
+	})
 
 	mocha.test("Test valid null generate report schema", () => {
 		const result = validateUserReportSchema({
-			sendTo: "celeste@saltypandastudios.com",
+			sendTo: "valid@apparyllis.com",
 			frontHistory: null,
 			members: null,
 			customFronts: null,
-		});
+		})
 
-		assert.strictEqual(result.success, true, result.msg);
-	});
+		assert.strictEqual(result.success, true, result.msg)
+	})
 
 	mocha.test("Test invalid generate report schema", () => {
 		const result = validateUserReportSchema({
@@ -42,8 +42,8 @@ describe("validate generate report schemas", () => {
 			frontHistory: {},
 			members: {},
 			customFronts: {},
-		});
+		})
 
-		assert.strictEqual(result.success, false, result.msg);
-	});
-});
+		assert.strictEqual(result.success, false, result.msg)
+	})
+})

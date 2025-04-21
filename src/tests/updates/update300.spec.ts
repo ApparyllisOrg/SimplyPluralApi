@@ -2,8 +2,9 @@ import assert from "assert"
 import * as mocha from "mocha"
 import { expect } from "chai"
 import axios from "axios"
-import { AccountState, registerAccount, setupFront, testCustomFieldsMemberAccess, testFriendAccess, testFrontAccess, testNoFrontAccess, testNoTypeAccess, testTypeAccess } from "../access/utils"
-import { getTestAxiosUrl } from "../../utils"
+import { AccountState, registerAccount } from "../utils/authUtils"
+import { getTestAxiosUrl } from "../utils"
+import { ONE_ELEVEN } from "../../util/version"
 
 describe("validate migration version 300", () => {
 	let acc_legacy: AccountState = { id: "", token: "" } // Legacy Account
@@ -14,92 +15,56 @@ describe("validate migration version 300", () => {
 
 	mocha.test("Setup legacy test account", async () => {
 		// Register account
-		acc_legacy = await registerAccount(21, acc_legacy, 299)
+		acc_legacy = await registerAccount(acc_legacy, ONE_ELEVEN - 1)
 	})
 
 	mocha.test("Create test members", async () => {
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/member`),
-				{ name: "Private", private: true, preventTrusted: true },
-				{ headers: { authorization: acc_legacy.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/member`), { name: "Private", private: true, preventTrusted: true }, { headers: { authorization: acc_legacy.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/member`),
-				{ name: "Trusted Friend", private: true, preventTrusted: false },
-				{ headers: { authorization: acc_legacy.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/member`), { name: "Trusted Friend", private: true, preventTrusted: false }, { headers: { authorization: acc_legacy.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/member`),
-				{ name: "Friend", private: false, preventTrusted: false },
-				{ headers: { authorization: acc_legacy.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/member`), { name: "Friend", private: false, preventTrusted: false }, { headers: { authorization: acc_legacy.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 	})
 
 	mocha.test("Create test group", async () => {
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/group`),
-				{ name: "Private", private: true, preventTrusted: true, parent: "root", desc: "", color: "", emoji: "", members: [] },
-				{ headers: { authorization: acc_legacy.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/group`), { name: "Private", private: true, preventTrusted: true, parent: "root", desc: "", color: "", emoji: "", members: [] }, { headers: { authorization: acc_legacy.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/group`),
-				{ name: "Trusted Friend", private: true, preventTrusted: false, parent: "root", desc: "", color: "", emoji: "", members: [] },
-				{ headers: { authorization: acc_legacy.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/group`), { name: "Trusted Friend", private: true, preventTrusted: false, parent: "root", desc: "", color: "", emoji: "", members: [] }, { headers: { authorization: acc_legacy.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/group`),
-				{ name: "Friend", private: false, preventTrusted: false, parent: "root", desc: "", color: "", emoji: "", members: [] },
-				{ headers: { authorization: acc_legacy.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/group`), { name: "Friend", private: false, preventTrusted: false, parent: "root", desc: "", color: "", emoji: "", members: [] }, { headers: { authorization: acc_legacy.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 	})
 
 	mocha.test("Create test custom front", async () => {
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/customFront`),
-				{ name: "Private", private: true, preventTrusted: true },
-				{ headers: { authorization: acc_legacy.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/customFront`), { name: "Private", private: true, preventTrusted: true }, { headers: { authorization: acc_legacy.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/customFront`),
-				{ name: "Trusted Friend", private: true, preventTrusted: false },
-				{ headers: { authorization: acc_legacy.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/customFront`), { name: "Trusted Friend", private: true, preventTrusted: false }, { headers: { authorization: acc_legacy.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/customFront`),
-				{ name: "Friend", private: false, preventTrusted: false },
-				{ headers: { authorization: acc_legacy.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/customFront`), { name: "Friend", private: false, preventTrusted: false }, { headers: { authorization: acc_legacy.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 	})

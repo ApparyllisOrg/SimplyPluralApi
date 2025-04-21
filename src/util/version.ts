@@ -6,14 +6,14 @@ import { getCollection } from "../modules/mongo"
 // Release Names
 //-------------------------------//
 
-export const FIELD_MIGRATION_VERSION = 300
-export const SEARCH_QUERY_VERSION = 400
+export const ONE_ELEVEN = 300
+export const ONE_TWELVE = 400
 
 //-------------------------------//
 // Versioning
 //-------------------------------//
 
-export const versionMigrationList = [111, 149, 150, FIELD_MIGRATION_VERSION]
+export const versionMigrationList = [111, 149, 150, ONE_ELEVEN]
 
 //-------------------------------//
 // Utils

@@ -5,7 +5,7 @@ import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchColl
 import { ajv, getPrivacyDependency, validateSchema } from "../../util/validation"
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults"
 import { canSeeMembers } from "../../security"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "../../util/version"
 
 export const getGroups = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
@@ -15,7 +15,7 @@ export const getGroups = async (req: Request, res: Response) => {
 			return
 		}
 
-		const userMigrated = await doesUserHaveVersion(req.params.system, FIELD_MIGRATION_VERSION)
+		const userMigrated = await doesUserHaveVersion(req.params.system, ONE_ELEVEN)
 		if (userMigrated) {
 			const friendBuckets = await fetchBucketsForFriend(res.locals.uid, req.params.system)
 			fetchCollectionPermissionsPreflighted(req, res, "groups", { buckets: { $in: friendBuckets } })
@@ -196,13 +196,13 @@ const s_validatePostGroupSchema = {
 	properties: {
 		parent: { type: "string" },
 		color: { type: "string" },
-		private: { type: "boolean" },
-		preventTrusted: { type: "boolean" },
+		private: { type: "boolean", default: true },
+		preventTrusted: { type: "boolean", default: true },
 		name: { type: "string" },
 		desc: { type: "string" },
 		emoji: { type: "string", format: "emoji3" },
 		members: { type: "array", items: { type: "string" }, uniqueItems: true },
-		supportDescMarkdown: { type: "boolean" },
+		supportDescMarkdown: { type: "boolean", default: true },
 	},
 	required: ["parent", "color", "name", "desc", "emoji", "members"],
 	nullable: false,

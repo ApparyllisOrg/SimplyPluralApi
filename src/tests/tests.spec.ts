@@ -6,6 +6,8 @@ import { assignApiKey, generateNewApiKey } from "../modules/api/keys"
 import { setTestToken } from "./utils"
 
 import { MongoMemoryServer } from "mongodb-memory-server"
+import { initStorageController, storageController } from "../modules/storage/storageController"
+import { StorageTargetNull } from "../modules/storage/storageTargetNull"
 
 process.env.UNITTEST = "true"
 
@@ -16,6 +18,15 @@ const setupTest = async () => {
 	process.env["DATABASE_URI"] = mongod.getUri()
 
 	const app = await initializeServer()
+
+	initStorageController()
+
+	const nullStorageTarget = new StorageTargetNull()
+	nullStorageTarget.init()
+
+	storageController?.registerStorageTarget(nullStorageTarget)
+	storageController?.setPrimaryTarget(nullStorageTarget)
+
 	await startServer(app, mongod.getUri())
 
 	// Generate and assign a test token

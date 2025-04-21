@@ -6,7 +6,7 @@ import { expect } from "chai"
 import axios from "axios"
 import moment from "moment"
 import { notifyFrontDue } from "../../modules/events/frontChange"
-import { AccountState, registerAccount, setupFront, testCustomFieldsMemberAccess, testFriendAccess, testFrontAccess, testNoFrontAccess, testNoTypeAccess, testTypeAccess } from "./access/utils"
+import { AccountState, registerAccount, setupFront, testCustomFieldsMemberAccess, testFriendAccess, testFrontAccess, testNoFrontAccess, testNoTypeAccess, testTypeAccess } from "../utils/authUtils"
 import { getCollection } from "../../modules/mongo"
 
 describe("validate access across accounts", () => {
@@ -21,15 +21,15 @@ describe("validate access across accounts", () => {
 
 	mocha.test("Setup test accounts", async () => {
 		// Register sharing account
-		acc1 = await registerAccount(0, acc1, 300)
+		acc1 = await registerAccount(acc1, 300)
 
 		// Register new accounts
-		acc2 = await registerAccount(1, acc2, 300)
-		acc3 = await registerAccount(2, acc3, 300)
-		acc4 = await registerAccount(3, acc4, 300)
-		acc5 = await registerAccount(4, acc5, 300)
-		acc6 = await registerAccount(5, acc6, 300)
-		acc7 = await registerAccount(6, acc7, 300)
+		acc2 = await registerAccount(acc2, 300)
+		acc3 = await registerAccount(acc3, 300)
+		acc4 = await registerAccount(acc4, 300)
+		acc5 = await registerAccount(acc5, 300)
+		acc6 = await registerAccount(acc6, 300)
+		acc7 = await registerAccount(acc7, 300)
 	})
 
 	let acc1BucketFriends: ObjectId | undefined
@@ -38,93 +38,53 @@ describe("validate access across accounts", () => {
 	mocha.test("Befriend test accounts", async () => {
 		// Send friend requests
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v2/friends/request/add/${acc2.id}`),
-				{ settings: { seeMembers: true, seeFront: true, getFrontNotif: false } },
-				{ headers: { authorization: acc1.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v2/friends/request/add/${acc2.id}`), { settings: { seeMembers: true, seeFront: true, getFrontNotif: false } }, { headers: { authorization: acc1.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v2/friends/request/add/${acc3.id}`),
-				{ settings: { seeMembers: true, seeFront: true, getFrontNotif: false } },
-				{ headers: { authorization: acc1.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v2/friends/request/add/${acc3.id}`), { settings: { seeMembers: true, seeFront: true, getFrontNotif: false } }, { headers: { authorization: acc1.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v2/friends/request/add/${acc4.id}`),
-				{ settings: { seeMembers: true, seeFront: false, getFrontNotif: false } },
-				{ headers: { authorization: acc1.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v2/friends/request/add/${acc4.id}`), { settings: { seeMembers: true, seeFront: false, getFrontNotif: false } }, { headers: { authorization: acc1.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v2/friends/request/add/${acc5.id}`),
-				{ settings: { seeMembers: true, seeFront: false, getFrontNotif: false } },
-				{ headers: { authorization: acc1.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v2/friends/request/add/${acc5.id}`), { settings: { seeMembers: true, seeFront: false, getFrontNotif: false } }, { headers: { authorization: acc1.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v2/friends/request/add/${acc6.id}`),
-				{ settings: { seeMembers: false, seeFront: false, getFrontNotif: false } },
-				{ headers: { authorization: acc1.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v2/friends/request/add/${acc6.id}`), { settings: { seeMembers: false, seeFront: false, getFrontNotif: false } }, { headers: { authorization: acc1.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		// Accept friend requests
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/friends/request/respond/${acc1.id}?accepted=true`),
-				{ settings: { seeMembers: false, seeFront: false, getFrontNotif: false } },
-				{ headers: { authorization: acc2.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/friends/request/respond/${acc1.id}?accepted=true`), { settings: { seeMembers: false, seeFront: false, getFrontNotif: false } }, { headers: { authorization: acc2.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/friends/request/respond/${acc1.id}?accepted=true`),
-				{ settings: { seeMembers: false, seeFront: false, getFrontNotif: false } },
-				{ headers: { authorization: acc3.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/friends/request/respond/${acc1.id}?accepted=true`), { settings: { seeMembers: false, seeFront: false, getFrontNotif: false } }, { headers: { authorization: acc3.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/friends/request/respond/${acc1.id}?accepted=true`),
-				{ settings: { seeMembers: false, seeFront: false, getFrontNotif: false } },
-				{ headers: { authorization: acc4.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/friends/request/respond/${acc1.id}?accepted=true`), { settings: { seeMembers: false, seeFront: false, getFrontNotif: false } }, { headers: { authorization: acc4.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/friends/request/respond/${acc1.id}?accepted=true`),
-				{ settings: { seeMembers: false, seeFront: false, getFrontNotif: false } },
-				{ headers: { authorization: acc5.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/friends/request/respond/${acc1.id}?accepted=true`), { settings: { seeMembers: false, seeFront: false, getFrontNotif: false } }, { headers: { authorization: acc5.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 
 		{
-			const result = await axios.post(
-				getTestAxiosUrl(`v1/friends/request/respond/${acc1.id}?accepted=true`),
-				{ settings: { seeMembers: false, seeFront: false, getFrontNotif: false } },
-				{ headers: { authorization: acc6.token }, validateStatus: () => true }
-			)
+			const result = await axios.post(getTestAxiosUrl(`v1/friends/request/respond/${acc1.id}?accepted=true`), { settings: { seeMembers: false, seeFront: false, getFrontNotif: false } }, { headers: { authorization: acc6.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200, result.data)
 		}
 	})
@@ -136,20 +96,12 @@ describe("validate access across accounts", () => {
 		acc1BucketTrustedFriends = getIdWhere(buckets, (doc) => doc.name === "Trusted friends")
 
 		{
-			const result = await axios.patch(
-				getTestAxiosUrl("v1/privacyBucket/assignfriends"),
-				{ bucket: acc1BucketFriends, friends: [acc2.id, acc3.id, acc4.id, acc5.id] },
-				{ headers: { authorization: acc1.token }, validateStatus: () => true }
-			)
+			const result = await axios.patch(getTestAxiosUrl("v1/privacyBucket/assignfriends"), { bucket: acc1BucketFriends, friends: [acc2.id, acc3.id, acc4.id, acc5.id] }, { headers: { authorization: acc1.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200)
 		}
 
 		{
-			const result = await axios.patch(
-				getTestAxiosUrl("v1/privacyBucket/assignfriends"),
-				{ bucket: acc1BucketTrustedFriends, friends: [acc3.id, acc5.id] },
-				{ headers: { authorization: acc1.token }, validateStatus: () => true }
-			)
+			const result = await axios.patch(getTestAxiosUrl("v1/privacyBucket/assignfriends"), { bucket: acc1BucketTrustedFriends, friends: [acc3.id, acc5.id] }, { headers: { authorization: acc1.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200)
 		}
 	})
@@ -181,20 +133,12 @@ describe("validate access across accounts", () => {
 		expect(acc1FriendType, `Create Friend ${type}`)
 
 		{
-			const result = await axios.patch(
-				getTestAxiosUrl("v1/privacyBucket/setbuckets"),
-				{ id: acc1FriendType, buckets: [acc1BucketFriends], type },
-				{ headers: { authorization: acc1.token }, validateStatus: () => true }
-			)
+			const result = await axios.patch(getTestAxiosUrl("v1/privacyBucket/setbuckets"), { id: acc1FriendType, buckets: [acc1BucketFriends], type }, { headers: { authorization: acc1.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200)
 		}
 
 		{
-			const result = await axios.patch(
-				getTestAxiosUrl("v1/privacyBucket/setbuckets"),
-				{ id: acc1TrustedFriendType, buckets: [acc1BucketTrustedFriends], type },
-				{ headers: { authorization: acc1.token }, validateStatus: () => true }
-			)
+			const result = await axios.patch(getTestAxiosUrl("v1/privacyBucket/setbuckets"), { id: acc1TrustedFriendType, buckets: [acc1BucketTrustedFriends], type }, { headers: { authorization: acc1.token }, validateStatus: () => true })
 			expect(result.status).to.eq(200)
 		}
 	}

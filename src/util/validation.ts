@@ -3,17 +3,16 @@ import { NextFunction } from "express"
 import { Request, Response } from "express"
 import addFormats from "ajv-formats"
 
-import { ValidateFunction } from "ajv"
+import Ajv, { ValidateFunction } from "ajv"
 import { ObjectId } from "mongodb"
 import moment from "moment"
 import { getCollection } from "../modules/mongo"
 
 import GraphemeSplitter = require("grapheme-splitter")
 
-var splitter = new GraphemeSplitter()
+const splitter = new GraphemeSplitter()
 
-var Ajv = require("ajv")
-export const ajv = new Ajv({ allErrors: true, $data: true, verbose: false })
+export const ajv = new Ajv({ allErrors: true, $data: true, verbose: false, useDefaults: true })
 
 require("ajv-errors")(ajv)
 
@@ -77,12 +76,32 @@ export const validateSchema = (validate: ValidateFunction<unknown>, body: unknow
 	} else {
 		let fullError = ""
 		validate.errors?.forEach((err) => {
-			if (err.keyword == "additionalProperties") {
+			if (err.keyword === "additionalProperties") {
 				fullError += `Error at ${err.params.additionalProperty}, this is not a valid property name.`
-			} else if (err.keyword == "type") {
-				fullError += `Error at ${err.instancePath}, the property must be of type ${err.schema}.`
+			} else if (err.keyword === "type") {
+				const types = err.params.type
+				if (Array.isArray(types)) {
+					fullError += `Error at ${err.instancePath}, the property must be one of the following types: ${types.join(", ")}.`
+				} else {
+					fullError += `Error at ${err.instancePath}, the property ${err.message}.`
+				}
+			} else if (err.keyword === "pattern") {
+				fullError += `Error at ${err.instancePath}, ${err.message}`
+			} else if (err.keyword === "enum") {
+				const allowedValues = err.params.allowedValues
+				if (Array.isArray(allowedValues)) {
+					fullError += `Error at ${err.instancePath}, ${err.message}: ${allowedValues.join(", ")}`
+				} else {
+					fullError += `Error at ${err.instancePath}, ${err.message}}`
+				}
+			} else if (err.keyword === "required") {
+				if (err.instancePath) {
+					fullError += `Property ${err.instancePath} ${err.message}`
+				} else {
+					fullError += `${err.message}`
+				}
 			} else {
-				fullError += `Error at ${JSON.stringify(err.params)} with error ${err.message}`
+				fullError += `Error at ${err.instancePath} with error ${err.message}`
 			}
 			fullError += "\n"
 		})
@@ -118,6 +137,21 @@ export const validateParams = (req: Request, res: Response) => {
 	}
 
 	return false
+}
+
+export const validateParamsSchema = (func: schemavalidation) => {
+	return async (req: Request, res: Response, next: any) => {
+		const result = func(req.params)
+		if (!result.success) {
+			if (process.env.UNITTEST === "true") {
+				console.error(`URL Params error: ${result.msg}`)
+			}
+
+			res.status(400).send(`URL Params error: ${result.msg}`)
+		} else {
+			next()
+		}
+	}
 }
 
 const getSchema = {

@@ -1,12 +1,12 @@
 import { Request, Response } from "express"
-import { logger, userLog } from "../../modules/logger"
+import { userLog } from "../../modules/logger"
 import { db, getCollection, parseId } from "../../modules/mongo"
-import { fetchBucketsForFriend, fetchCollection, getDocumentAccess, sendDocument } from "../../util"
+import { fetchCollection, sendDocument } from "../../util"
 import { ajv, getAvatarUuidSchema, validateSchema } from "../../util/validation"
 import { generateUserReport } from "./user/generateReport"
 import { update122 } from "./user/updates/update112"
 import { auth } from "firebase-admin"
-import { canSeeMembers, getFriendLevel, isTrustedFriend, logSecurityUserEvent } from "../../security"
+import { logSecurityUserEvent } from "../../security"
 import moment from "moment"
 import * as Sentry from "@sentry/node"
 import { ERR_FUNCTIONALITY_EXPECTED_VALID } from "../../modules/errors"
@@ -15,12 +15,10 @@ import { exportData, fetchAllAvatars } from "./user/export"
 import { getEmailForUser } from "./auth/auth.core"
 import { frameType } from "../types/frameType"
 import { canGenerateReport, decrementGenerationsLeft, reportBaseUrl, reportBaseUrl_V2, sendReport } from "../base/user"
-import archiver, { Archiver } from "archiver"
+import archiver from "archiver"
 import promclient from "prom-client"
-
-import { DeleteObjectsCommand, ListObjectsV2Command, S3Client } from "@aws-sdk/client-s3"
 import { filterFields } from "./user/user.fields"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN, ONE_TWELVE } from "../../util/version"
 import { storageController } from "../../modules/storage/storageController"
 
 export const generateReport = async (req: Request, res: Response) => {
@@ -104,9 +102,17 @@ export const update = async (req: Request, res: Response) => {
 	const setBody = req.body
 	setBody.lastOperationTime = res.locals.operationTime
 
-	const userMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+	const userMigrated = await doesUserHaveVersion(res.locals.uid, ONE_ELEVEN)
 	if (userMigrated) {
 		delete setBody.fields
+	}
+
+	// If user passes in avataruuid, but we migrated to ONE_TWELVE we need to reject this, as 1.12+ has its own dedicated avatar changes routes
+	if (req.body.avatarUuid !== undefined) {
+		const hasOneTwelve = await doesUserHaveVersion(res.locals.uid, ONE_TWELVE)
+		if (hasOneTwelve) {
+			delete req.body.avatarUuid
+		}
 	}
 
 	await getCollection("users").updateOne(

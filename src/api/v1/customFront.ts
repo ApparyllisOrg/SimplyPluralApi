@@ -7,7 +7,8 @@ import { fetchSimpleDocument, addSimpleDocument, updateSimpleDocument, fetchColl
 import { ajv, getPrivacyDependency, validateSchema, getAvatarUuidSchema } from "../../util/validation"
 import { frameType } from "../types/frameType"
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN, ONE_TWELVE } from "../../util/version"
+import { insertDefaultUserColor } from "../../util/defaults"
 
 export const getCustomFronts = async (req: Request, res: Response) => {
 	if (req.params.system != res.locals.uid) {
@@ -17,7 +18,7 @@ export const getCustomFronts = async (req: Request, res: Response) => {
 			return
 		}
 
-		const userMigrated = await doesUserHaveVersion(req.params.system, FIELD_MIGRATION_VERSION)
+		const userMigrated = await doesUserHaveVersion(req.params.system, ONE_ELEVEN)
 		if (userMigrated) {
 			const friendBuckets = await fetchBucketsForFriend(res.locals.uid, req.params.system)
 			fetchCollectionPermissionsPreflighted(req, res, "frontStatuses", { buckets: { $in: friendBuckets } })
@@ -46,11 +47,21 @@ export const add = async (req: Request, res: Response) => {
 		await insertDefaultPrivacyBuckets(res.locals.uid, data, "customFronts")
 	}
 
+	await insertDefaultUserColor(req, res)
+
 	addSimpleDocument(req, res, "frontStatuses", insertBuckets)
 }
 
 export const update = async (req: Request, res: Response) => {
 	updateSimpleDocument(req, res, "frontStatuses")
+
+	// If user passes in avataruuid, but we migrated to ONE_TWELVE we need to reject this, as 1.12+ has its own dedicated avatar changes routes
+	if (req.body.avatarUuid !== undefined) {
+		const hasOneTwelve = await doesUserHaveVersion(res.locals.uid, ONE_TWELVE)
+		if (hasOneTwelve) {
+			delete req.body.avatarUuid
+		}
+	}
 
 	// If this cf is fronting, we need to notify and update current fronters
 	const fhLive = await getCollection("frontHistory").findOne({ uid: res.locals.uid, member: req.params.id, live: true })
@@ -101,15 +112,15 @@ const s_validatePostCustomFrontSchema = {
 	type: "object",
 	properties: {
 		name: { type: "string" },
-		desc: { type: "string" },
-		avatarUrl: { type: "string" },
+		desc: { type: "string", default: "" },
+		avatarUrl: { type: "string", default: "" },
 		avatarUuid: getAvatarUuidSchema(),
 		color: { type: "string" },
-		preventTrusted: { type: "boolean" },
-		private: { type: "boolean" },
-		supportDescMarkdown: { type: "boolean" },
+		preventTrusted: { type: "boolean", default: true },
+		private: { type: "boolean", default: true },
+		supportDescMarkdown: { type: "boolean", default: true },
 		frame: frameType,
-		preventsFrontNotifs: { type: "boolean" },
+		preventsFrontNotifs: { type: "boolean", default: false },
 	},
 	required: ["name"],
 	nullable: false,
