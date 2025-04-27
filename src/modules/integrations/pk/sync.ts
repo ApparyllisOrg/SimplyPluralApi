@@ -69,7 +69,19 @@ const handlePkResponse = (requestResponse: AxiosResponse<any, any> | { status: n
 	}
 }
 
-export const syncMemberToPk = async (options: syncOptions, spMemberId: string, token: string, userId: string, memberData: any | undefined, knownSystemId: string | undefined): Promise<{ success: boolean; msg: string }> => {
+const pkPrivateMemberPayload = {
+	visibility: "private",
+	name_privacy: "private",
+	description_privacy: "private",
+	banner_privacy: "private",
+	birthday_privacy: "private",
+	pronoun_privacy: "private",
+	avatar_privacy: "private",
+	metadata_privacy: "private",
+	proxy_privacy: "private",
+}
+
+export const syncMemberToPk = async (options: syncOptions, allSyncOptions: syncAllOptions | undefined, spMemberId: string, token: string, userId: string, memberData: any | undefined, knownSystemId: string | undefined): Promise<{ success: boolean; msg: string }> => {
 	const spMemberResult = await getCollection("members").findOne({ uid: userId, _id: parseId(spMemberId) }, { projection: { name: 1, desc: 1, avatarUrl: 1, pkId: 1, color: 1, pronouns: 1 } })
 
 	if (spMemberResult) {
@@ -118,6 +130,10 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 				}
 
 				if (status == 200) {
+					if (allSyncOptions && allSyncOptions.overwrite === false) {
+						return { success: true, msg: `${name} skipped updating on PluralKit by user choice.` }
+					}
+
 					if (Object.keys(memberDataToSync).length > 0) {
 						const patchRequest: PkRequest = {
 							path: `https://api.pluralkit.me/v2/members/${spMemberResult.pkId}`,
@@ -139,6 +155,14 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 						return { success: true, msg: `${name} not updated. No data to sync was selected` }
 					}
 				} else if (status === 404 || status === 403) {
+					if (allSyncOptions && allSyncOptions.add === false) {
+						return { success: true, msg: `${name} skipped adding a new member on PluralKit by user choice.` }
+					}
+
+					if (allSyncOptions && allSyncOptions.privateByDefault === true) {
+						memberDataToSync.privacy = pkPrivateMemberPayload
+					}
+
 					memberDataToSync.name = name
 					const postRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members`, token, response: null, data: memberDataToSync, type: PkRequestType.Post, id: "" }
 					const postResult = await addPendingRequest(postRequest)
@@ -157,6 +181,14 @@ export const syncMemberToPk = async (options: syncOptions, spMemberId: string, t
 
 			return { success: false, msg: `Unable to reach PluralKit's servers` }
 		} else {
+			if (allSyncOptions && allSyncOptions.add === false) {
+				return { success: true, msg: `${name} skipped adding a new member on PluralKit by user choice.` }
+			}
+
+			if (allSyncOptions && allSyncOptions.privateByDefault === true) {
+				memberDataToSync.privacy = pkPrivateMemberPayload
+			}
+
 			memberDataToSync.name = name
 			const postRequest: PkRequest = { path: `https://api.pluralkit.me/v2/members`, token, response: null, data: memberDataToSync, type: PkRequestType.Post, id: "" }
 			const postResult = await addPendingRequest(postRequest)
@@ -251,7 +283,7 @@ export const syncMemberFromPk = async (options: syncOptions, pkMemberId: string,
 	}
 }
 
-export const syncAllSpMembersToPk = async (options: syncOptions, _allSyncOptions: syncAllOptions, token: string, userId: string): Promise<{ success: boolean; msg: string }> => {
+export const syncAllSpMembersToPk = async (options: syncOptions, allSyncOptions: syncAllOptions, token: string, userId: string): Promise<{ success: boolean; msg: string }> => {
 	const spMembersResult = await getCollection("members")
 		.find({ uid: userId }, { projection: { name: 1, pkId: 1, _id: 1 } })
 		.toArray()
@@ -291,7 +323,15 @@ export const syncAllSpMembersToPk = async (options: syncOptions, _allSyncOptions
 
 		const foundMember: any | undefined = foundMembers.find((value) => value.id === member.pkId)
 
-		const result = await syncMemberToPk(options, member._id, token, userId, foundMember, systemResult?.data.id)
+		if (allSyncOptions.overwrite === false && foundMember) {
+			continue
+		}
+
+		if (allSyncOptions.add === false && !foundMember) {
+			continue
+		}
+
+		const result = await syncMemberToPk(options, allSyncOptions, member._id, token, userId, foundMember, systemResult?.data.id)
 	}
 	return { success: true, msg: "Sync completed" }
 }
