@@ -129,7 +129,7 @@ const s_validatePostCustomFieldSchema = {
 	type: "object",
 	properties: {
 		name: { type: "string" },
-		type: { type: "number" },
+		type: { type: "number", minimum: 0, maximum: 7 },
 		order: { type: "string", pattern: "^0|[a-z0-9]{6,}(:)?[a-z0-9]{0,}$" },
 		supportMarkdown: { type: "boolean" },
 	},
@@ -147,7 +147,7 @@ const s_validatePatchCustomFieldSchema = {
 	type: "object",
 	properties: {
 		name: { type: "string" },
-		type: { type: "number" },
+		type: { type: "number", minimum: 0, maximum: 7 },
 		order: { type: "string", pattern: "^0|[a-z0-9]{6,}(:)?[a-z0-9]{0,}$" },
 		supportMarkdown: { type: "boolean" },
 	},
