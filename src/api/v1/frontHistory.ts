@@ -130,10 +130,10 @@ export const update = async (req: Request, res: Response) => {
 
 		const startTime = Number(req.body.startTime ?? frontingDoc.startTime)
 
-		// If updating startTime, ensure it's not > now or startTime
+		// If updating endTime, ensure it's not > now or startTime
 		if (req.body.endTime) {
 			req.body.endTime = Math.min(moment.now(), Number(req.body.endTime))
-			req.body.endTime = Math.min(startTime, Number(req.body.endTime))
+			req.body.endTime = Math.max(startTime, Number(req.body.endTime))
 		}
 
 		await updateSimpleDocument(req, res, "frontHistory")
