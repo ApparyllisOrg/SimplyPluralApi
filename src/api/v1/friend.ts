@@ -3,7 +3,7 @@ import { getCollection, parseId } from "../../modules/mongo"
 import { fetchCollection, getDocumentAccess, sendDocument, sendQuery, transformResultForClientRead } from "../../util"
 import { ajv, validateSchema } from "../../util/validation"
 import { filterFields } from "./user/user.fields"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "../../util/version"
 
 export const getFriend = async (req: Request, res: Response) => {
 	const document = await getCollection("friends").findOne({ uid: req.params.system, frienduid: req.params.id })
@@ -122,7 +122,7 @@ export const updateFriend = async (req: Request, res: Response) => {
 }
 
 export const getFriendFrontValues = async (req: Request, res: Response) => {
-	const hasMigrated = await doesUserHaveVersion(req.params.system, FIELD_MIGRATION_VERSION)
+	const hasMigrated = await doesUserHaveVersion(req.params.system, ONE_ELEVEN)
 	if (hasMigrated) {
 		const friendDoc = await getCollection("friends").findOne({ uid: req.params.system, frienduid: res.locals.uid })
 		if (!friendDoc) {
@@ -178,7 +178,7 @@ export const getAllFriendFrontValues = async (_req: Request, res: Response) => {
 	for (let i = 0; i < friendSettings.length; ++i) {
 		const friendSettingsDoc = friendSettings[i]
 
-		const hasMigrated = await doesUserHaveVersion(friendSettingsDoc.uid, FIELD_MIGRATION_VERSION)
+		const hasMigrated = await doesUserHaveVersion(friendSettingsDoc.uid, ONE_ELEVEN)
 		if (hasMigrated) {
 			const friendDoc = await getCollection("friends").findOne({ uid: friendSettingsDoc.uid, frienduid: res.locals.uid })
 			if (friendDoc) {

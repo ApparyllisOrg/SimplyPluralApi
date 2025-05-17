@@ -6,7 +6,7 @@ import { ObjectId } from "mongodb"
 import { performEvent } from "./eventController"
 import { getDocumentAccess } from "../../util"
 import promclient from "prom-client"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "../../util/version"
 
 const getFronterString = (entries: Array<string>) => {
 	return entries.join(", ")
@@ -17,7 +17,7 @@ export const frontChange = async (uid: string, removed: boolean, memberId: strin
 		notifyOfFrontChange(uid, removed, memberId)
 	}
 
-	const hasMigrated = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION)
+	const hasMigrated = await doesUserHaveVersion(uid, ONE_ELEVEN)
 	if (hasMigrated) {
 		performEvent("frontChange", uid, 10 * 1000)
 		return

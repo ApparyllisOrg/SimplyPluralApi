@@ -12,7 +12,7 @@ import { diff } from "deep-diff"
 import { DiffProcessor, logAudit, logCreatedAudit, logDeleteAudit } from "./diff"
 import internal, { Stream, Transform } from "stream"
 import assert from "assert"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "./version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "./version"
 
 export function transformResultForClientRead(value: documentObject, requestorUid: string) {
 	parseForAllowedReadValues(value, requestorUid)
@@ -33,7 +33,7 @@ export const getDocumentAccess = async (requestor: string, document: documentObj
 		return { access: true, statusCode: 200, message: "" }
 	}
 
-	const migratedUser = await doesUserHaveVersion(document.uid, FIELD_MIGRATION_VERSION)
+	const migratedUser = await doesUserHaveVersion(document.uid, ONE_ELEVEN)
 	if (migratedUser) {
 		if (collection === "friends") {
 			if (document.frienduid == requestor) {
@@ -336,6 +336,13 @@ export const addSimpleDocument = async (req: Request, res: Response, collection:
 		})
 
 	if (result.insertedId.toString().length <= 0) {
+		// Try to find a document at that id already, if one exists but insertedId is empty, then said document already existed
+		const existingDocAtId = await Mongo.getCollection(collection).findOne({ _id: dataObj._id }, { projection: { _id: 1 } })
+		if (existingDocAtId) {
+			res.status(400).send("Cannot add document, a document with that object id already exists.")
+			return
+		}
+
 		res.status(500).send("Server processed your request, however was unable to enter a document into the database")
 		return
 	}
@@ -370,12 +377,12 @@ export const updateSimpleDocument = async (req: Request, res: Response, collecti
 }
 
 export const isMember = async (uid: string, id: string) => {
-	const memberCount = await Mongo.getCollection("members").count({ uid, _id: parseId(id) }, { limit: 1 })
+	const memberCount = await Mongo.getCollection("members").countDocuments({ uid, _id: parseId(id) }, { limit: 1 })
 	return memberCount === 1
 }
 
 export const isCustomFront = async (uid: string, id: string) => {
-	const cfCount = await Mongo.getCollection("frontStatuses").count({ uid, _id: parseId(id) }, { limit: 1 })
+	const cfCount = await Mongo.getCollection("frontStatuses").countDocuments({ uid, _id: parseId(id) }, { limit: 1 })
 	return cfCount === 1
 }
 

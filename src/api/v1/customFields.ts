@@ -8,7 +8,7 @@ import { DiffProcessor } from "../../util/diff"
 import { Diff } from "deep-diff"
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults"
 import { canSeeMembers, getFriendLevel, isTrustedFriend } from "../../security"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN } from "../../util/version"
 
 export const NewFieldsVersion = 300
 
@@ -32,7 +32,7 @@ export const getCustomFields = async (req: Request, res: Response) => {
 			return
 		}
 
-		const userMigrated = await doesUserHaveVersion(req.params.system, FIELD_MIGRATION_VERSION)
+		const userMigrated = await doesUserHaveVersion(req.params.system, ONE_ELEVEN)
 		if (userMigrated) {
 			const friendBuckets = await fetchBucketsForFriend(res.locals.uid, req.params.system)
 			fetchCollectionPermissionsPreflighted(req, res, "customFields", { buckets: { $in: friendBuckets } })
@@ -55,7 +55,7 @@ export const getCustomFields = async (req: Request, res: Response) => {
 			const friendLevel = await getFriendLevel(req.params.system, res.locals.uid)
 			const isATrustedFriends = isTrustedFriend(friendLevel)
 
-			const friendMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+			const friendMigrated = await doesUserHaveVersion(res.locals.uid, ONE_ELEVEN)
 
 			const transformedForClientReadFields: any[] = []
 
@@ -129,7 +129,7 @@ const s_validatePostCustomFieldSchema = {
 	type: "object",
 	properties: {
 		name: { type: "string" },
-		type: { type: "number" },
+		type: { type: "number", minimum: 0, maximum: 7 },
 		order: { type: "string", pattern: "^0|[a-z0-9]{6,}(:)?[a-z0-9]{0,}$" },
 		supportMarkdown: { type: "boolean" },
 	},
@@ -147,7 +147,7 @@ const s_validatePatchCustomFieldSchema = {
 	type: "object",
 	properties: {
 		name: { type: "string" },
-		type: { type: "number" },
+		type: { type: "number", minimum: 0, maximum: 7 },
 		order: { type: "string", pattern: "^0|[a-z0-9]{6,}(:)?[a-z0-9]{0,}$" },
 		supportMarkdown: { type: "boolean" },
 	},

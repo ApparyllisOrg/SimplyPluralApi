@@ -1,4 +1,4 @@
-import yargs from "yargs/yargs";
+import yargs from "yargs/yargs"
 
 export const namedArguments = yargs(process.argv.slice(2))
 	.options({
@@ -10,4 +10,6 @@ export const namedArguments = yargs(process.argv.slice(2))
 		password_key: { type: "string", default: undefined },
 		password_seperator: { type: "string", default: undefined },
 	})
-	.parseSync();
+	.parseSync()
+
+export const isUnitTestActive = () => process.env.UNITTEST === "true"

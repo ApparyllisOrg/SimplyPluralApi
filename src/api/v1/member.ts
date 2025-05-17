@@ -13,10 +13,11 @@ import { limitStringLength } from "../../util/string"
 import { ObjectId } from "mongodb"
 import { Transform } from "stream"
 import { insertDefaultPrivacyBuckets } from "./privacy/privacy.assign.defaults"
-import { doesUserHaveVersion, FIELD_MIGRATION_VERSION } from "../../util/version"
+import { doesUserHaveVersion, ONE_ELEVEN, ONE_TWELVE } from "../../util/version"
+import { insertDefaultUserColor } from "../../util/defaults"
 
 export const filterFieldsForPrivacy = async (req: Request, res: Response, uid: string, members: any[]): Promise<void> => {
-	const hasMigrated = await doesUserHaveVersion(uid, FIELD_MIGRATION_VERSION)
+	const hasMigrated = await doesUserHaveVersion(uid, ONE_ELEVEN)
 	if (hasMigrated) {
 		const friendDoc = await getCollection("friends").findOne({ uid, frienduid: res.locals.uid })
 		const buckets = friendDoc.buckets ?? []
@@ -78,7 +79,7 @@ export const getMembers = async (req: Request, res: Response) => {
 	}
 
 	if (req.params.system != res.locals.uid) {
-		const migrated = await doesUserHaveVersion(req.params.system, FIELD_MIGRATION_VERSION)
+		const migrated = await doesUserHaveVersion(req.params.system, ONE_ELEVEN)
 		if (migrated) {
 			const friendDoc = await getCollection("friends").findOne({ uid: req.params.system, frienduid: res.locals.uid })
 
@@ -169,6 +170,8 @@ export const add = async (req: Request, res: Response) => {
 		await insertDefaultPrivacyBuckets(res.locals.uid, data, "members")
 	}
 
+	await insertDefaultUserColor(req, res)
+
 	addSimpleDocument(req, res, "members", insertBuckets)
 }
 
@@ -205,11 +208,19 @@ const updateDiffProcessor: DiffProcessor = async (uid: string, difference: Diff<
 }
 
 export const update = async (req: Request, res: Response) => {
-	// If user passes in info, but we migrated to FIELD_MIGRATION_VERSION we need to reject this, as 1.11+ has its own dedicated fields update route
+	// If user passes in info, but we migrated to ONE_ELEVEN we need to reject this, as 1.11+ has its own dedicated fields update route
 	if (req.body.info) {
-		const hasMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
-		if (hasMigrated) {
+		const hasOneEleven = await doesUserHaveVersion(res.locals.uid, ONE_ELEVEN)
+		if (hasOneEleven) {
 			delete req.body.info
+		}
+	}
+
+	// If user passes in avataruuid, but we migrated to ONE_TWELVE we need to reject this, as 1.12+ has its own dedicated avatar changes routes
+	if (req.body.avatarUuid !== undefined) {
+		const hasOneTwelve = await doesUserHaveVersion(res.locals.uid, ONE_TWELVE)
+		if (hasOneTwelve) {
+			delete req.body.avatarUuid
 		}
 	}
 
@@ -223,7 +234,7 @@ export const update = async (req: Request, res: Response) => {
 }
 
 export const updateInfo = async (req: Request, res: Response) => {
-	const hasMigrated = await doesUserHaveVersion(res.locals.uid, FIELD_MIGRATION_VERSION)
+	const hasMigrated = await doesUserHaveVersion(res.locals.uid, ONE_ELEVEN)
 	if (!hasMigrated) {
 		res.status(400).send("This route is only available for users who have updated to 1.11")
 		return
@@ -297,7 +308,7 @@ const s_validateMemberSchema = {
 		pronouns: { type: "string" },
 		pkId: { type: "string" },
 		color: { type: "string" },
-		avatarUuid: { type: "string" },
+		avatarUuid: getAvatarUuidSchema(),
 		avatarUrl: { type: "string" },
 		private: { type: "boolean" },
 		preventTrusted: { type: "boolean" },
@@ -327,26 +338,26 @@ export const validateMemberSchema = (body: unknown): { success: boolean; msg: st
 const s_validatePostMemberSchema = {
 	type: "object",
 	properties: {
-		name: { type: "string" },
-		desc: { type: "string" },
-		pronouns: { type: "string" },
-		pkId: { type: "string" },
+		name: { type: "string", default: "" },
+		desc: { type: "string", default: "" },
+		pronouns: { type: "string", default: "" },
+		pkId: { type: "string", default: "" },
 		color: { type: "string" },
 		avatarUuid: getAvatarUuidSchema(),
-		avatarUrl: { type: "string" },
-		private: { type: "boolean" },
-		preventTrusted: { type: "boolean" },
-		preventsFrontNotifs: { type: "boolean" },
+		avatarUrl: { type: "string", default: "" },
+		private: { type: "boolean", default: true },
+		preventTrusted: { type: "boolean", default: true },
+		preventsFrontNotifs: { type: "boolean", default: false },
 		info: {
 			type: "object",
 			properties: {
 				"*": { type: "string" },
 			},
 		},
-		supportDescMarkdown: { type: "boolean" },
-		archived: { type: "boolean" },
-		receiveMessageBoardNotifs: { type: "boolean" },
-		archivedReason: { type: "string", maxLength: 150 },
+		supportDescMarkdown: { type: "boolean", default: true },
+		archived: { type: "boolean", default: false },
+		receiveMessageBoardNotifs: { type: "boolean", default: true },
+		archivedReason: { type: "string", maxLength: 150, default: "" },
 		frame: frameType,
 	},
 	required: ["name"],
