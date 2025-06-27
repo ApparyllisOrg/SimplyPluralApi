@@ -279,15 +279,6 @@ export const del = async (req: Request, res: Response) => {
 		frontChange(res.locals.uid, true, req.params.id, false)
 	}
 
-	// Delete this member from any groups they're in
-	getCollection("groups")
-		.find({ uid: res.locals.uid })
-		.forEach((group: any) => {
-			const members: string[] = group.members ?? []
-			const newMembers = members.filter((member) => member != req.params.id)
-			getCollection("groups").updateOne({ uid: res.locals.uid, _id: parseId(group._id) }, { $set: { members: newMembers } })
-		})
-
 	// @ts-ignore
 	getCollection("groups").updateMany({ uid: res.locals.uid }, { $pull: { members: req.params.id } })
 
