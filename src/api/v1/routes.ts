@@ -26,6 +26,7 @@ import * as chats from "./chats"
 import * as auth from "./auth"
 import * as event from "./events"
 import * as customFields from "./customFields"
+import * as filters from "./filters"
 import { addPrivacyBucket, deletePrivacyBucket, getPrivacyBucket, getPrivacyBuckets, updatePrivacyBucket, validateBucketPatchSchema, validateBucketSchema } from "./buckets"
 import { orderBuckets, validateOrderBucketsSchema } from "./privacy/privacy.buckets.order"
 import { assignBucketsToFriend, assignFriendsToBucket, validateAssignBucketsToFriendSchema, validateAssignFriendsToBucketSchema } from "./privacy/privacy.bucket.assign"
@@ -177,6 +178,13 @@ export const setupV1routes = (app: core.Express) => {
 	app.patch("/v1/privacyBucket/assignfriends", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateAssignFriendsToBucketSchema), assignFriendsToBucket)
 	app.patch("/v1/privacyBucket/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validateBucketPatchSchema), updatePrivacyBucket)
 	app.delete("/v1/privacyBucket/:id", isUserAuthenticated(ApiKeyAccessType.Delete), deletePrivacyBucket)
+
+	// Filters
+	app.get("/v1/filter/:id", isUserAuthenticated(ApiKeyAccessType.Read), filters.get)
+	app.get("/v1/filters", isUserAuthenticated(ApiKeyAccessType.Read), filters.getFilters)
+	app.post("/v1/filter/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(filters.validatePostFilterSchema), filters.add)
+	app.patch("/v1/filter/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(filters.validatePatchFilterSchema), filters.update)
+	app.delete("/v1/filter/:id", isUserAuthenticated(ApiKeyAccessType.Delete), filters.del)
 
 	// Private
 	app.get("/v1/user/private/:id", isUserAppJwtAuthenticated, priv.get)
