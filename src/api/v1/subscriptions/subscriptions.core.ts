@@ -1,29 +1,50 @@
-import express from "express";
-import * as core from "express-serve-static-core";
-import assert from "assert";
-import {  catCallback } from "./subscriptions.callback";
-import { getCollection } from "../../../modules/mongo";
+import Stripe from "stripe"
+import express, { Request, Response } from "express"
+import { getEmailForUser } from "../auth/auth.core"
+import * as core from "express-serve-static-core"
+import assert from "assert"
+import { stripeCallback } from "./subscriptions.callback"
+import { getCollection } from "../../../modules/mongo"
 
-let _catIsSetup = false
+let _stripe: undefined | Stripe = undefined
 
-export const setupCat = (app: core.Express) => {
-    if (process.env.CAT_WEBHOOK_SECRET !== undefined) {
+export const initializeStripe = (app: core.Express) => {
+	if (process.env.STRIPE_KEY != undefined) {
+		assert(process.env.STRIPE_PRICE_A !== undefined)
+		assert(process.env.STRIPE_PRICE_B !== undefined)
+		assert(process.env.STRIPE_PRICE_C !== undefined)
+		assert(process.env.STRIPE_WEBHOOK_SECRET !== undefined)
+		assert(process.env.PLUS_ROOT_URL !== undefined)
 
-        // Handle webhook before we parse the body as json
-        app.post("/v1/subscription/callback", express.raw({ type: 'application/json' }), catCallback)
+		// @ts-expect-error
+		_stripe = new Stripe(process.env.STRIPE_KEY, { apiVersion: "2025-09-30.clover; managed_payments_preview=v1;" })
 
-        _catIsSetup = true;
-    }
+		// Handle webhook before we parse the body as json
+		app.post("/v1/subscription/callback", express.raw({ type: "application/json" }), stripeCallback)
+	}
 }
 
-export const isCatSetup = () => _catIsSetup;
+export const getStripe = () => _stripe
+export const isStripeSetup = () => _stripe != undefined
 
-export const getCustomerFromUser = async (uid: string): Promise<any | undefined> => {
-    let subscriber = await getCollection("subscribers").findOne({ uid })
+export const getCustomerIdFromUser = async (uid: string, createIfMissing: boolean): Promise<Stripe.Customer | undefined> => {
+	const subscriber = await getCollection("subscribers").findOne({ uid })
 
-    if (!subscriber) {
-        return undefined
-    }
+	let customer: Stripe.Customer | undefined = undefined
 
-    return subscriber 
+	if (!subscriber) {
+		if (createIfMissing) {
+			customer = await getStripe()?.customers.create({ metadata: { uid } })
+			getCollection("subscribers").insertOne({ customerId: customer?.id, uid })
+		}
+	} else {
+		const existingCustomer = await getStripe()?.customers.retrieve(subscriber.customerId)
+		if (existingCustomer) {
+			customer = existingCustomer as Stripe.Customer
+		} else {
+			return undefined
+		}
+	}
+
+	return customer
 }

@@ -20,6 +20,7 @@ import promclient from "prom-client"
 import { filterFields } from "./user/user.fields"
 import { doesUserHaveVersion, ONE_ELEVEN, ONE_TWELVE } from "../../util/version"
 import { storageController } from "../../modules/storage/storageController"
+import { deleteAllSubscriptions } from "./subscriptions/subscriptions.delete"
 
 export const generateReport = async (req: Request, res: Response) => {
 	const canGenerate = await canGenerateReport(res)
@@ -159,6 +160,8 @@ export const deleteAccount = async (req: Request, res: Response) => {
 		res.status(202).send()
 		return
 	}
+
+	await deleteAllSubscriptions(res.locals.uid)
 
 	const email = await getEmailForUser(res.locals.uid)
 

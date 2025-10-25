@@ -15,7 +15,7 @@ import { validateOperationTime } from "../util/validation"
 import { NextFunction, Request, Response } from "express-serve-static-core"
 import cors from "cors"
 import cluster from "cluster"
-import { setupCat } from "../api/v1/subscriptions/subscriptions.core"
+import { initializeStripe } from "../api/v1/subscriptions/subscriptions.core"
 import { loadTemplates } from "./mail/mailTemplates"
 import { setupV2routes } from "../api/v2/routes"
 import { initStorageController, storageController } from "./storage/storageController"
@@ -34,7 +34,7 @@ export const initializeServer = async () => {
 		app.use(helmet())
 	}
 
-	setupCat(app)
+	initializeStripe(app)
 
 	await loadTemplates()
 
