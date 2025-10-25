@@ -24,7 +24,7 @@ export const reactivateSubscription = async (req: Request, res: Response) => {
 		}
 
 		const result = await getStripe()?.subscriptions.update(subscriber.subscriptionId, { cancel_at_period_end: false })
-		if (isSubscriptionCancelled(result)) {
+		if (!isSubscriptionCancelled(result)) {
 			res.status(200).send("Reactivated subscription")
 			sendSimpleEmail(res.locals.uid, mailTemplate_reactivatedSubscription(), "Your Simply Plus subscription is reactivated")
 		} else {
