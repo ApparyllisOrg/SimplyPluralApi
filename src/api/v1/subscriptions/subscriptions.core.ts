@@ -10,9 +10,8 @@ let _stripe: undefined | Stripe = undefined
 
 export const initializeStripe = (app: core.Express) => {
 	if (process.env.STRIPE_KEY != undefined) {
-		assert(process.env.STRIPE_PRICE_A !== undefined)
-		assert(process.env.STRIPE_PRICE_B !== undefined)
-		assert(process.env.STRIPE_PRICE_C !== undefined)
+		assert(process.env.STRIPE_PRICES !== undefined)
+		assert(process.env.STRIPE_PLUS_PRODUCT !== undefined)
 		assert(process.env.STRIPE_WEBHOOK_SECRET !== undefined)
 		assert(process.env.PLUS_ROOT_URL !== undefined)
 

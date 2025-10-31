@@ -41,6 +41,7 @@ import { changeSubscription, validateChangeSubscriptionSchema } from "./subscrip
 import { reactivateSubscription } from "./subscriptions/subscriptions.reactivate"
 import { getInvoices } from "./subscriptions/subscriptions.invoices"
 import { getManagementLink } from "./subscriptions/subscriptions.manage"
+import { getPrices } from "./subscriptions/subscriptions.prices"
 
 export const setupV1routes = (app: core.Express) => {
 	// Members
@@ -276,6 +277,7 @@ export const setupV1routes = (app: core.Express) => {
 		app.get("/v1/subscription/get", isUserAppJwtAuthenticated, getSubscription)
 		app.get("/v1/subscription/invoices", isUserAppJwtAuthenticated, getInvoices)
 		app.get("/v1/subscription/management", isUserAppJwtAuthenticated, getManagementLink)
+		app.get("/v1/subscription/prices", isUserAppJwtAuthenticated, getPrices)
 	}
 
 	// Specific events with per-event code

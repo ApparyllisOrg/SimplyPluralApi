@@ -1,13 +1,9 @@
-import Stripe from "stripe"
 import { Request, Response } from "express"
-import { getEmailForUser } from "../auth/auth.core"
 import assert from "assert"
-import { validateSchema } from "../../../util/validation"
 import { getStripe } from "./subscriptions.core"
 import { getCollection } from "../../../modules/mongo"
-import { transformResultForClientRead } from "../../../util"
 import { client_result } from "../../../util/types"
-import { isSubscriptionCancelled, priceIdToName } from "./subscriptions.utils"
+import { isSubscriptionCancelled } from "./subscriptions.utils"
 import { now } from "moment"
 
 export const getSubscription = async (req: Request, res: Response) => {
@@ -32,7 +28,7 @@ export const getSubscription = async (req: Request, res: Response) => {
 					periodEnd: item.current_period_end,
 					periodStart: item.current_period_start,
 					subscriptionStart: subscription.start_date,
-					priceId: priceIdToName(item.price.id),
+					priceId: item.price.id,
 					cancelled: isSubscriptionCancelled(subscription),
 					subscribed: item.current_period_end > now() / 1000,
 				},
