@@ -7,11 +7,16 @@ import { logger } from "../../../modules/logger"
 import { getCollection } from "../../../modules/mongo"
 import { ajv, validateSchema } from "../../../util/validation"
 import { getCustomerIdFromUser, getStripe } from "./subscriptions.core"
-import { nameToPriceId } from "./subscriptions.utils"
+import { stripePrices } from "./subscriptions.utils"
 
 export const generateSubscribeSession = async (req: Request, res: Response) => {
 	if (getStripe() === undefined) {
 		res.status(404).send("API is not Stripe enabled")
+		return
+	}
+
+	if (!stripePrices().includes(req.body.price)) {
+		res.status(400).send("Invalid price")
 		return
 	}
 
@@ -27,7 +32,7 @@ export const generateSubscribeSession = async (req: Request, res: Response) => {
 		}
 	}
 
-	const price = nameToPriceId(req.body.price)
+	const price = req.body.price
 	const customer = await getCustomerIdFromUser(res.locals.uid, true)
 
 	if (customer) {
@@ -87,7 +92,6 @@ const s_validateSubscribeSessionsSchema = {
 	properties: {
 		price: {
 			type: "string",
-			pattern: "^(affordable|regular|pif)$",
 		},
 	},
 	nullable: false,

@@ -1,37 +1,8 @@
 import { Stripe } from "stripe"
 
-export const priceIdToName = (id: string) => {
-	switch (id) {
-	case process.env.STRIPE_PRICE_A!: {
-		return "affordable"
-	}
-	case process.env.STRIPE_PRICE_B!: {
-		return "regular"
-	}
-	case process.env.STRIPE_PRICE_C!: {
-		return "pif"
-	}
-	}
-
-	return "err"
-}
-
-export const nameToPriceId = (name: string) => {
-	switch (name) {
-	case "affordable": {
-		return process.env.STRIPE_PRICE_A!
-	}
-	case "regular": {
-		return process.env.STRIPE_PRICE_B!
-	}
-	case "pif": {
-		return process.env.STRIPE_PRICE_C!
-	}
-	}
-
-	return "err"
-}
-
 export const isSubscriptionCancelled = (subscription: Stripe.Subscription | undefined): boolean => {
 	return !!subscription && (subscription.cancel_at_period_end === true || (subscription.cancel_at ? true : false))
 }
+
+export const stripePricesQuery = () => `active:'true' AND product:'${process.env.STRIPE_PLUS_PRODUCT}'`
+export const stripePrices = () => process.env.STRIPE_PRICES!.split(",")
