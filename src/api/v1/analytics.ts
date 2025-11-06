@@ -55,8 +55,9 @@ export const get = async (req: Request, res: Response) => {
 		if (isNaN(endTime)) {
 			endTime = moment.now();
 		}
-		let duration = endTime - frontEntry.startTime;
-		duration = Math.min(duration, endQuery - startQuery);
+		const clampedStartTime = Math.min(Math.max(frontEntry.startTime, startQuery), endQuery);
+		const clampedEndTime = Math.min(Math.max(endTime, startQuery, endQuery));
+		const duration = clampedEndTime - clampedStartTime;
 
 		const isExistingDocument = await isMemberOrCustomFront(res.locals.uid, frontEntry.member);
 
