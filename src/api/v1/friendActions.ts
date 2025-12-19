@@ -6,6 +6,7 @@ import { FriendLevel, getFriendLevel } from "../../security"
 
 import { ajv, validateSchema } from "../../util/validation"
 import { doesUserHaveVersion, ONE_ELEVEN } from "../../util/version"
+import { differenceInHours } from "date-fns"
 
 // Todo: Add schema
 export const AddFriend = async (req: Request, res: Response) => {
@@ -47,6 +48,23 @@ export const AddFriend = async (req: Request, res: Response) => {
 		return
 	}
 
+	// Test whether a friend request was recently sent, and if so, let the user know they can only send limited friend requests to the same user
+	const currentDate = new Date()
+	const privateDoc = await getCollection("private").findOne({ uid: res.locals.uid })
+	const friendRequestHistory = privateDoc ? privateDoc.friendRequestHistory : undefined
+	if (friendRequestHistory && typeof friendRequestHistory === "object") {
+		const uids = Object.keys(friendRequestHistory)
+		if (uids.includes(targtUid)) {
+			const lastFriendRequestSent = friendRequestHistory[targtUid]
+			if (differenceInHours(currentDate, lastFriendRequestSent) < 24) {
+				res.status(200).send({ success: false, msg: "You can only send friend requests to the same user once within 24 hours. Please try again later or ask them to add you." })
+				return
+			}
+		}
+	}
+
+	await getCollection("private").updateOne({ uid: res.locals.uid }, { $set: { [`friendRequestHistory.${targtUid}`]: currentDate } })
+
 	const { seeMembers, seeFront, getFrontNotif, trusted, message } = req.body.settings
 
 	await getCollection("pendingFriendRequests").insertOne({
@@ -56,7 +74,8 @@ export const AddFriend = async (req: Request, res: Response) => {
 		seeFront: seeFront,
 		getFrontNotif: getFrontNotif,
 		trusted: trusted,
-		message: message,
+		// Force message to be empty temporarily to prevent user-abuse, while I work on a feature that allows blocking and/or disabling friend requests for your account
+		message: "",
 	})
 
 	const selfDoc = await getCollection("users").findOne({ uid: res.locals.uid })
