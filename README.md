@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://app.apparyllis.com/SimplyPlural-NoBg.png" style="width:250px; height:250px"/>
+  <img src="https://dist.apparyllis.com/resources/SimplyPlural_WithName.png" style="width:250px; height:250px"/>
 </div>  
 
 [![Docker](https://github.com/ApparyllisOrg/SimplyPluralApi/actions/workflows/docker.yml/badge.svg?branch=main)](https://github.com/ApparyllisOrg/SimplyPluralApi/actions/workflows/docker.yml)
@@ -80,3 +80,6 @@ The Simply Plural API has a host of functionalities.
 
 ## Pull Requests
 When doing any pull requests, please PR into pretesting.
+
+## LEGAL NOTICE
+The Simply Plural Logo is a registered trademark of Apparyllis U.G.
