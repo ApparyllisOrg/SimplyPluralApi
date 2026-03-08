@@ -1,5 +1,6 @@
 import * as assert from "assert";
 import { assignApiKey, generateNewApiKey } from "../../modules/api/keys";
+import { getTestUID } from "../utils";
 
 describe("validate token system", async () => {
 	describe("Test valid token generation", async () => {
@@ -9,7 +10,7 @@ describe("validate token system", async () => {
 
 	describe("Assign no-access token", async () => {
 		const token = await generateNewApiKey();
-		const success = await assignApiKey(false, false, false, token, "foo");
+		const success = await assignApiKey(false, false, false, token, getTestUID());
 		assert.strictEqual(success, false, "Managed to assign a no-access token");
 	});
 });

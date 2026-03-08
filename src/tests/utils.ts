@@ -10,6 +10,7 @@ export const setTestToken = (token: string) => {
 }
 
 export const getTestToken = () => _token
+export const getTestUID = () => "foo"
 
 export const getTestAxiosUrl = (route: string) => "http://localhost:3000/" + route
 
