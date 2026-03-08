@@ -6,6 +6,7 @@ import { promisify } from "util"
 import { sendCustomizedEmail } from "../../../modules/mail"
 import { db, getCollection } from "../../../modules/mongo"
 import { storageController } from "../../../modules/storage/storageController"
+import { decryptMessage } from "../chat/chat.core"
 
 //-------------------------------//
 // Fetch all avatars from a user
@@ -48,6 +49,45 @@ export const fetchAllAvatars = async (uid: string, processAvatar: (name: string,
 }
 
 //-------------------------------//
+// Create data export of all data of a user
+//-------------------------------//
+export const createDataExportForUser = async (uid: string) : Promise<{ [key: string]: any }> => 
+{
+	const allData: { [key: string]: any } = {}
+
+	const collections = await db()!.listCollections().toArray()
+
+	for (let i = 0; i < collections.length; ++i) {
+		const collection = collections[i]
+		const name: string = collection.name
+		const split = name.split(".")
+		const actualName = split[split.length - 1]
+
+		// Don't send accounts info, this contains password and hash.
+		if (actualName === "accounts") {
+			continue;
+		}
+
+		const collectionData = await getCollection(actualName).find({ uid }).toArray()
+
+		// Decrypt chat messages
+		if (actualName === "chatMessages") {
+			for (let i = 0; i < collectionData.length; ++i)
+			{
+				const message = collectionData[i];
+				if (message.iv && message.message) {
+					message.message = decryptMessage(message.message, message.iv)
+				}
+			}
+		}
+		
+		allData[actualName] = collectionData
+	}
+
+	return allData;
+}
+
+//-------------------------------//
 // Export all data of a user
 //-------------------------------//
 export const exportData = async (uid: string): Promise<{ success: boolean; code: number; msg: string }> => {
@@ -62,22 +102,7 @@ export const exportData = async (uid: string): Promise<{ success: boolean; code:
 		return { success: false, code: 403, msg: "You already exported your data in the last 24 hours" }
 	}
 
-	const collections = await db()!.listCollections().toArray()
-
-	const allData: { [key: string]: any } = {}
-
-	for (let i = 0; i < collections.length; ++i) {
-		const collection = collections[i]
-		const name: string = collection.name
-		const split = name.split(".")
-		const actualName = split[split.length - 1]
-
-		// Don't send accounts info, this contains password and hash.
-		if (actualName !== "accounts") {
-			const collectionData = await getCollection(actualName).find({ uid }).toArray()
-			allData[actualName] = collectionData
-		}
-	}
+	const allData: { [key: string]: any } = await createDataExportForUser(uid)
 
 	const getFile = promisify(readFile)
 	let emailTemplate = await getFile("./templates/exportEmailTemplate.html", "utf-8")

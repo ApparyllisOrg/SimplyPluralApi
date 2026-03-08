@@ -3,7 +3,7 @@ dotenv.config()
 
 import { initializeServer, startServer } from "../modules/server"
 import { assignApiKey, generateNewApiKey } from "../modules/api/keys"
-import { setTestToken } from "./utils"
+import { getTestUID, setTestToken } from "./utils"
 
 import { MongoMemoryServer } from "mongodb-memory-server"
 import { initStorageController, storageController } from "../modules/storage/storageController"
@@ -31,7 +31,7 @@ const setupTest = async () => {
 
 	// Generate and assign a test token
 	const token = await generateNewApiKey()
-	await assignApiKey(true, true, true, token, "foo")
+	await assignApiKey(true, true, true, token, getTestUID())
 
 	setTestToken(token)
 	console.log("Chosen token is %s", token)
