@@ -287,6 +287,7 @@ export const generateUserReport = async (
 	while ((match = memberMentionRegex.exec(result)) !== null) {
 		// The full match can be found on `match[0]`, the exact group aka the member id is available at `match[1]`.
 		const oldMention = match[0]
+		// @ts-ignore : `match[1]` will always successfully access as `match` can't be null within this loop.
 		const mentionedMemberIndex = members.findIndex((member) => (parseId(member._id) as ObjectId).equals(parseId(match[1])))
 		const mentionedMember = members[mentionedMemberIndex]
 
