@@ -10,7 +10,8 @@ import { readFile } from "fs"
 import moment from "moment"
 import { promisify } from "util"
 import xss from "xss"
-import { getCollection } from "../../../modules/mongo"
+import { getCollection, parseId } from "../../../modules/mongo"
+import { ObjectId } from "mongodb"
 import { queryObject } from "../../../modules/mongo/baseTypes"
 
 export const fieldKeyToName = (key: string, userData: any) => {
@@ -275,6 +276,24 @@ export const generateUserReport = async (
 		result = result.replace("{{frontHistory}}", frontHistory)
 	} else {
 		result = result.replace("{{frontHistory}}", "")
+	}
+
+	// Replace any `<###@id###>` mentions by an `@Name` syntax instead. Any `#channel` is only replaced in the chat messages, thus won't show up in the report/doesn't need replacing here.
+	// See https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/lastIndex#rewinding_lastindex
+	// As the code is targeted to ES6, we can't use fancier functions that were introduced in ES2020 and ES2021, like `string.prototype.replaceAll` with a function, nor `string.prototype.matchAll`
+	// We're only doing a replace, but considering the `regex.lastIndex` is used to continue searching from, and if we replace the mention by something shorter or longer than the input, we need to do a calculation of length difference, and make sure it restarts in the right place.
+	const memberMentionRegex = new RegExp("<###@([a-zA-Z0-9]{1,})###>", "gm")
+	let match: any[] | null;
+	while ((match = memberMentionRegex.exec(result)) !== null) {
+		// The full match can be found on `match[0]`, the exact group aka the member id is available at `match[1]`.
+		const oldMention = match[0]
+		const mentionedMemberIndex = members.findIndex((member) => (parseId(member._id) as ObjectId).equals(parseId(match[1])))
+		const mentionedMember = members[mentionedMemberIndex]
+
+		const newMention = mentionedMember ? `@${xss(mentionedMember.name)}` : "@Unknown member"
+		result = result.replace(oldMention, newMention)
+		// Even if it appears more than once, we only need to take the length of a single `newMention`, as the matches are caught in order from the start of the document and we never look at the entire length of `result`. The regex query is executed on every loop, rather than a prepared set of matches
+		memberMentionRegex.lastIndex += newMention.length - oldMention.length
 	}
 
 	return result

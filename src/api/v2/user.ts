@@ -65,9 +65,22 @@ const performReportGeneration = async (req: Request, res: Response) => {
 						const fieldSpec = fieldSpecs[fieldSpecIndex]
 						const fieldBuckets: any[] = fieldSpec.buckets ?? []
 
-						if (!intersects(fieldBuckets, memberBuckets)) {
-							continue
+						// Check if there's an intersection between the buckets allowed on this request (`memberBuckets`), and the buckets on this field (`fieldBuckets`)
+						// If either has no bucket assigned, don't skip them just yet, but check if the "include those without buckets assigned" checkbox was checked.
+						if (memberBuckets.length > 0 && fieldBuckets.length > 0) {
+							if (!intersects(fieldBuckets, memberBuckets)) {
+								// each have buckets set, but no intersection -> skip
+								continue
+							}
+							// each have buckets set and intersects; running as expected
+						} else {
+							if (query.members.includeBucketless !== true) {
+								// either this member of this field is not in any bucket, and we don't allow fields or members without buckets to be shown -> skip
+								continue
+							}
+							// either this member or this field is not in any buckets, but we are allowed to show members or fields without buckets
 						}
+
 
 						if (!isValidCustomFieldType(fieldSpec.type)) {
 							continue
