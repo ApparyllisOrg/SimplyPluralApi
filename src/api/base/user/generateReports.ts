@@ -27,7 +27,7 @@ export const getAvatarString = (data: any, uid: string): string => {
 
 	if (avatar.length == 0) {
 		// Todo: Make this a better link
-		avatar = "https://apparyllis.com/wp-content/uploads/2021/03/Apparylls_Image.png"
+		avatar = "https://dist.apparyllis.com/resources/Logo_Apparyllis_Square_1024.png"
 	}
 
 	return avatar
@@ -67,7 +67,7 @@ export const monthDayFromField = (string: string): string | undefined => getMome
 
 export const isValidCustomFieldType = (type: any) => {
 	if (Number.isInteger(type)) {
-		return type > 0 && type < typeConverters.length
+		return type >= 0 && type < typeConverters.length
 	}
 
 	return false

@@ -143,7 +143,6 @@ const performReportGeneration = async (req: Request, res: Response) => {
 
 	const htmlFile = await generateUserReport(req.body, res.locals.uid, createMember, createCustomFront, shouldShowFrontEntry)
 	sendReport(req, res, htmlFile)
-	decrementGenerationsLeft(res.locals.uid)
 }
 
 export const generateReport = async (req: Request, res: Response) => {
