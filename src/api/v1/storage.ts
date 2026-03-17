@@ -4,7 +4,7 @@ import { ajv, validateSchema } from "../../util/validation"
 import { isUserVerified } from "../../security"
 import promclient from "prom-client"
 
-const fileType = require("file-type")
+import {fileTypeFromBuffer} from 'file-type';
 
 import { storageController } from "../../modules/storage/storageController"
 import { doesUserHaveVersion, ONE_TWELVE } from "../../util/version"
@@ -16,7 +16,7 @@ export const update_avatar_counter = new promclient.Counter({
 
 export const validateAvatar = async (req: Request, res: Response): Promise<boolean> => {
 	const buffer = Buffer.from(req.body["buffer"])
-	const resolvedFileType = await fileType.fromBuffer(buffer)
+	const resolvedFileType = await fileTypeFromBuffer(buffer as Uint8Array)
 
 	if (!resolvedFileType) {
 		res.status(400).send("File type cannot be detected from the file, try using another picture.")

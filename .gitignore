@@ -14,3 +14,4 @@ yarn-error.log
 developer/
 tmp/
 docker-compose-dev.yml
+settings.local.json

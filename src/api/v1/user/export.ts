@@ -1,7 +1,6 @@
 import { randomBytes } from "crypto"
 import { readFile } from "fs"
 import moment from "moment"
-import Mail from "nodemailer/lib/mailer"
 import { promisify } from "util"
 import { sendCustomizedEmail } from "../../../modules/mail"
 import { db, getCollection } from "../../../modules/mongo"
@@ -87,6 +86,9 @@ export const createDataExportForUser = async (uid: string) : Promise<{ [key: str
 	return allData;
 }
 
+const MINUTES_BETWEEN_EXPORT_ATTEMPTS = 5
+const HOURS_BETWEEN_EXPORTS = 24
+
 //-------------------------------//
 // Export all data of a user
 //-------------------------------//
@@ -97,32 +99,39 @@ export const exportData = async (uid: string): Promise<{ success: boolean; code:
 		return { success: false, code: 404, msg: "Can't find user" }
 	}
 
-	const lastExport: number = privateUser.lastExport ?? 0
-	if (moment(moment.now()).diff(moment(lastExport), "hours") < 24) {
-		return { success: false, code: 403, msg: "You already exported your data in the last 24 hours" }
+	const lastExportAttempt: number = privateUser.lastExportAttempt ?? 0
+	const minutesSinceLastExport = moment(moment.now()).diff(moment(lastExportAttempt), "minutes");
+	if (minutesSinceLastExport < MINUTES_BETWEEN_EXPORT_ATTEMPTS) {
+		return { success: false, code: 429, msg: `Please wait ${Math.ceil(MINUTES_BETWEEN_EXPORT_ATTEMPTS - minutesSinceLastExport)} minutes before requesting another export` }
 	}
 
-	const allData: { [key: string]: any } = await createDataExportForUser(uid)
+	const lastExport: number = privateUser.lastExport ?? 0
+	const hoursSinceLastExport = moment(moment.now()).diff(moment(lastExport), "hours")
+	if (hoursSinceLastExport < HOURS_BETWEEN_EXPORTS) {
+		return { success: false, code: 403, msg: `You already exported your data in the last 24 hours, please try again in ${Math.ceil(HOURS_BETWEEN_EXPORTS - hoursSinceLastExport)}` }
+	}
+
+	await getCollection("private").updateOne({ uid, _id: uid }, { $set: { lastExportAttempt: moment.now() } })
 
 	const getFile = promisify(readFile)
 	let emailTemplate = await getFile("./templates/exportEmailTemplate.html", "utf-8")
 
-	const randomKey = randomBytes(128).toString("hex")
+	const avatarKey = randomBytes(128).toString("hex")
+	const dataKey = randomBytes(128).toString("hex")
 
-	if (process.env.PRETESTING === "true") {
-		emailTemplate = emailTemplate.replace("{{export_avatar_url}}", `https://devapi.apparyllis.com/v1/user/export/avatars/?key=${randomKey}&uid=${uid}`)
-	} else {
-		emailTemplate = emailTemplate.replace("{{export_avatar_url}}", `https://api.apparyllis.com/v1/user/export/avatars/?key=${randomKey}&uid=${uid}`)
+	const baseUrl = process.env.PRETESTING === "true" ? "https://devapi.apparyllis.com" : "https://api.apparyllis.com"
+	emailTemplate = emailTemplate.replace("{{export_avatar_url}}", `${baseUrl}/v1/user/export/avatars/?key=${avatarKey}&uid=${uid}`)
+	emailTemplate = emailTemplate.replace("{{export_data_url}}", `${baseUrl}/v1/user/export/data/?key=${dataKey}&uid=${uid}`)
+
+	const exp = moment.now() + 1000 * 60 * 60 * 24
+
+	await getCollection("dataExports").insertOne({ uid, key: dataKey, exp, downloads: 0, lastDownload: 0 })
+	await getCollection("avatarExports").insertOne({ uid, key: avatarKey, exp, downloads: 0, lastDownload: 0 })
+
+	const emailResult = await sendCustomizedEmail(uid, emailTemplate, "Your requested data export", [])
+	if (emailResult instanceof Error) {
+		return { success: false, code: 500, msg: `Failed to send export email: ${emailResult.message}` }
 	}
-
-	const attachement: Mail.Attachment = {
-		filename: "export.json",
-		content: JSON.stringify(allData),
-	}
-
-	sendCustomizedEmail(uid, emailTemplate, "Your requested data export", [], [attachement])
-
-	getCollection("avatarExports").insertOne({ uid, key: randomKey, exp: moment.now() + 1000 * 60 * 60 * 24 * 7 })
 
 	return { success: true, code: 200, msg: "" }
 }
