@@ -11,7 +11,7 @@ import moment from "moment"
 import * as Sentry from "@sentry/node"
 import { ERR_FUNCTIONALITY_EXPECTED_VALID } from "../../modules/errors"
 import { createUser } from "./user/migrate"
-import { exportData, fetchAllAvatars } from "./user/export"
+import { createDataExportForUser, exportData, fetchAllAvatars } from "./user/export"
 import { getEmailForUser } from "./auth/auth.core"
 import { frameType } from "../types/frameType"
 import { canGenerateReport, decrementGenerationsLeft, reportBaseUrl, reportBaseUrl_V2, sendReport } from "../base/user"
@@ -214,11 +214,14 @@ export const exportUserData = async (_req: Request, res: Response) => {
 	const email = await getEmailForUser(res.locals.uid)
 
 	await getCollection("private").updateOne({ uid: res.locals.uid, _id: res.locals.uid }, { $set: { lastExport: moment.now() } })
-	logSecurityUserEvent(res.locals.uid, "Exported user account", _req)
+	logSecurityUserEvent(res.locals.uid, "Requested user data export", _req)
 
 	res.status(200).send({ success: true })
 	userLog(res.locals.uid, `Exported user data and sent to ${email}.`)
 }
+
+const MINUTES_BETWEEN_EXPORTS = 5
+const MAX_EXPORT_DOWNLOADS = 3
 
 export const exportAvatars = async (req: Request, res: Response) => {
 	const requestedExport = await getCollection("avatarExports").findOne({ uid: req.query.uid, key: req.query.key, exp: { $gte: moment.now() } })
@@ -226,6 +229,23 @@ export const exportAvatars = async (req: Request, res: Response) => {
 		res.status(400).send("Cannot find the requested export")
 		return
 	}
+
+	if (requestedExport.downloads >= MAX_EXPORT_DOWNLOADS) {
+		res.status(429).send("Maximum download limit reached, please request a new avatar export.")
+		return
+	}
+
+	const lastDownload: number = requestedExport.lastDownload ?? 0
+	const minutesSinceLastDownload = moment(moment.now()).diff(moment(lastDownload), "minutes");
+	if (minutesSinceLastDownload < MINUTES_BETWEEN_EXPORTS) {
+		res.status(429).send(`Please wait ${Math.ceil(MINUTES_BETWEEN_EXPORTS - minutesSinceLastDownload)} minute(s) before downloading again`)
+		return
+	}
+
+	await getCollection("avatarExports").updateOne(
+		{ uid: req.query.uid, key: req.query.key },
+		{ $inc: { downloads: 1 }, $set: { lastDownload: moment.now() } }
+	)
 
 	const filename = `Avatars_${req.query.uid}.zip`
 
@@ -242,9 +262,43 @@ export const exportAvatars = async (req: Request, res: Response) => {
 
 	arch.finalize()
 
-	logSecurityUserEvent(res.locals.uid, "Exported user avatars", req)
+	logSecurityUserEvent(requestedExport.uid, "Exported user avatars", req)
 
 	res.status(200)
+}
+
+export const exportDataDownload = async (req: Request, res: Response) => {
+	const requestedExport = await getCollection("dataExports").findOne({ uid: req.query.uid, key: req.query.key, exp: { $gte: moment.now() } })
+	if (!requestedExport) {
+		res.status(400).send("Cannot find the requested export")
+		return
+	}
+
+	if (requestedExport.downloads >= MAX_EXPORT_DOWNLOADS) {
+		res.status(429).send("Maximum download limit reached, please request a new data export.")
+		return
+	}
+
+	const lastDownload: number = requestedExport.lastDownload ?? 0
+	const minutesSinceLastDownload = moment(moment.now()).diff(moment(lastDownload), "minutes");
+	if (minutesSinceLastDownload < MINUTES_BETWEEN_EXPORTS) {
+		res.status(429).send(`Please wait ${Math.ceil(MINUTES_BETWEEN_EXPORTS - minutesSinceLastDownload)} minute(s) before downloading again`)
+		return
+	}
+
+	await getCollection("dataExports").updateOne(
+		{ uid: req.query.uid, key: req.query.key },
+		{ $inc: { downloads: 1 }, $set: { lastDownload: moment.now() } }
+	)
+
+	const allData = await createDataExportForUser(req.query.uid?.toString() ?? "")
+
+	logSecurityUserEvent(requestedExport.uid, "Exported user data", req)
+
+	const filename = `export_${req.query.uid}.json`
+	res.setHeader("Content-Type", "application/json")
+	res.setHeader("Content-Disposition", `attachment; filename="${filename}"`)
+	res.status(200).send(JSON.stringify(allData))
 }
 
 export const setupNewUser = async (uid: string, latestVersion: number | null) => {
@@ -354,6 +408,22 @@ const v_validateExportAvatarsSchema = ajv.compile(s_validateExportAvatarsSchema)
 
 export const validateExportAvatarsSchema = (body: unknown): { success: boolean; msg: string } => {
 	return validateSchema(v_validateExportAvatarsSchema, body)
+}
+
+const s_validateExportDataSchema = {
+	type: "object",
+	properties: {
+		key: { type: "string", pattern: "^[a-zA-Z0-9-_]{256}$" },
+		uid: { type: "string", pattern: "^[a-zA-Z0-9]{20,64}$" },
+	},
+	nullable: false,
+	additionalProperties: false,
+	required: ["key", "uid"],
+}
+const v_validateExportDataSchema = ajv.compile(s_validateExportDataSchema)
+
+export const validateExportDataSchema = (body: unknown): { success: boolean; msg: string } => {
+	return validateSchema(v_validateExportDataSchema, body)
 }
 
 const s_validateUserReportSchema = {

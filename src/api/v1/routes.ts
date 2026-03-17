@@ -137,6 +137,7 @@ export const setupV1routes = (app: core.Express) => {
 	app.delete("/v1/user/:id/report/:reportid", isUserAppJwtAuthenticated, user.deleteReport)
 	app.post("/v1/user/:id/export", isUserAuthenticated(ApiKeyAccessType.Write, true), user.exportUserData)
 	app.get("/v1/user/export/avatars", validateQuery(user.validateExportAvatarsSchema), user.exportAvatars)
+	app.get("/v1/user/export/data", validateQuery(user.validateExportDataSchema), user.exportDataDownload)
 	app.post("/v1/user/generateReport", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(user.validateUserReportSchema), user.generateReport)
 	app.patch("/v1/user/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(user.validateUserSchema), user.update)
 	app.patch("/v1/user/username/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(user.validateUsernameSchema), user.SetUsername)

@@ -8,6 +8,22 @@ import { logger } from "./logger";
 
 let mailerTransport: null | Transporter<SMTPTransport.SentMessageInfo> = null;
 
+const friendlyMailError = (reason: any): Error => {
+	const responseCode: number | undefined = reason?.responseCode
+
+	const GENERIC_ERROR = (errorCode : number ) => new Error(`The email failed to send, please try again later. Error(${errorCode})`)
+
+	if (responseCode) {
+		if (responseCode === 452 || responseCode === 552) return new Error("Your mailbox might be full. Please free up space and try again.")
+		if (responseCode === 550) return new Error("Your email address could not receive this message. Please check your account email address.")
+		if (responseCode === 501 || responseCode === 510 || responseCode === 511 || responseCode === 512 || responseCode === 551 || responseCode === 553) return new Error("The email address is invalid.")
+		if (responseCode >= 500) return GENERIC_ERROR(responseCode)
+		if (responseCode >= 400) return GENERIC_ERROR(responseCode)
+	}
+
+	return GENERIC_ERROR(0)
+}
+
 export const startMailTransport = async () => {
 	mailerTransport = nodemailer.createTransport({
 		host: process.env.MAILHOST,
@@ -34,6 +50,8 @@ const transaction_mail_counter = new promclient.Counter({
 });
 
 export const sendSimpleEmail = async (uid: string, templateName: string, title: string, cc?: string[] | undefined, attachements?: Mail.Attachment[]) => {
+	if (process.env.UNITTEST === "true") return
+	
 	let emailTemplate = getTemplate(templateName);
 
 	const userEmail = await getEmailForUser(uid);
@@ -47,8 +65,9 @@ export const sendSimpleEmail = async (uid: string, templateName: string, title: 
 			subject: title,
 			attachments: attachements
 		})
-		.catch((reason) => {
+		.catch((reason): Error => {
 			logger.log("error", reason)
+			return friendlyMailError(reason)
 		});
 
 	transaction_mail_counter.inc();
@@ -57,6 +76,8 @@ export const sendSimpleEmail = async (uid: string, templateName: string, title: 
 }
 
 export const sendCustomizedEmail = async (uid: string, email: string, title: string, cc?: string[] | undefined, attachements?: Mail.Attachment[]) => {
+	if (process.env.UNITTEST === "true") return
+
 	const userEmail = await getEmailForUser(uid);
 
 	const res = await mailerTransport
@@ -68,8 +89,9 @@ export const sendCustomizedEmail = async (uid: string, email: string, title: str
 			subject: title,
 			attachments: attachements
 		})
-		.catch((reason) => {
+		.catch((reason): Error => {
 			logger.log("error", reason)
+			return friendlyMailError(reason)
 		});
 
 	transaction_mail_counter.inc();
@@ -78,6 +100,8 @@ export const sendCustomizedEmail = async (uid: string, email: string, title: str
 }
 
 export const sendCustomizedEmailToEmail = async (userMail: string, email: string, title: string, cc?: string[] | undefined) => {
+	if (process.env.UNITTEST === "true") return
+
 	const res = await mailerTransport
 		?.sendMail({
 			from: '"Apparyllis" <noreply@apparyllis.com>',
@@ -86,8 +110,9 @@ export const sendCustomizedEmailToEmail = async (userMail: string, email: string
 			cc: cc,
 			subject: title,
 		})
-		.catch((reason) => {
+		.catch((reason): Error => {
 			logger.log("error", reason)
+			return friendlyMailError(reason)
 		});
 
 	transaction_mail_counter.inc();
