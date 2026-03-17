@@ -102,13 +102,13 @@ export const exportData = async (uid: string): Promise<{ success: boolean; code:
 	const lastExportAttempt: number = privateUser.lastExportAttempt ?? 0
 	const minutesSinceLastExport = moment(moment.now()).diff(moment(lastExportAttempt), "minutes");
 	if (minutesSinceLastExport < MINUTES_BETWEEN_EXPORT_ATTEMPTS) {
-		return { success: false, code: 429, msg: `Please wait ${Math.ceil(MINUTES_BETWEEN_EXPORT_ATTEMPTS - minutesSinceLastExport)} minutes before requesting another export` }
+		return { success: false, code: 429, msg: `Please wait ${Math.ceil(MINUTES_BETWEEN_EXPORT_ATTEMPTS - minutesSinceLastExport)} minute(s) before requesting another export` }
 	}
 
 	const lastExport: number = privateUser.lastExport ?? 0
 	const hoursSinceLastExport = moment(moment.now()).diff(moment(lastExport), "hours")
 	if (hoursSinceLastExport < HOURS_BETWEEN_EXPORTS) {
-		return { success: false, code: 403, msg: `You already exported your data in the last 24 hours, please try again in ${Math.ceil(HOURS_BETWEEN_EXPORTS - hoursSinceLastExport)}` }
+		return { success: false, code: 403, msg: `You already exported your data in the last 24 hours, please try again in ${Math.ceil(HOURS_BETWEEN_EXPORTS - hoursSinceLastExport)} hour(s)` }
 	}
 
 	await getCollection("private").updateOne({ uid, _id: uid }, { $set: { lastExportAttempt: moment.now() } })
