@@ -238,7 +238,7 @@ export const exportAvatars = async (req: Request, res: Response) => {
 	const lastDownload: number = requestedExport.lastDownload ?? 0
 	const minutesSinceLastDownload = moment(moment.now()).diff(moment(lastDownload), "minutes");
 	if (minutesSinceLastDownload < MINUTES_BETWEEN_EXPORTS) {
-		res.status(429).send(`Please wait ${Math.ceil(MINUTES_BETWEEN_EXPORTS - minutesSinceLastDownload)} minutes before downloading again`)
+		res.status(429).send(`Please wait ${Math.ceil(MINUTES_BETWEEN_EXPORTS - minutesSinceLastDownload)} minute(s) before downloading again`)
 		return
 	}
 
@@ -282,7 +282,7 @@ export const exportDataDownload = async (req: Request, res: Response) => {
 	const lastDownload: number = requestedExport.lastDownload ?? 0
 	const minutesSinceLastDownload = moment(moment.now()).diff(moment(lastDownload), "minutes");
 	if (minutesSinceLastDownload < MINUTES_BETWEEN_EXPORTS) {
-		res.status(429).send(`Please wait ${Math.ceil(MINUTES_BETWEEN_EXPORTS - minutesSinceLastDownload)} minutes before downloading again`)
+		res.status(429).send(`Please wait ${Math.ceil(MINUTES_BETWEEN_EXPORTS - minutesSinceLastDownload)} minute(s) before downloading again`)
 		return
 	}
 
