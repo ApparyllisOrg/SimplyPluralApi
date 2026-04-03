@@ -16,12 +16,13 @@ import { NextFunction, Request, Response } from "express-serve-static-core"
 import cors from "cors"
 import cluster from "cluster"
 import { initializeStripe } from "../api/v1/subscriptions/subscriptions.core"
-import { loadTemplates } from "./mail/mailTemplates"
+import { loadTemplates, pageTemplate_resetPassword } from "./mail/mailTemplates"
 import { setupV2routes } from "../api/v2/routes"
 import { initStorageController, storageController } from "./storage/storageController"
 import { StorageTargetS3 } from "./storage/storageTargetS3"
 import { StorageTargetMinIO } from "./storage/storageTargetMinIO"
 import { config } from "./config"
+import { serveStatic } from "../util/static"
 
 export const initializeServer = async () => {
 	const app = express()
@@ -108,6 +109,9 @@ export const initializeServer = async () => {
 
 	// Verify the operation time of this request
 	app.use(validateOperationTime)
+
+	// Static pages
+	app.use("/auth/resetpassword.html", serveStatic(pageTemplate_resetPassword()))
 
 	setupV1routes(app)
 	setupV2routes(app)

@@ -15,6 +15,8 @@ export const mailTemplate_changedSubscription = () => "mailTemplate_changedSubsc
 export const mailTemplate_refundedSubscription = () => "mailTemplate_refundedSubscription";
 export const mailTemplate_failedPaymentCancelSubscription = () => "mailTemplate_failedPaymentCancelSubscription";
 
+export const pageTemplate_resetPassword = () => "pageTemplate_resetPassword"; 
+
 const filename_accountReminder = () => "./templates/accountReminder.html";
 const filename_emailChanged = () => "./templates/emailChanged.html";
 const filename_exportEmail = () => "./templates/exportEmailTemplate.html";
@@ -29,6 +31,8 @@ const filename_changedSubscription = () => "./templates/subscription/changedSubs
 const filename_refundedSubscription = () => "./templates/subscription/refundedSubscription.html";
 const filename_failedPaymentCancelSubscription = () => "./templates/subscription/failedPaymentCancelSubscription.html";
 
+const filename_resetPasswordPage = () => "./templates/pages/resetPassword.html";
+
 let cachedMail_accountReminder: string | undefined = undefined;
 let cachedMail_emailChanged: string | undefined = undefined;
 let cachedMail_exportEmail: string | undefined = undefined;
@@ -42,6 +46,8 @@ let cachedMail_reactivatedSubscription: string | undefined = undefined;
 let cachedMail_changedSubscription: string | undefined = undefined;
 let cachedMail_refundedSubscription: string | undefined = undefined;
 let cachedMail_failedPaymentCancelSubscription: string | undefined = undefined;
+
+let cachedPage_resetPassword: string | undefined = undefined;
 
 export const loadTemplates = async () => {
     const getFile = promisify(readFile);
@@ -59,6 +65,8 @@ export const loadTemplates = async () => {
     cachedMail_changedSubscription = await getFile(filename_changedSubscription(), "utf-8")
     cachedMail_refundedSubscription = await getFile(filename_refundedSubscription(), "utf-8")
     cachedMail_failedPaymentCancelSubscription = await getFile(filename_failedPaymentCancelSubscription(), "utf-8")
+    
+    cachedPage_resetPassword = await getFile(filename_resetPasswordPage(), "utf-8")
 }
 
 export const getTemplate = (template: string): string => {
@@ -76,6 +84,8 @@ export const getTemplate = (template: string): string => {
         case mailTemplate_changedSubscription(): return cachedMail_changedSubscription!
         case mailTemplate_refundedSubscription(): return cachedMail_refundedSubscription!
         case mailTemplate_failedPaymentCancelSubscription(): return cachedMail_failedPaymentCancelSubscription!
+        
+        case pageTemplate_resetPassword(): return cachedPage_resetPassword!
     }
 
     return '';

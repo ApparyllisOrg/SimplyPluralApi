@@ -10,6 +10,7 @@ import { userNotFound } from "../../../modules/messages";
 import { logSecurityUserEvent } from "../../../security";
 import { getTemplate, mailTemplate_resetPassword } from "../../../modules/mail/mailTemplates";
 import { sendCustomizedEmail, sendCustomizedEmailToEmail } from "../../../modules/mail";
+import { config } from "../../../modules/config";
 
 //-------------------------------//
 // Generate a new random reset password key
@@ -40,11 +41,7 @@ export const resetPasswordRequest_Execution = async (email: string): Promise<{ s
 
 		await getCollection("accounts").updateOne({ email: getEmailRegex(email) }, { $set: { lastResetPasswordEmailSent: moment.now(), passwordResetToken: resetKey } });
 
-		if (process.env.PRETESTING === "true") {
-			resetUrl = `https://dist.apparyllis.com/auth/dev/resetpassword.html?key=${resetKey}`;
-		} else {
-			resetUrl = `https://dist.apparyllis.com/auth/prod/resetpassword.html?key=${resetKey}`;
-		}
+		resetUrl = `${config().passwordResetPageUrl}?key=${resetKey}`;
 	} else {
 		const firebaseUser = await auth()
 			.getUserByEmail(email)
