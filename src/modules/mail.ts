@@ -65,7 +65,7 @@ export const sendSimpleEmail = async (uid: string, templateName: string, title: 
 
 	const res = await mailerTransport
 		?.sendMail({
-			from: '"Apparyllis" <noreply@apparyllis.com>',
+			from: config().mail!.sender,
 			to: userEmail,
 			html: emailTemplate,
 			cc: cc,
@@ -89,7 +89,7 @@ export const sendCustomizedEmail = async (uid: string, email: string, title: str
 
 	const res = await mailerTransport
 		?.sendMail({
-			from: '"Apparyllis" <noreply@apparyllis.com>',
+			from: config().mail!.sender,
 			to: userEmail,
 			html: email,
 			cc: cc,
@@ -111,7 +111,7 @@ export const sendCustomizedEmailToEmail = async (userMail: string, email: string
 
 	const res = await mailerTransport
 		?.sendMail({
-			from: '"Apparyllis" <noreply@apparyllis.com>',
+			from: config().mail!.sender,
 			to: userMail,
 			html: email,
 			cc: cc,
