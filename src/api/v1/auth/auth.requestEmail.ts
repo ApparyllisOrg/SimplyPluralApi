@@ -2,8 +2,9 @@ import * as Sentry from "@sentry/node";
 import { getCollection } from "../../../modules/mongo";
 import { auth } from "firebase-admin";
 import { ERR_AUTH_USER_NOT_FOUND } from "../../../modules/errors";
-import { sendCustomizedEmail, sendCustomizedEmailToEmail } from "../../../modules/mail";
+import { sendCustomizedEmail } from "../../../modules/mail";
 import { getTemplate, mailTemplate_accountReminder } from "../../../modules/mail/mailTemplates";
+import { config } from "../../../modules/config";
 
 //-------------------------------//
 // Request email
@@ -16,7 +17,7 @@ export const requestEmail_Execution = async (username: string): Promise<{ succes
 		const account = await getCollection("accounts").findOne({ uid: user.uid });
 		if (account) {
 			userEmail = account.email;
-		} else {
+		} else if (config().firebase) {
 			const firebaseUser = await auth()
 				.getUser(user.uid)
 				.catch(() => undefined);
@@ -31,6 +32,9 @@ export const requestEmail_Execution = async (username: string): Promise<{ succes
 			}
 
 			userEmail = firebaseUser.email;
+		} else {
+			Sentry.captureMessage(`ErrorCode(${ERR_AUTH_USER_NOT_FOUND}): Unable to find a user natively`);
+			return { success: false, msg: "Internal error" };
 		}
 
 		let emailTemplate = getTemplate(mailTemplate_accountReminder());

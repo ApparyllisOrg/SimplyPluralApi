@@ -6,6 +6,7 @@ import moment from "moment"
 import { notify as socketNotify } from "../../modules/socket"
 import { isUserSuspended } from "../../security"
 import { logger } from "../logger"
+import { config } from "../config"
 
 export interface Notification {
 	// Token this notification is addressed to
@@ -65,7 +66,7 @@ const sendNotification = async (notification: Notification) => {
 	scheduleNotification(notification)
 
 	// Firebase backwards support
-	{
+	if (config().firebase) {
 		const sendPayload = {
 			token: notification.token,
 			notification: { title: notification.title, body: notification.message },

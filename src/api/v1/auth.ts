@@ -35,24 +35,28 @@ const ensureFirebaseClient = () => {
 }
 
 export const login = async (req: Request, res: Response) => {
-	ensureFirebaseClient()
 	let user = await getCollection("accounts").findOne({ email: getEmailRegex(req.body.email) })
 	if (!user) {
-		const result = await signInWithEmailAndPassword(getAuth(), req.body.email, req.body.password).catch(() => undefined)
-		if (result) {
-			const salt = randomBytes(16).toString("hex")
-			const hashedPasswd = await hash(req.body.password, salt)
-			await getCollection("accounts").insertOne({
-				uid: result.user.uid,
-				email: req.body.email,
-				verified: result.user.emailVerified,
-				salt,
-				password: hashedPasswd.hashed,
-				registeredAt: result.user.metadata.creationTime ?? moment.now(),
-			})
-			user = await getCollection("accounts").findOne({ email: getEmailRegex(req.body.email) })
-			migrateAccountFromFirebase(user.uid)
-		} else {
+		if (config().firebase) {
+			ensureFirebaseClient()
+			const result = await signInWithEmailAndPassword(getAuth(), req.body.email, req.body.password).catch(() => undefined)
+			if (result) {
+				const salt = randomBytes(16).toString("hex")
+				const hashedPasswd = await hash(req.body.password, salt)
+				await getCollection("accounts").insertOne({
+					uid: result.user.uid,
+					email: req.body.email,
+					verified: result.user.emailVerified,
+					salt,
+					password: hashedPasswd.hashed,
+					registeredAt: result.user.metadata.creationTime ?? moment.now(),
+				})
+				user = await getCollection("accounts").findOne({ email: getEmailRegex(req.body.email) })
+				migrateAccountFromFirebase(user.uid)
+			}
+		}
+
+		if (!user) {
 			res.status(401).send("Unknown user or password")
 			return
 		}

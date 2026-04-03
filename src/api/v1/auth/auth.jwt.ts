@@ -54,10 +54,12 @@ export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean): Promise
 	return new Promise<{ valid: boolean; decoded: any; google: boolean; email: string }>((resolve) => {
 		jwt.verify(jwtStr, config().auth.jwtKey, async function (err, decoded) {
 			const payload = decoded as jwt.JwtPayload;
-			if (err || !decoded) {
-				const result = await auth()
-					.verifyIdToken(jwtStr, true)
-					.catch(() => null);
+				if (err || !decoded) {
+				const result = config().firebase
+					? await auth()
+						.verifyIdToken(jwtStr, true)
+						.catch(() => null)
+					: null;
 				if (result && result.aud === (config().firebase?.googleClientJwtAud ?? "")) {
 					// Authing with a firebase token is only allowed when our account has not yet merged
 					const existingUser = await getCollection("accounts").findOne({ uid: result.uid });

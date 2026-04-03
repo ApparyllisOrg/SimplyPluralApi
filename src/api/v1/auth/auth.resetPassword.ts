@@ -42,7 +42,7 @@ export const resetPasswordRequest_Execution = async (email: string): Promise<{ s
 		await getCollection("accounts").updateOne({ email: getEmailRegex(email) }, { $set: { lastResetPasswordEmailSent: moment.now(), passwordResetToken: resetKey } });
 
 		resetUrl = `${config().passwordResetPageUrl}?key=${resetKey}`;
-	} else {
+	} else if (config().firebase) {
 		const firebaseUser = await auth()
 			.getUserByEmail(email)
 			.catch(() => undefined);
@@ -51,6 +51,8 @@ export const resetPasswordRequest_Execution = async (email: string): Promise<{ s
 		} else {
 			return { success: false, msg: userNotFound(), url: "" };
 		}
+	} else {
+		return { success: false, msg: userNotFound(), url: "" };
 	}
 
 	let emailTemplate = getTemplate(mailTemplate_resetPassword())

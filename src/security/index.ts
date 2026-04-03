@@ -4,6 +4,7 @@ import { getCollection, parseId } from "../modules/mongo";
 import moment from "moment";
 import { auth } from "firebase-admin";
 import { Request } from "express";
+import { config } from "../modules/config";
 
 const users = "users";
 const groups = "groups";
@@ -93,7 +94,7 @@ export const isUserVerified = async (uid: string) => {
 	const result = await getCollection("accounts").findOne({ uid });
 	if (result) {
 		return result.verified === true || result.oAuth2 === true;
-	} else {
+	} else if (config().firebase) {
 		const firebaseUser = await auth().getUser(uid).catch((r) => undefined);
 
 		if (firebaseUser) {
