@@ -308,7 +308,8 @@ export const register = async (req: Request, res: Response) => {
 	const newUserId = await getNewUid()
 	const hashedPasswd = await hash(req.body.password, salt)
 	const verificationCode = getConfirmationKey()
-	await getCollection("accounts").insertOne({ uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode, verified: false, registeredAt: new Date() })
+	const mailEnabled = !!config().mail
+	await getCollection("accounts").insertOne({ uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode, verified: !mailEnabled, registeredAt: new Date() })
 	const jwt = await jwtForUser(newUserId, undefined, undefined)
 	res.status(200).send(jwt)
 
@@ -318,7 +319,9 @@ export const register = async (req: Request, res: Response) => {
 
 	logSecurityUserEvent(newUserId, "Registered your user account", req)
 
-	sendConfirmationEmail(newUserId)
+	if (mailEnabled) {
+		sendConfirmationEmail(newUserId)
+	}
 }
 
 export const requestConfirmationEmail = async (req: Request, res: Response) => {

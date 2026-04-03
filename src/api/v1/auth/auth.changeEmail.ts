@@ -6,6 +6,7 @@ import { getEmailRegex, revokeAllUserAccess } from "./auth.core";
 import { userNotFound } from "../../../modules/messages";
 import { getTemplate, mailTemplate_emailChanged } from "../../../modules/mail/mailTemplates";
 import { sendCustomizedEmailToEmail } from "../../../modules/mail";
+import { config } from "../../../modules/config";
 
 //-------------------------------//
 // Change password
@@ -33,29 +34,25 @@ export const changeEmail_Execution = async (oldEmail: string, password: string, 
 
 		if (timingSafeEqual(bGeneratedHash, knownHash)) {
 			// Invalidate verified email
-			await getCollection("accounts").updateOne({ uid: user.uid }, { $set: { email: newEmail, verified: false } });
+			const mailEnabled = !!config().mail
+			await getCollection("accounts").updateOne({ uid: user.uid }, { $set: { email: newEmail, verified: !mailEnabled } });
 
 			revokeAllUserAccess(user.uid);
 
-			{
-				let emailTemplate = await getTemplate(mailTemplate_emailChanged())
+			if (mailEnabled) {
+				{
+					let emailTemplate = await getTemplate(mailTemplate_emailChanged())
+					emailTemplate = emailTemplate.replace("{{oldEmail}}", oldEmail);
+					emailTemplate = emailTemplate.replace("{{newEmail}}", newEmail);
+					const result: any = sendCustomizedEmailToEmail(oldEmail, emailTemplate, "Your Simply Plural email changed");
+				}
 
-				// This template has the url twice
-				emailTemplate = emailTemplate.replace("{{oldEmail}}", oldEmail);
-				emailTemplate = emailTemplate.replace("{{newEmail}}", newEmail);
-
-				const result: any = sendCustomizedEmailToEmail(oldEmail, emailTemplate, "Your Simply Plural email changed");
-			}
-
-			{
-				let emailTemplate = await getTemplate(mailTemplate_emailChanged())
-
-				// This template has the url twice
-				emailTemplate = emailTemplate.replace("{{oldEmail}}", oldEmail);
-				emailTemplate = emailTemplate.replace("{{newEmail}}", newEmail);
-
-
-				const result: any = sendCustomizedEmailToEmail(newEmail, emailTemplate, "Your Simply Plural email changed");
+				{
+					let emailTemplate = await getTemplate(mailTemplate_emailChanged())
+					emailTemplate = emailTemplate.replace("{{oldEmail}}", oldEmail);
+					emailTemplate = emailTemplate.replace("{{newEmail}}", newEmail);
+					const result: any = sendCustomizedEmailToEmail(newEmail, emailTemplate, "Your Simply Plural email changed");
+				}
 			}
 
 			return { success: true, msg: "", uid: user.uid };

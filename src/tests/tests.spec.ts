@@ -12,6 +12,11 @@ import { config } from "../modules/config"
 
 process.env.UNITTEST = "true"
 process.env.BASE_URL = "http://localhost:3000"
+process.env.MAIL_HOST = "localhost"
+process.env.MAIL_PORT = "465"
+process.env.MAIL_USER = "test"
+process.env.MAIL_PASSWORD = "test"
+process.env.MAIL_SENDER = `"Apparyllis" <noreply@apparyllis.com>`
 
 const setupTest = async () => {
 	const mongod = await MongoMemoryServer.create()

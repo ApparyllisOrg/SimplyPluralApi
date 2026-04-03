@@ -21,6 +21,10 @@ export const getResetPasswordKey = () => randomBytes(64).toString("hex");
 // Request password reset link
 //-------------------------------//
 export const resetPasswordRequest_Execution = async (email: string): Promise<{ success: boolean; msg: string; url: string }> => {
+	if (!config().mail) {
+		return { success: false, msg: "Password reset is unavailable because email is not configured", url: "" };
+	}
+
 	let resetUrl = "";
 	const user = await getCollection("accounts").findOne({ email: getEmailRegex(email) });
 
