@@ -43,6 +43,8 @@ import { getInvoices } from "./subscriptions/subscriptions.invoices"
 import { getManagementLink } from "./subscriptions/subscriptions.manage"
 import { getPrices } from "./subscriptions/subscriptions.prices"
 
+import { config } from "../../modules/config"
+
 export const setupV1routes = (app: core.Express) => {
 	// Members
 	app.get("/v1/member/:system/:id", isUserAuthenticated(ApiKeyAccessType.Read), validateAreFriends, member.get)
@@ -239,8 +241,10 @@ export const setupV1routes = (app: core.Express) => {
 	app.post("/v1/auth/login", validateBody(auth.validateRegisterSchema), auth.login)
 
 	// OAuth2 providers
-	{
+	if (config().googleOAuth) {
 		app.post("/v1/auth/login/oauth/google", validateBody(auth.validateLoginOAuth2Schema), auth.loginGoogle)
+	}
+	if (config().appleOAuth) {
 		app.post("/v1/auth/login/oauth/apple", validateBody(auth.validateLoginOAuth2Schema), auth.loginApple)
 	}
 

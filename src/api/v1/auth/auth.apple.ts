@@ -6,6 +6,7 @@ import { decode, JwtPayload, verify } from "jsonwebtoken"
 import jwksClient from "jwks-rsa"
 import { migrateAccountFromFirebase } from "./auth.migrate"
 import { setupNewUser } from "../user"
+import { config } from "../../../modules/config"
 
 async function key(kid: any) {
 	const client = jwksClient({
@@ -35,7 +36,8 @@ export const loginWithApple = async (credential: string, version: number | null)
 		return { success: false, uid: "", email: "" }
 	}
 
-	if (payload.aud !== "com.apparyllis.simplyplural" && payload.aud !== "com.apparyllis.simplyplural.web") {
+	const appleConfig = config().appleOAuth
+	if (!appleConfig || !appleConfig.bundleIds.includes(payload.aud as string)) {
 		return { success: false, uid: "", email: "" }
 	}
 
