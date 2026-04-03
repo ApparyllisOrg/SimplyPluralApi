@@ -54,7 +54,7 @@ export interface ServerConfig {
 function getServerConfig(): ServerConfig {
 	return {
 		port: env.intWithDefault(3000, "PORT"),
-		baseUrl: env.required("BASE_URL"),
+		baseUrl: env("BASE_URL") ?? "",
 	}
 }
 
@@ -89,7 +89,7 @@ export interface AuthConfig {
 function getAuthConfig(): AuthConfig {
 	return {
 		jwtKey: env.required("JWT_KEY"),
-		jwtIssuer: env.required("JWT_ISSUER"),
+		jwtIssuer: env("JWT_ISSUER") ?? "Apparyllis",
 		passwordKey: env.required("PASSWORD_KEY"),
 		passwordSeparator: env.required("PASSWORD_SEPARATOR", "PASSWORD_SEPERATOR"),
 		messagesKey: env.required("MESSAGES_KEY"),

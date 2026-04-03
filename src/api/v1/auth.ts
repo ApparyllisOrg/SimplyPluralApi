@@ -22,10 +22,20 @@ import { logOpenUsage as logDailyUsage } from "./events/open"
 import { migrateAccountFromFirebase } from "./auth/auth.migrate"
 import { fetchCollection } from "../../util"
 import { setupNewUser } from "./user"
+import { config } from "../../modules/config"
 
-initializeApp({ projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY })
+let _firebaseClientInitialized = false
+const ensureFirebaseClient = () => {
+	if (_firebaseClientInitialized) return
+	_firebaseClientInitialized = true
+	const firebaseConfig = config().firebase
+	if (firebaseConfig) {
+		initializeApp({ projectId: firebaseConfig.googleClientJwtAud, apiKey: process.env.GOOGLE_API_KEY })
+	}
+}
 
 export const login = async (req: Request, res: Response) => {
+	ensureFirebaseClient()
 	let user = await getCollection("accounts").findOne({ email: getEmailRegex(req.body.email) })
 	if (!user) {
 		const result = await signInWithEmailAndPassword(getAuth(), req.body.email, req.body.password).catch(() => undefined)
@@ -272,7 +282,7 @@ export const register = async (req: Request, res: Response) => {
 		return
 	}
 
-	if (process.env.SPGOOGLE) {
+	if (config().firebase) {
 		const firebaseUser = await auth()
 			.getUserByEmail(req.body.email)
 			.catch(() => {

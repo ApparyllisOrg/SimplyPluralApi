@@ -8,6 +8,7 @@ import { getTestUID, setTestToken } from "./utils"
 import { MongoMemoryServer } from "mongodb-memory-server"
 import { initStorageController, storageController } from "../modules/storage/storageController"
 import { StorageTargetNull } from "../modules/storage/storageTargetNull"
+import { config } from "../modules/config"
 
 process.env.UNITTEST = "true"
 
@@ -16,6 +17,8 @@ const setupTest = async () => {
 
 	console.log("fake mongo is started: ", mongod.getUri())
 	process.env["DATABASE_URI"] = mongod.getUri()
+
+	config()
 
 	const app = await initializeServer()
 

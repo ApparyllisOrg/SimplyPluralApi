@@ -5,6 +5,7 @@ import { notifyFrontDue, notifyPrivateFrontDue, notifySharedFrontDue } from "./f
 import { repeatRemindersDueEvent, repeatRemindersEvent } from "./repeatReminders"
 import promclient from "prom-client"
 import { getStartOfDay, isPrimaryInstace } from "../../util"
+import { config } from "../config"
 
 type bindFunc = (uid: string, event: any) => void
 const _boundEvents = new Map<string, bindFunc>()
@@ -89,7 +90,7 @@ export const init = () => {
 		// getting queued events is atomic, so only one server handles the documents it got returned
 		// We don't want to run runEvents twice on two servers and have it return
 		// the same events on both. It needs to return atomically.
-		if (process.env.LOCALEVENTS === "true") {
+		if (config().events.localEvents) {
 			bindEvents()
 			runEvents()
 			console.log("Bound to events, started event controller")

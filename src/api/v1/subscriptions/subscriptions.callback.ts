@@ -7,6 +7,7 @@ import { mailTemplate_createdSubscription, mailTemplate_failedPaymentCancelSubsc
 import { logger } from "../../../modules/logger"
 import assert from "node:assert"
 import { isSubscriptionCancelled } from "./subscriptions.utils"
+import { config } from "../../../modules/config"
 
 export const stripeCallback = async (req: Request, res: Response) => {
 	if (getStripe() === undefined) {
@@ -24,7 +25,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
 	let event
 
 	try {
-		event = getStripe()!.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
+		event = getStripe()!.webhooks.constructEvent(req.body, sig, config().subscription!.stripeWebhookSecret)
 	} catch (err: any) {
 		if (err instanceof Stripe.errors.StripeSignatureVerificationError) {
 			console.log(err)
@@ -35,7 +36,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
 		return
 	}
 
-	if (process.env.DEVELOPMENT) {
+	if (config().development) {
 		console.log(event.type)
 		console.log(event.data.object)
 	}
@@ -44,7 +45,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
 	case "customer.subscription.created": {
 		if (event.data.object as Stripe.Subscription) {
 			const eventObject = event.data.object as Stripe.Subscription
-			if (process.env.DEVELOPMENT) {
+			if (config().development) {
 				console.log("sub")
 				console.log(eventObject)
 			}
@@ -59,7 +60,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
 				res.status(500).send("Unable to find subscription item in subscription")
 				return
 			}
-			if (process.env.DEVELOPMENT) {
+			if (config().development) {
 				console.log("subItem")
 				console.log(subItem)
 			}
@@ -78,7 +79,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
 		if (event.data.object as Stripe.Subscription) {
 			const eventObject = event.data.object as Stripe.Subscription
 
-			if (process.env.DEVELOPMENT) {
+			if (config().development) {
 				console.log("sub updated")
 				console.log(eventObject)
 			}
@@ -106,7 +107,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
 		if (event.data.object as Stripe.Subscription) {
 			const eventObject = event.data.object as Stripe.Subscription
 
-			if (process.env.DEVELOPMENT) {
+			if (config().development) {
 				console.log("sub deleted")
 				console.log(eventObject)
 			}

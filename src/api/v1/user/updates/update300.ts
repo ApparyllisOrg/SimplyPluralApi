@@ -3,10 +3,11 @@ import { getCollection } from "../../../../modules/mongo"
 import { LexoRank } from "lexorank"
 import * as Sentry from "@sentry/node"
 import { ObjectId } from "mongodb"
+import { config } from "../../../../modules/config"
 
 // Create 2 new privacy buckets
 export const update300 = async (uid: string) => {
-	if (process.env.DEVELOPMENT === "true") {
+	if (config().development) {
 		await rollback300(uid)
 	}
 

@@ -1,5 +1,7 @@
+import { config } from "./config"
+
 export const isDevelopmentInstance = () => {
-    return process.env.DEVELOPMENT === "true";
+    return config().development
 }
 
 export const devLog = (message: string) => 

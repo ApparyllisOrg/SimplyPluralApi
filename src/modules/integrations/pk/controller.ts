@@ -2,6 +2,7 @@ import axios, { AxiosError, AxiosResponse } from "axios";
 import { logger } from "../../logger";
 import * as Sentry from "@sentry/node";
 import { nanoid } from "nanoid";
+import { config } from "../../config";
 
 import promclient from "prom-client";
 
@@ -86,9 +87,11 @@ const counter = new promclient.Counter({
 
 export const dispatchTickRequests = async (request: PkRequest) => {
 	let debug = false;
-	if (process.env.DEVELOPMENT) {
+	if (config().development) {
 		debug = true;
 	}
+
+	const pkAppHeader = config().pluralKit?.appHeader ?? ""
 
 	const type = request.type;
 	switch (type) {
@@ -96,7 +99,7 @@ export const dispatchTickRequests = async (request: PkRequest) => {
 		if (debug) {
 			console.log("GET=>" + request.path);
 		}
-		const result = await axios.get(request.path, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError);
+		const result = await axios.get(request.path, { headers: { authorization: request.token, "X-PluralKit-App": pkAppHeader } }).catch(handleError);
 		counter.labels("GET", result?.status.toString() ?? "503").inc(1);
 		if (debug) {
 			console.log("Response for GET=>" + request.path);
@@ -109,7 +112,7 @@ export const dispatchTickRequests = async (request: PkRequest) => {
 		if (debug) {
 			console.log("POST=>" + request.path);
 		}
-		const result = await axios.post(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError);
+		const result = await axios.post(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": pkAppHeader } }).catch(handleError);
 		counter.labels("POST", result?.status.toString() ?? "503").inc(1);
 		if (debug) {
 			console.log("Response for POST=>" + request.path);
@@ -122,7 +125,7 @@ export const dispatchTickRequests = async (request: PkRequest) => {
 		if (debug) {
 			console.log("PATCH=>" + request.path);
 		}
-		const result = await axios.patch(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": process.env.PLURALKITAPP ?? "" } }).catch(handleError);
+		const result = await axios.patch(request.path, request.data, { headers: { authorization: request.token, "X-PluralKit-App": pkAppHeader } }).catch(handleError);
 		counter.labels("PATCH", result?.status.toString() ?? "503").inc(1);
 		if (debug) {
 			console.log("Response for PATCH=>" + request.path);

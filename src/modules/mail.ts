@@ -5,6 +5,7 @@ import { getTemplate } from "./mail/mailTemplates";
 import promclient from "prom-client";
 import Mail from "nodemailer/lib/mailer";
 import { logger } from "./logger";
+import { config } from "./config";
 
 let mailerTransport: null | Transporter<SMTPTransport.SentMessageInfo> = null;
 
@@ -25,13 +26,19 @@ const friendlyMailError = (reason: any): Error => {
 }
 
 export const startMailTransport = async () => {
+	const mailConfig = config().mail
+	if (!mailConfig) {
+		console.log("Mail not configured, skipping SMTP transport")
+		return
+	}
+
 	mailerTransport = nodemailer.createTransport({
-		host: process.env.MAILHOST,
-		port: Number(process.env.MAILPORT),
+		host: mailConfig.host,
+		port: mailConfig.port,
 		secure: true,
 		auth: {
-			user: process.env.MAILUSER,
-			pass: process.env.MAILPASSWORD,
+			user: mailConfig.user,
+			pass: mailConfig.password,
 		},
 		tls: {
 			ciphers: "SSLv3",
@@ -50,7 +57,7 @@ const transaction_mail_counter = new promclient.Counter({
 });
 
 export const sendSimpleEmail = async (uid: string, templateName: string, title: string, cc?: string[] | undefined, attachements?: Mail.Attachment[]) => {
-	if (process.env.UNITTEST === "true") return
+	if (config().unitTest) return
 	
 	let emailTemplate = getTemplate(templateName);
 
@@ -76,7 +83,7 @@ export const sendSimpleEmail = async (uid: string, templateName: string, title: 
 }
 
 export const sendCustomizedEmail = async (uid: string, email: string, title: string, cc?: string[] | undefined, attachements?: Mail.Attachment[]) => {
-	if (process.env.UNITTEST === "true") return
+	if (config().unitTest) return
 
 	const userEmail = await getEmailForUser(uid);
 
@@ -100,7 +107,7 @@ export const sendCustomizedEmail = async (uid: string, email: string, title: str
 }
 
 export const sendCustomizedEmailToEmail = async (userMail: string, email: string, title: string, cc?: string[] | undefined) => {
-	if (process.env.UNITTEST === "true") return
+	if (config().unitTest) return
 
 	const res = await mailerTransport
 		?.sendMail({
