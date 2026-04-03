@@ -69,7 +69,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
 			assert(subscriber)
 
 			getCollection("users").updateOne({ uid: subscriber.uid, _id: subscriber.uid }, { $set: { plus: true } })
-			sendSimpleEmail(subscriber.uid, mailTemplate_createdSubscription(), "Your Simply Plus subscription")
+			sendSimpleEmail(subscriber.uid, mailTemplate_createdSubscription(), `Your ${config().subscription!.name} subscription`)
 
 			getCollection("subscribers").updateOne({ customerId }, { $set: { subscriptionId: eventObject.id, periodEnd: subItem.current_period_end } })
 		}
@@ -121,7 +121,7 @@ export const stripeCallback = async (req: Request, res: Response) => {
 			getCollection("users").updateOne({ uid: subscriber.uid }, { $set: { plus: false } })
 
 			if (eventObject.cancellation_details?.reason === "payment_failed") {
-				sendSimpleEmail(subscriber.uid, mailTemplate_failedPaymentCancelSubscription(), "Your Simply Plus subscription payment failed")
+				sendSimpleEmail(subscriber.uid, mailTemplate_failedPaymentCancelSubscription(), `Your ${config().subscription!.name} subscription payment failed`)
 			}
 		}
 		break

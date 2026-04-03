@@ -5,6 +5,7 @@ import { sendSimpleEmail } from "../../../modules/mail"
 import { mailTemplate_cancelledSubscription } from "../../../modules/mail/mailTemplates"
 import { ajv, validateSchema } from "../../../util/validation"
 import { isSubscriptionCancelled } from "./subscriptions.utils"
+import { config } from "../../../modules/config"
 
 export const cancelSubscription = async (req: Request, res: Response) => {
 	if (getStripe() === undefined) {
@@ -28,7 +29,7 @@ export const cancelSubscription = async (req: Request, res: Response) => {
 		if (isSubscriptionCancelled(result)) {
 			res.status(200).send("Cancelled subscription")
 
-			sendSimpleEmail(res.locals.uid, mailTemplate_cancelledSubscription(), "Your Simply Plus subscription is cancelled")
+			sendSimpleEmail(res.locals.uid, mailTemplate_cancelledSubscription(), `Your ${config().subscription!.name} subscription is cancelled`)
 		} else {
 			res.status(500).send("Unable to cancel subscription")
 		}

@@ -4,6 +4,7 @@ import { getCollection } from "../../../modules/mongo"
 import { sendSimpleEmail } from "../../../modules/mail"
 import { mailTemplate_cancelledSubscription } from "../../../modules/mail/mailTemplates"
 import { isSubscriptionCancelled } from "./subscriptions.utils"
+import { config } from "../../../modules/config"
 
 export const deleteAllSubscriptions = async (uid: string) => {
 	if (getStripe() === undefined) {
@@ -22,7 +23,7 @@ export const deleteAllSubscriptions = async (uid: string) => {
 
 		const result = await getStripe()?.subscriptions.update(subscriber.subscriptionId, { cancel_at_period_end: true, cancellation_details: { feedback: "other", comment: "Cancelled due to account removal" } })
 		if (isSubscriptionCancelled(result)) {
-			sendSimpleEmail(uid, mailTemplate_cancelledSubscription(), "Your Simply Plus subscription is cancelled")
+			sendSimpleEmail(uid, mailTemplate_cancelledSubscription(), `Your ${config().subscription!.name} subscription is cancelled`)
 		}
 	}
 }

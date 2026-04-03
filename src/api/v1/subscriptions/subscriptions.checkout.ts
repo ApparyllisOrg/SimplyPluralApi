@@ -28,7 +28,7 @@ export const generateSubscribeSession = async (req: Request, res: Response) => {
 		if (maxSubs > 0) {
 			const numSubs: number = await getCollection("subscribers").countDocuments({ subscriptionId: { $ne: null } })
 			if (numSubs >= maxSubs) {
-				res.status(401).send("Simply Plus is currently limiting the amount of subscribers. The limit has been reached, try again when Simply Plus if fully released.")
+				res.status(401).send(`${subConfig.name} is currently limiting the amount of subscribers. The limit has been reached, try again when ${subConfig.name} is fully released.`)
 				return
 			}
 		}
