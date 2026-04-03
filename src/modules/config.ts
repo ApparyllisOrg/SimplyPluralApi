@@ -54,7 +54,7 @@ export interface ServerConfig {
 function getServerConfig(): ServerConfig {
 	return {
 		port: env.intWithDefault(3000, "PORT"),
-		baseUrl: env("BASE_URL") ?? "",
+		baseUrl: env.required("BASE_URL"),
 	}
 }
 

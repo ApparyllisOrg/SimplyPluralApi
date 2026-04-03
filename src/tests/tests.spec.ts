@@ -11,6 +11,7 @@ import { StorageTargetNull } from "../modules/storage/storageTargetNull"
 import { config } from "../modules/config"
 
 process.env.UNITTEST = "true"
+process.env.BASE_URL = "http://localhost:3000"
 
 const setupTest = async () => {
 	const mongod = await MongoMemoryServer.create()

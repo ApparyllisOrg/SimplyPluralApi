@@ -3,13 +3,13 @@ import moment, { Moment } from "moment"
 import { ObjectId } from "mongodb"
 import * as Mongo from "../modules/mongo"
 import { getCollection, parseId } from "../modules/mongo"
+import { config } from "../modules/config"
 import LRU from "lru-cache"
 import { documentObject } from "../modules/mongo/baseTypes"
 import { dispatchDelete, OperationType } from "../modules/socket"
 import { FriendLevel, friendReadCollections, getFriendLevel, isFriend, isPendingFriend, isTrustedFriend } from "../security"
 import { parseForAllowedReadValues } from "../security/readRules"
-import { diff } from "deep-diff"
-import { DiffProcessor, logAudit, logCreatedAudit, logDeleteAudit } from "./diff"
+import { DiffProcessor } from "./diff"
 import internal, { Stream, Transform } from "stream"
 import assert from "assert"
 import { doesUserHaveVersion, ONE_ELEVEN } from "./version"
@@ -391,23 +391,7 @@ export const isMemberOrCustomFront = async (uid: string, id: string) => {
 }
 
 export const getAPIUrl = (extension: string) => {
-	if (process.env.LOCAL === "true") {
-		return `http://${getAPIUrlBase()}/` + extension
-	}
-
-	return `https://${getAPIUrlBase()}/` + extension
-}
-
-export const getAPIUrlBase = () => {
-	if (process.env.LOCAL === "true") {
-		return "localhost:3000"
-	}
-
-	if (process.env.PRETESTING === "true") {
-		return "devapi.apparyllis.com"
-	} else {
-		return "api.apparyllis.com"
-	}
+	return `${config().server.baseUrl}/${extension}`
 }
 
 export const getStartOfDay = (): Moment => {
