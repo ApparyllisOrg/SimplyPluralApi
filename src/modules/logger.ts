@@ -1,12 +1,14 @@
 import winston, { format } from "winston"
 import dotenv from "dotenv"
 import "winston-daily-rotate-file"
-import { isUnitTestActive, namedArguments } from "../util/args"
+
 
 dotenv.config()
 const logPrefix = process.env.LOGPREFIX ?? process.env.DATABASE_NAME ?? process.env.DBNAME ?? ""
 
-const useCustomLogFilenames = namedArguments.nologs !== true && process.env.NO_LOGS !== "true"
+const isUnitTestActive = () => process.env.UNITTEST === "true"
+
+const useCustomLogFilenames = process.env.NO_LOGS !== "true"
 if (!useCustomLogFilenames) {
 	console.log("Running without custom log file names")
 }

@@ -3,7 +3,7 @@ import { getCollection } from "../../../modules/mongo"
 import * as Sentry from "@sentry/node"
 import { auth } from "firebase-admin"
 import { getEmailRegex, getNewUid } from "./auth.core"
-import { namedArguments } from "../../../util/args"
+
 import { migrateAccountFromFirebase } from "./auth.migrate"
 import { setupNewUser } from "../user"
 
@@ -21,8 +21,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET ?? ""
 let android_client: OAuth2Client | undefined = undefined
 let iOS_client: OAuth2Client | undefined = undefined
 
-if (namedArguments.without_google !== true) {
-	if (GOOGLE_CLIENT_ID.length === 0) throw new Error("GOOGLE_CLIENT_ID needs to be defined!")
+if (GOOGLE_CLIENT_ID.length > 0) {
 	if (GOOGLE_CLIENT_AUD.length === 0) throw new Error("GOOGLE_CLIENT_AUD needs to be defined!")
 
 	if (GOOGLE_CLIENT_IOS_ID.length === 0) throw new Error("GOOGLE_CLIENT_IOS_ID needs to be defined!")

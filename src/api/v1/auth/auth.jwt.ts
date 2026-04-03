@@ -1,9 +1,7 @@
 import { auth } from "firebase-admin";
 import * as jwt from "jsonwebtoken";
 import { getCollection } from "../../../modules/mongo";
-import { namedArguments } from "../../../util/args";
-
-const jwtKey = process.env.JWT_KEY ?? namedArguments.jwt_key ?? "";
+const jwtKey = process.env.JWT_KEY ?? "";
 if (jwtKey.length === 0) throw new Error("JWT_KEY needs to be defined!");
 
 const thirtyDays = 60 * 60 * 24 * 30;

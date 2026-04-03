@@ -16,7 +16,7 @@ import { changePassword_Execution } from "./auth/auth.changePassword"
 import { isUserSuspended, logSecurityUserEvent } from "../../security"
 import { initializeApp } from "firebase/app"
 import { loginWithApple } from "./auth/auth.apple"
-import { namedArguments } from "../../util/args"
+
 import { requestEmail_Execution } from "./auth/auth.requestEmail"
 import { logOpenUsage as logDailyUsage } from "./events/open"
 import { migrateAccountFromFirebase } from "./auth/auth.migrate"
@@ -272,7 +272,7 @@ export const register = async (req: Request, res: Response) => {
 		return
 	}
 
-	if (namedArguments.without_google === false) {
+	if (process.env.SPGOOGLE) {
 		const firebaseUser = await auth()
 			.getUserByEmail(req.body.email)
 			.catch(() => {
