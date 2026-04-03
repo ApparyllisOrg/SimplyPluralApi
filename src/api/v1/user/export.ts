@@ -6,6 +6,7 @@ import { sendCustomizedEmail } from "../../../modules/mail"
 import { db, getCollection } from "../../../modules/mongo"
 import { storageController } from "../../../modules/storage/storageController"
 import { decryptMessage } from "../chat/chat.core"
+import { config } from "../../../modules/config"
 
 //-------------------------------//
 // Fetch all avatars from a user
@@ -119,7 +120,7 @@ export const exportData = async (uid: string): Promise<{ success: boolean; code:
 	const avatarKey = randomBytes(128).toString("hex")
 	const dataKey = randomBytes(128).toString("hex")
 
-	const baseUrl = process.env.PRETESTING === "true" ? "https://devapi.apparyllis.com" : "https://api.apparyllis.com"
+	const baseUrl = config().server.baseUrl
 	emailTemplate = emailTemplate.replace("{{export_avatar_url}}", `${baseUrl}/v1/user/export/avatars/?key=${avatarKey}&uid=${uid}`)
 	emailTemplate = emailTemplate.replace("{{export_data_url}}", `${baseUrl}/v1/user/export/data/?key=${dataKey}&uid=${uid}`)
 

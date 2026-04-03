@@ -13,6 +13,7 @@ import { ERR_FUNCTIONALITY_EXPECTED_VALID } from "../../modules/errors"
 import { createUser } from "./user/migrate"
 import { createDataExportForUser, exportData, fetchAllAvatars } from "./user/export"
 import { getEmailForUser } from "./auth/auth.core"
+import { config } from "../../modules/config"
 import { frameType } from "../types/frameType"
 import { canGenerateReport, decrementGenerationsLeft, reportBaseUrl, reportBaseUrl_V2, sendReport } from "../base/user"
 import archiver from "archiver"
@@ -182,17 +183,15 @@ export const deleteAccount = async (req: Request, res: Response) => {
 	await getCollection("pendingFriendRequests").deleteMany({ receiver: { $eq: res.locals.uid } })
 	await getCollection("pendingFriendRequests").deleteMany({ sender: { $eq: res.locals.uid } })
 
-	// Don't delete avatars and reports when deleting pretesting
-	if (process.env.PRETESTING !== "true") {
-		{
-			await deleteUploadedUserFolder(res.locals.uid, "reports")
-			await deleteUploadedUserFolder(res.locals.uid, "avatars")
-		}
+	// Don't delete avatars and reports when running without storage
+	if (config().storage) {
+		await deleteUploadedUserFolder(res.locals.uid, "reports")
+		await deleteUploadedUserFolder(res.locals.uid, "avatars")
 	}
 
 	userLog(res.locals.uid, `Pre Delete User ${email} and username ${username}`)
 
-	if (process.env.PRETESTING !== "true") {
+	if (config().firebase) {
 		auth()
 			.deleteUser(res.locals.uid)
 			.catch((r) => undefined)
