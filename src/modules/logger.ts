@@ -4,7 +4,7 @@ import "winston-daily-rotate-file"
 import { isUnitTestActive, namedArguments } from "../util/args"
 
 dotenv.config()
-const logPrefix = process.env.LOGPREFIX ?? process.env.DBNAME ?? ""
+const logPrefix = process.env.LOGPREFIX ?? process.env.DATABASE_NAME ?? process.env.DBNAME ?? ""
 
 const useCustomLogFilenames = namedArguments.nologs !== true && process.env.NO_LOGS !== "true"
 if (!useCustomLogFilenames) {
