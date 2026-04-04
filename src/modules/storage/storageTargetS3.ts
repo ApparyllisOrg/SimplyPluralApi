@@ -118,7 +118,7 @@ export class StorageTargetS3 implements StorageTarget {
 			}
 
 			const params = {
-				Bucket: "simply-plural",
+				Bucket: this.bucketId,
 				Prefix: path,
 				ContinuationToken: token,
 			}
@@ -134,7 +134,7 @@ export class StorageTargetS3 implements StorageTarget {
 
 				if (list.KeyCount && list.Contents) {
 					const deleteCommand = new DeleteObjectsCommand({
-						Bucket: "simply-plural",
+						Bucket: this.bucketId,
 						Delete: {
 							Objects: list.Contents.map((item) => ({ Key: item.Key ?? "" })),
 						},
