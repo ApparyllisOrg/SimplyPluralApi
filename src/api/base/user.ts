@@ -7,9 +7,10 @@ import { logger } from "../../modules/logger"
 import { sendCustomizedEmailToEmail } from "../../modules/mail"
 import { ObjectCannedACL, PutObjectCommand } from "@aws-sdk/client-s3"
 import { storageController } from "../../modules/storage/storageController"
+import { config } from "../../modules/config"
 
-export const reportBaseUrl = "https://simply-plural.sfo3.digitaloceanspaces.com/"
-export const reportBaseUrl_V2 = "https://serve.apparyllis.com/"
+export const reportBaseUrl = () => `${config().storage?.legacyBaseUrl ?? config().storage?.baseUrl ?? ""}/`
+export const reportBaseUrl_V2 = () => `${config().storage?.baseUrl ?? ""}/`
 
 export const decrementGenerationsLeft = async (uid: string) => {
 	const user: any | null = await getCollection("users").findOne({ uid, _id: uid })
@@ -42,7 +43,7 @@ export const sendReport = async (req: Request, res: Response, htmlFile: string) 
 
 	const path = `reports/${res.locals.uid}/${randomId}/${randomId2}/${randomId3}.html`
 
-	const reportUrl = reportBaseUrl_V2 + path
+	const reportUrl = reportBaseUrl_V2() + path
 
 	let emailTemplate = await getTemplate(mailTemplate_userReport())
 

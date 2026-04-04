@@ -8,6 +8,7 @@ import {fileTypeFromBuffer} from 'file-type';
 
 import { storageController } from "../../modules/storage/storageController"
 import { doesUserHaveVersion, ONE_TWELVE } from "../../util/version"
+import { config } from "../../modules/config"
 
 export const update_avatar_counter = new promclient.Counter({
 	name: "apparyllis_api_avatar_upload",
@@ -60,7 +61,7 @@ export const Store = async (req: Request, res: Response) => {
 	const putResult = await storageController?.put(path, buffer)
 
 	if (putResult) {
-		res.status(200).send({ success: true, msg: { url: `https://serve.apparyllis.com/avatars/${path}` } })
+		res.status(200).send({ success: true, msg: { url: `${config().storage?.baseUrl ?? ""}/avatars/${path}` } })
 		userLog(res.locals.uid, `Stored avatar with size: ${buffer.length}`)
 	} else {
 		res.status(500).send("Error uploading avatar")

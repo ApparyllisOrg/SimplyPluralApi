@@ -6,6 +6,7 @@ import { uuid } from "short-uuid"
 import { storageController } from "../../../modules/storage/storageController"
 import { userLog } from "../../../modules/logger"
 import { ajv, validateSchema } from "../../../util/validation"
+import { config } from "../../../modules/config"
 
 const validateAvatarUuid = (avatarUuid: string) => {
 	// Ensure regexp matches the correct uid format
@@ -43,7 +44,7 @@ export const StoreAvatarForObject = async (req: Request, res: Response, collecti
 			}
 		}
 
-		res.status(200).send({ url: `https://serve.apparyllis.com/avatars/${path}`, avatarUuid: avatarUuid })
+		res.status(200).send({ url: `${config().storage?.baseUrl ?? ""}/avatars/${path}`, avatarUuid: avatarUuid })
 		userLog(res.locals.uid, `Stored avatar with size: ${buffer.length}`)
 	} else {
 		res.status(500).send("Error uploading avatar")

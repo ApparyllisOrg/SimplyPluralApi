@@ -14,6 +14,7 @@ import xss from "xss"
 import { getCollection, parseId } from "../../../modules/mongo"
 import { ObjectId } from "mongodb"
 import { queryObject } from "../../../modules/mongo/baseTypes"
+import { config } from "../../../modules/config"
 
 export const fieldKeyToName = (key: string, userData: any) => {
 	return userData.fields[key].name
@@ -22,14 +23,14 @@ export const fieldKeyToName = (key: string, userData: any) => {
 export const getAvatarString = (data: any, uid: string): string => {
 	let avatar = ""
 	if (data.avatarUuid) {
-		avatar = `https://spaces.apparyllis.com/avatars/${uid}/${data.avatarUuid}`
+		avatar = `${config().storage?.baseUrl ?? ""}/avatars/${uid}/${data.avatarUuid}`
 	} else if (data.avatarUrl) {
 		avatar = data.avatarUrl
 	}
 
 	if (avatar.length == 0) {
 		// Todo: Make this a better link
-		avatar = "https://dist.apparyllis.com/resources/Logo_Apparyllis_Square_1024.png"
+		avatar = config().branding.logoUrl ?? ""
 	}
 
 	return avatar
