@@ -118,7 +118,9 @@ export const initializeServer = async () => {
 	setupBaseRoutes(app)
 
 	// Has to be *after* all controllers
-	Sentry.setupExpressErrorHandler(app)
+	if (cfg.sentry) {
+		Sentry.setupExpressErrorHandler(app)
+	}
 
 	console.log(`Starting server as ${cluster.isPrimary ? "Primary" : "Worker"}`)
 
