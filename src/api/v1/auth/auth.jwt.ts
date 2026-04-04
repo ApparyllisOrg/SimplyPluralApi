@@ -27,8 +27,8 @@ export const jwtForUser = async (uid: string, fallbackEmail: string | undefined,
 
 	if (email === undefined) throw "Unable to fetch email for jwt";
 
-	const access = jwt.sign({ sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + 30 * 60, verified, email, oAuth2 }, config().auth.jwtKey);
-	const refresh = jwt.sign({ sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + thirtyDays, refresh: true, verified, email, oAuth2 }, config().auth.jwtKey);
+	const access = jwt.sign({ sub: uid, iss: config().auth.jwtIssuer, iat: now, exp: Math.floor(Date.now() / 1000) + 30 * 60, verified, email, oAuth2 }, config().auth.jwtKey);
+	const refresh = jwt.sign({ sub: uid, iss: config().auth.jwtIssuer, iat: now, exp: Math.floor(Date.now() / 1000) + thirtyDays, refresh: true, verified, email, oAuth2 }, config().auth.jwtKey);
 	return { access, refresh };
 };
 
@@ -75,7 +75,7 @@ export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean): Promise
 					resolve({ valid: false, decoded: "", google: false, email: "" });
 				}
 			} else if (payload) {
-				if (payload.iss !== "Apparyllis") {
+				if (payload.iss !== config().auth.jwtIssuer) {
 					resolve({ valid: false, decoded: "", google: false, email: "" });
 					return;
 				}
