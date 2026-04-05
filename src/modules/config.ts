@@ -47,12 +47,27 @@ env.bool = (key: string, ...fallbackKeys: string[]): boolean => {
 // --- Server ---
 
 export interface ServerConfig {
+	cors: string[] | null
 	port: number
 	baseUrl: string
 }
 
+function getCorsOrgins(): string[] | null {
+	const cors = env("CORS_ORIGINS")
+	if (!cors || cors === "false") return null
+
+	const origins = cors.split(",").map((origin) => origin.trim())
+
+	if (!origins.length) {
+		return null
+	}
+
+	return origins
+}
+
 function getServerConfig(): ServerConfig {
 	return {
+		cors: getCorsOrgins(),
 		port: env.intWithDefault(3000, "PORT"),
 		baseUrl: env.required("BASE_URL"),
 	}

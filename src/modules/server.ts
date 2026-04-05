@@ -28,8 +28,11 @@ export const initializeServer = async () => {
 	const app = express()
 	const cfg = config()
 
-	if (cfg.development) {
-		app.use(cors())
+	// Enable CORS if configured, or if in development mode (with `*` as the allowed origin)
+	if (cfg.server.cors || cfg.development) {
+		app.use(cors({
+			origin: cfg.server.cors ?? "*",
+		}))
 	}
 
 	if (!cfg.development) {
