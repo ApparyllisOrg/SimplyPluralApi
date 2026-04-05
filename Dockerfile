@@ -1,4 +1,5 @@
 ARG NODE_VERSION=20.20.1
+ARG WITH_PM2=false
 ARG WITH_DOPPLER=false
 
 # --- Build stage ---
@@ -13,11 +14,10 @@ RUN npm run build
 # --- Base runtime stage ---
 FROM node:${NODE_VERSION}-slim AS base
 
-RUN npm i -g pm2
-
 COPY --from=builder /build/dist /app/
 COPY --from=builder /build/node_modules/ /app/node_modules/
 COPY --from=builder /build/templates/ /app/templates/
+COPY docker-entrypoint.sh /app/
 
 RUN mkdir -p /var/log/simply-plural && \
     chown -R node:node /var/log/simply-plural && \
@@ -27,10 +27,19 @@ WORKDIR /app
 USER node
 EXPOSE 3000
 
-CMD ["pm2-runtime", "index.js", "-i", "max"]
+ENTRYPOINT ["/app/docker-entrypoint.sh"]
+
+# --- PM2 stage (opt-in via --build-arg WITH_PM2=true) ---
+FROM base AS pm2-true
+
+USER root
+RUN npm i -g pm2
+USER node
+
+FROM base AS pm2-false
 
 # --- Doppler stage (opt-in via --build-arg WITH_DOPPLER=true) ---
-FROM base AS doppler-true
+FROM pm2-${WITH_PM2} AS doppler-true
 
 USER root
 RUN apt-get update && apt-get install -y apt-transport-https ca-certificates curl gnupg && \
@@ -41,8 +50,6 @@ RUN apt-get update && apt-get install -y apt-transport-https ca-certificates cur
     rm -rf /var/lib/apt/lists/*
 USER node
 
-CMD ["doppler", "run", "--", "pm2-runtime", "index.js", "-i", "max"]
-
 # --- Final stage selector ---
-FROM base AS doppler-false
+FROM pm2-${WITH_PM2} AS doppler-false
 FROM doppler-${WITH_DOPPLER}
