@@ -44,7 +44,7 @@ export const StoreAvatarForObject = async (req: Request, res: Response, collecti
 			}
 		}
 
-		res.status(200).send({ url: `${config().storage?.baseUrl ?? ""}/avatars/${path}`, avatarUuid: avatarUuid })
+		res.status(200).send({ url: `${config().storage?.baseUrl ?? ""}/${path}`, avatarUuid: avatarUuid })
 		userLog(res.locals.uid, `Stored avatar with size: ${buffer.length}`)
 	} else {
 		res.status(500).send("Error uploading avatar")

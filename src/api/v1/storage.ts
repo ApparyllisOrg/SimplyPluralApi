@@ -61,7 +61,7 @@ export const Store = async (req: Request, res: Response) => {
 	const putResult = await storageController?.put(path, buffer)
 
 	if (putResult) {
-		res.status(200).send({ success: true, msg: { url: `${config().storage?.baseUrl ?? ""}/avatars/${path}` } })
+		res.status(200).send({ success: true, msg: { url: `${config().storage?.baseUrl ?? ""}/${path}` } })
 		userLog(res.locals.uid, `Stored avatar with size: ${buffer.length}`)
 	} else {
 		res.status(500).send("Error uploading avatar")
