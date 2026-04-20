@@ -19,12 +19,11 @@ COPY --from=builder /build/node_modules/ /app/node_modules/
 COPY --from=builder /build/templates/ /app/templates/
 COPY docker-entrypoint.sh /app/
 
-RUN mkdir -p /var/log/simply-plural && \
-    chown -R node:node /var/log/simply-plural && \
+RUN mkdir -p /var/log/simply-plural /app/data && \
+    chown -R node:node /var/log/simply-plural /app/data && \
     chown -R node:node /app
 
 WORKDIR /app
-USER node
 EXPOSE 3000
 
 ENTRYPOINT ["/app/docker-entrypoint.sh"]
