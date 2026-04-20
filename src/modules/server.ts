@@ -152,7 +152,10 @@ export const startServer = async (app: any, mongourl: string) => {
 	server.listen(port, () => logger.info(`Initiating API at :${port}`))
 	console.log(`Started server on port ${port.toString()}`)
 
-	startPkController()
+	if (config().pluralKit) {
+		startPkController()
+	}
+
 	startMailTransport()
 
 	return server

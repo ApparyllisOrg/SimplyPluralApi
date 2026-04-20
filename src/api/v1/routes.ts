@@ -224,8 +224,10 @@ export const setupV1routes = (app: core.Express) => {
 	app.delete("/v1/avatar/:dashedid", isUserAppJwtAuthenticated, storage.Delete)
 
 	// Sync members
-	app.patch("/v1/integrations/pluralkit/sync/member/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(pk.validateSyncMemberSchema), validateQuery(pk.validateSyncDirectionSchema), pk.performSyncMember)
-	app.patch("/v1/integrations/pluralkit/sync/members", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(pk.validateSyncMembersSchema), validateQuery(pk.validateSyncDirectionSchema), pk.performSyncAllMembers)
+	if (config().pluralKit) {
+		app.patch("/v1/integrations/pluralkit/sync/member/:id", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(pk.validateSyncMemberSchema), validateQuery(pk.validateSyncDirectionSchema), pk.performSyncMember)
+		app.patch("/v1/integrations/pluralkit/sync/members", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(pk.validateSyncMembersSchema), validateQuery(pk.validateSyncDirectionSchema), pk.performSyncAllMembers)
+	}
 
 	// Tokens
 	app.get("/v1/tokens", isUserAppJwtAuthenticated, token.getAll)
