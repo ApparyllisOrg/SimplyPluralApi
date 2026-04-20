@@ -314,7 +314,21 @@ function getLocalStorageConfig(): LocalStorageConfig {
 	}
 }
 
-function getStorageConfig(): StorageConfig | null {
+function getStorageBaseUrl(primaryTarget: StorageTarget, serverBaseUrl: string): string {
+	const storageBaseUrl = env("STORAGE_BASE_URL")
+
+	if (storageBaseUrl) {
+		return storageBaseUrl
+	}
+
+	if (primaryTarget === "s3") {
+		throw new Error("Environment variable STORAGE_BASE_URL is required when using S3 storage")
+	}
+
+	return `${serverBaseUrl}/storage`
+}
+
+function getStorageConfig(serverBaseUrl: string): StorageConfig | null {
 	if (!env.bool("WITH_STORAGE")) return null
 
 	const primaryTarget = (env("PRIMARY_STORAGE_TARGET") ?? "local") as StorageTarget
@@ -324,7 +338,7 @@ function getStorageConfig(): StorageConfig | null {
 	}
 
 	return {
-		baseUrl: env.required("STORAGE_BASE_URL"),
+		baseUrl: getStorageBaseUrl(primaryTarget, serverBaseUrl),
 		legacyBaseUrl: env("LEGACY_REPORT_BASE_URL"),
 		primaryTarget,
 		s3: primaryTarget === "s3" ? getS3Config("S3") : null,
@@ -419,7 +433,7 @@ function getConfig(): AppConfig {
 		firebase: getFirebaseConfig(),
 		googleOAuth: getGoogleOAuthConfig(),
 		appleOAuth: getAppleOAuthConfig(),
-		storage: getStorageConfig(),
+		storage: getStorageConfig(server.baseUrl),
 		logging: getLoggingConfig(),
 		events: getEventsConfig(),
 		pluralKit: getPluralKitConfig(),

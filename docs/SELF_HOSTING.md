@@ -79,16 +79,18 @@ Set `MAIL_HOST` to enable email. When disabled, users are auto-verified on regis
 
 Set `WITH_STORAGE=true` to enable avatar uploads and report generation.
 
-| Variable                 | Default | Description                              |
-| ------------------------ | ------- | ---------------------------------------- |
-| `WITH_STORAGE`           | `false` | Set to `true` to enable                  |
-| `PRIMARY_STORAGE_TARGET` | `s3`    | Accepts `s3` or `local` (see below)      |
-| `STORAGE_BASE_URL`       | -       | Public URL where stored files are served |
+| Variable                 | Default | Description                               |
+| ------------------------ | ------- | ----------------------------------------- |
+| `WITH_STORAGE`           | `false` | Set to `true` to enable                   |
+| `PRIMARY_STORAGE_TARGET` | `s3`    | Accepts `s3` or `local` (see below)       |
+| `STORAGE_BASE_URL`       | -       | Public URL where stored files are served* |
 
+*STORAGE_BASE_URL is required for S3 storage, but optional for local storage (by default set to `${BASE_URL}/storage`).
 
 #### Local storage
 
 Set `PRIMARY_STORAGE_TARGET=local` (or omit it, since it's the default) to store files on the local filesystem.
+Additional endpoint `GET /storage/*` will be enabled for serving files.
 
 | Variable            | Description                              |
 | ------------------- | ---------------------------------------- |
