@@ -20,6 +20,7 @@ import { loadTemplates, pageTemplate_resetPassword } from "./mail/mailTemplates"
 import { setupV2routes } from "../api/v2/routes"
 import { initStorageController, storageController } from "./storage/storageController"
 import { StorageTargetS3 } from "./storage/storageTargetS3"
+import { StorageTargetLocal } from "./storage/storageTargetLocal"
 import { StorageTargetMinIO } from "./storage/storageTargetMinIO"
 import { config } from "./config"
 import { serveStatic } from "../util/static"
@@ -89,11 +90,20 @@ export const initializeServer = async () => {
 	if (storageCfg) {
 		initStorageController()
 
-		const primaryS3Target = new StorageTargetS3(storageCfg.primaryS3.bucket)
-		primaryS3Target.init(storageCfg.primaryS3.endpoint, storageCfg.primaryS3.region, storageCfg.primaryS3.accessKey, storageCfg.primaryS3.accessSecret)
+		if (storageCfg.local) {
+			const localTarget = new StorageTargetLocal(storageCfg.local.rootDir)
 
-		storageController?.registerStorageTarget(primaryS3Target)
-		storageController?.setPrimaryTarget(primaryS3Target)
+			storageController?.registerStorageTarget(localTarget)
+			storageController?.setPrimaryTarget(localTarget)
+		} else if (storageCfg.s3) {
+			const primaryS3Target = new StorageTargetS3(storageCfg.s3.bucket)
+			primaryS3Target.init(storageCfg.s3.endpoint, storageCfg.s3.region, storageCfg.s3.accessKey, storageCfg.s3.accessSecret)
+
+			storageController?.registerStorageTarget(primaryS3Target)
+			storageController?.setPrimaryTarget(primaryS3Target)
+		} else {
+			throw new Error("No primary storage target configured but storage is enabled.")
+		}
 
 		if (storageCfg.legacyS3) {
 			const legacyS3Target = new StorageTargetS3(storageCfg.legacyS3.bucket)
