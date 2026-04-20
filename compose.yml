@@ -1,0 +1,10 @@
+services:
+  api:
+    build: .
+    container_name: simply-plural-api
+    ports:
+      - "3000:3000"
+    restart: always
+    env_file: .env
+    volumes:
+      - ./data:/app/data

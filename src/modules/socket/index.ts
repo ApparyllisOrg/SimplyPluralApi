@@ -12,6 +12,7 @@ import promclient from "prom-client"
 import { decryptMessage } from "../../api/v1/chat/chat.core"
 import { db, getCollection, parseId } from "../mongo"
 import { ChangeStreamDocument } from "mongodb"
+import { config } from "../config"
 
 export enum OperationType {
 	Read,
@@ -75,7 +76,7 @@ export const init = async (server: http.Server) => {
 		connections.set(uniqueId, new Connection(ws, ""))
 	})
 
-	if (process.env.SOCKETEMIT === "true") {
+	if (config().events.socketEmit) {
 		listenCollections.forEach((collection) => {
 			const changeStream = getCollection(collection).watch([], { fullDocument: "updateLookup" })
 			changeStream.on("change", (next) => {
@@ -140,7 +141,7 @@ export async function notify(uid: string, title: string, message: string) {
 
 const emitSocketNotification = (event: ChangeStreamDocument<any>) => {
 	if (event.operationType === "insert") {
-		if (process.env.DEVELOPMENT) {
+		if (config().development) {
 			console.log(`Socket Notification: ${event.fullDocument}`)
 		}
 

@@ -10,6 +10,7 @@ import { userNotFound } from "../../../modules/messages";
 import { logSecurityUserEvent } from "../../../security";
 import { getTemplate, mailTemplate_resetPassword } from "../../../modules/mail/mailTemplates";
 import { sendCustomizedEmail, sendCustomizedEmailToEmail } from "../../../modules/mail";
+import { config } from "../../../modules/config";
 
 //-------------------------------//
 // Generate a new random reset password key
@@ -20,6 +21,10 @@ export const getResetPasswordKey = () => randomBytes(64).toString("hex");
 // Request password reset link
 //-------------------------------//
 export const resetPasswordRequest_Execution = async (email: string): Promise<{ success: boolean; msg: string; url: string }> => {
+	if (!config().mail) {
+		return { success: false, msg: "Password reset is unavailable because email is not configured", url: "" };
+	}
+
 	let resetUrl = "";
 	const user = await getCollection("accounts").findOne({ email: getEmailRegex(email) });
 
@@ -40,12 +45,8 @@ export const resetPasswordRequest_Execution = async (email: string): Promise<{ s
 
 		await getCollection("accounts").updateOne({ email: getEmailRegex(email) }, { $set: { lastResetPasswordEmailSent: moment.now(), passwordResetToken: resetKey } });
 
-		if (process.env.PRETESTING === "true") {
-			resetUrl = `https://dist.apparyllis.com/auth/dev/resetpassword.html?key=${resetKey}`;
-		} else {
-			resetUrl = `https://dist.apparyllis.com/auth/prod/resetpassword.html?key=${resetKey}`;
-		}
-	} else {
+		resetUrl = `${config().passwordResetPageUrl}?key=${resetKey}`;
+	} else if (config().firebase) {
 		const firebaseUser = await auth()
 			.getUserByEmail(email)
 			.catch(() => undefined);
@@ -54,6 +55,8 @@ export const resetPasswordRequest_Execution = async (email: string): Promise<{ s
 		} else {
 			return { success: false, msg: userNotFound(), url: "" };
 		}
+	} else {
+		return { success: false, msg: userNotFound(), url: "" };
 	}
 
 	let emailTemplate = getTemplate(mailTemplate_resetPassword())

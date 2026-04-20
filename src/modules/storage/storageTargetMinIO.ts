@@ -75,7 +75,7 @@ export class StorageTargetMinIO implements StorageTarget {
 			if (!this.minioClient) {
 				return false
 			}
-			const listedObjects = await this.minioClient.listObjectsV2("spaces", path)
+			const listedObjects = await this.minioClient.listObjectsV2(this.bucketId, path)
 			if (listedObjects) {
 				const list: minio.BucketItem[] = []
 				const toDeleteList: string[] = []
@@ -99,7 +99,7 @@ export class StorageTargetMinIO implements StorageTarget {
 						return false
 					}
 
-					await this.minioClient.removeObjects("spaces", toDeleteList)
+					await this.minioClient.removeObjects(this.bucketId, toDeleteList)
 
 					resolve(true)
 				}

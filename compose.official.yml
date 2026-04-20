@@ -1,0 +1,11 @@
+# Override for the official Simply Plural instance.
+# Usage: docker compose -f compose.yml -f compose.official.yml up
+services:
+  api:
+    build:
+      context: .
+      args:
+        WITH_PM2: "true"
+        WITH_DOPPLER: "true"
+    environment:
+      - DOPPLER_TOKEN=${DOPPLER_TOKEN}

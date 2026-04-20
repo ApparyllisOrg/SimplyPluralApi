@@ -1,12 +1,16 @@
 import winston, { format } from "winston"
 import dotenv from "dotenv"
 import "winston-daily-rotate-file"
-import { isUnitTestActive, namedArguments } from "../util/args"
+import { config } from "./config"
 
+// Logger is initialized at module load time, before config() is available.
+// Module-level env reads are intentional here.
 dotenv.config()
-const logPrefix = process.env.LOGPREFIX ?? process.env.DBNAME ?? ""
+const logPrefix = process.env.LOGPREFIX ?? process.env.DATABASE_NAME ?? process.env.DBNAME ?? ""
 
-const useCustomLogFilenames = namedArguments.nologs !== true && process.env.NO_LOGS !== "true"
+const isUnitTestActive = () => process.env.UNITTEST === "true"
+
+const useCustomLogFilenames = process.env.NO_LOGS !== "true"
 if (!useCustomLogFilenames) {
 	console.log("Running without custom log file names")
 }
@@ -57,7 +61,7 @@ export const userLog = (uid: string, message: string) => {
 		return
 	}
 
-	if (process.env.DEVELOPMENT) {
+	if (config().development) {
 		console.log(msg)
 	}
 	logger.info(msg)
@@ -69,7 +73,7 @@ export const log = (message: string) => {
 	}
 
 	const msg = `SYSTEM: ${message}`
-	if (process.env.DEVELOPMENT) {
+	if (config().development) {
 		console.log(msg)
 	}
 	logger.info(msg)
@@ -80,7 +84,7 @@ export const logSecurity = (message: string) => {
 		return
 	}
 
-	if (process.env.DEVELOPMENT) {
+	if (config().development) {
 		console.log(message)
 	}
 	logger.log("warn", message)

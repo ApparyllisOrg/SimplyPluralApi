@@ -1,4 +1,4 @@
-import { DeleteObjectCommand, DeleteObjectCommandInput, DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, PutObjectCommand, S3Client, S3ServiceException } from "@aws-sdk/client-s3"
+import { DeleteObjectCommand, DeleteObjectCommandInput, DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, ObjectCannedACL, PutObjectCommand, S3Client, S3ServiceException } from "@aws-sdk/client-s3"
 import { StoragePutOptions, StorageTarget } from "./storageTarget"
 import { logger } from "../logger"
 import { devLog } from "../development"
@@ -55,7 +55,7 @@ export class StorageTargetS3 implements StorageTarget {
 			Bucket: this.bucketId,
 			Key: path,
 			Body: buffer,
-			ACL: options?.s3.ACL,
+			ACL: options?.s3?.acl as ObjectCannedACL | undefined,
 		}
 
 		try {
@@ -118,7 +118,7 @@ export class StorageTargetS3 implements StorageTarget {
 			}
 
 			const params = {
-				Bucket: "simply-plural",
+				Bucket: this.bucketId,
 				Prefix: path,
 				ContinuationToken: token,
 			}
@@ -134,7 +134,7 @@ export class StorageTargetS3 implements StorageTarget {
 
 				if (list.KeyCount && list.Contents) {
 					const deleteCommand = new DeleteObjectsCommand({
-						Bucket: "simply-plural",
+						Bucket: this.bucketId,
 						Delete: {
 							Objects: list.Contents.map((item) => ({ Key: item.Key ?? "" })),
 						},

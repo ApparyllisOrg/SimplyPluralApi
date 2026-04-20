@@ -4,7 +4,7 @@
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <title>Apparyllis - Simply Plus - Your subscription is payment failed</title>
+    <title>{{brandName}} - {{subscriptionName}} - Your subscription is payment failed</title>
     <style>
         /* -------------------------------------
           GLOBAL RESETS
@@ -361,15 +361,15 @@
 </head>
 
 <body>
-    <span class="preheader">Your Simply Plus subscription has been cancelled</span>
+    <span class="preheader">Your {{subscriptionName}} subscription has been cancelled</span>
     <table role="presentation" border="0" cellpadding="0" cellspacing="0" class="body">
         <tr>
             <td>&nbsp;</td>
             <td class="container">
                 <div class="content">
                     <div class="logo">
-                        <a href="https://apparyllis.com" target="_blank"><img class=""
-                                src="https://dist.apparyllis.com/resources/Logo_Apparyllis_Square_1024.png" alt=""
+                        <a href="{{brandUrl}}" target="_blank"><img class=""
+                                src="{{brandLogoUrl}}" alt=""
                                 style="width:150px; padding-bottom: 70px; margin: auto; padding-top: 50px" /></a>
                     </div>
                     <!-- START CENTERED WHITE CONTAINER -->
@@ -381,10 +381,10 @@
                                     <tr>
                                         <td>
                                             <p>Hello!</p>
-                                            <p>We're writing to let you know that your subscription to Simply Plus has
+                                            <p>We're writing to let you know that your subscription to {{subscriptionName}} has
                                                 been cancelled due to a payment failure.</p>
                                             <p>You can subscribe again on our subscription management portal <a
-                                                    href="https://plus.apparyllis.com">https://plus.apparyllis.com</a>.
+                                                    href="{{subscriptionUrl}}">{{subscriptionUrl}}</a>.
                                             </p>
                                         </td>
                                     </tr>
@@ -401,10 +401,9 @@
                         <table role="presentation" border="0" cellpadding="0" cellspacing="0">
                             <tr>
                                 <td class="content-block">
-                                    <span class="apple-link"><a href="https://apparyllis.com" target="_blank">Apparyllis
-                                            U.G.</a>,
+                                    <span class="apple-link"><a href="{{brandUrl}}" target="_blank">{{brandLegalEntity}}</a>,
                                         Friedrich-Ebert-Strasse 214, 47800 Krefeld, Germany</span>
-                                    <br> You received this email because your Simply Plus subscription has been
+                                    <br> You received this email because your {{subscriptionName}} subscription has been
                                     cancelled due to a failed payment.
                                 </td>
                             </tr>

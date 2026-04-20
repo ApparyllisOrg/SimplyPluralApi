@@ -13,6 +13,7 @@ import xss from "xss"
 import { getCollection } from "../../../modules/mongo"
 import { queryObject } from "../../../modules/mongo/baseTypes"
 import { fieldKeyToName, getAvatarString, getDescription, isValidCustomFieldType, typeConverters } from "../../base/user/generateReports"
+import { applyBrandingReplacements } from "../../../modules/mail/mailTemplates"
 
 const meetsPrivacyLevel = (data: any, level: number): boolean => {
 	if (level == 0) {
@@ -45,8 +46,9 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	const user = await getCollection("users").findOne({ uid })
 
 	const getFile = promisify(readFile)
-	const getFileResult = await getFile("./templates/reportTemplate.html", "utf-8")
-	const descTemplate = await getFile("./templates/reportDescription.html", "utf-8")
+	const loadTemplate = async (path: string) => applyBrandingReplacements(await getFile(path, "utf-8"))
+	const getFileResult = await loadTemplate("./templates/reportTemplate.html")
+	const descTemplate = await loadTemplate("./templates/reportDescription.html")
 	let result = getFileResult
 
 	result = result.replace("{{username}}", xss(user.username))
@@ -65,12 +67,12 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	})
 
 	if (query.members) {
-		let membersList = await getFile("./templates/members/reportMembers.html", "utf-8")
+		let membersList = await loadTemplate("./templates/members/reportMembers.html")
 
-		const memberTemplate = await getFile("./templates/members/reportMember.html", "utf-8")
-		const fieldsTemplate = await getFile("./templates/members/reportCustomFields.html", "utf-8")
-		const fieldTemplate = await getFile("./templates/members/reportCustomField.html", "utf-8")
-		let memberCountTemplate = await getFile("./templates/members/reportMemberCount.html", "utf-8")
+		const memberTemplate = await loadTemplate("./templates/members/reportMember.html")
+		const fieldsTemplate = await loadTemplate("./templates/members/reportCustomFields.html")
+		const fieldTemplate = await loadTemplate("./templates/members/reportCustomField.html")
+		let memberCountTemplate = await loadTemplate("./templates/members/reportMemberCount.html")
 		let generatedMembers = ""
 		let numMembersShown = 0
 
@@ -158,9 +160,9 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 	})
 
 	if (query.customFronts) {
-		let customFrontsList = await getFile("./templates/customFronts/reportCustomFronts.html", "utf-8")
-		const fieldTemplate = await getFile("./templates/customFronts/reportCustomFront.html", "utf-8")
-		let customFrontCountTemplate = await getFile("./templates/customFronts/reportCustomFrontCount.html", "utf-8")
+		let customFrontsList = await loadTemplate("./templates/customFronts/reportCustomFronts.html")
+		const fieldTemplate = await loadTemplate("./templates/customFronts/reportCustomFront.html")
+		let customFrontCountTemplate = await loadTemplate("./templates/customFronts/reportCustomFrontCount.html")
 
 		let generatedFronts = ""
 		let numFrontsShown = 0
@@ -199,8 +201,8 @@ export const generateUserReport = async (query: { [key: string]: any }, uid: str
 			endTime: any
 		}
 
-		let frontHistory = await getFile("./templates/frontHistory/reportFrontHistory.html", "utf-8")
-		const frontHistoryTemplate = await getFile("./templates/frontHistory/reportFrontHistoryEntry.html", "utf-8")
+		let frontHistory = await loadTemplate("./templates/frontHistory/reportFrontHistory.html")
+		const frontHistoryTemplate = await loadTemplate("./templates/frontHistory/reportFrontHistoryEntry.html")
 
 		const searchQuery: frontHistoryQuery = { uid: uid, startTime: { $gte: query.frontHistory.start }, endTime: { $lte: query.frontHistory.end } }
 		const history = await getCollection("frontHistory").find(searchQuery).sort({ startTime: -1 }).toArray()

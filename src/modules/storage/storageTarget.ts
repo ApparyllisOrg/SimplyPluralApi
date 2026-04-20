@@ -1,8 +1,6 @@
-import { ObjectCannedACL } from "@aws-sdk/client-s3"
-
 export interface StoragePutOptions {
-	s3: {
-		ACL: ObjectCannedACL | undefined
+	s3?: {
+		acl?: string | undefined
 	}
 }
 

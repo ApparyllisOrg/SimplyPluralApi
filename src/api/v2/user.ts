@@ -8,13 +8,15 @@ import { promisify } from "util"
 import { intersects } from "../../util"
 import { getCollection, parseId } from "../../modules/mongo"
 import { ObjectId } from "mongodb"
+import { applyBrandingReplacements } from "../../modules/mail/mailTemplates"
 
 const performReportGeneration = async (req: Request, res: Response) => {
 	const getFile = promisify(readFile)
+	const loadTemplate = async (path: string) => applyBrandingReplacements(await getFile(path, "utf-8"))
 
-	const fieldsTemplate = await getFile("./templates/members/reportCustomFields.html", "utf-8")
-	const fieldTemplate = await getFile("./templates/members/reportCustomField.html", "utf-8")
-	const descTemplate = await getFile("./templates/reportDescription.html", "utf-8")
+	const fieldsTemplate = await loadTemplate("./templates/members/reportCustomFields.html")
+	const fieldTemplate = await loadTemplate("./templates/members/reportCustomField.html")
+	const descTemplate = await loadTemplate("./templates/reportDescription.html")
 
 	const query: { [key: string]: any } = req.body
 

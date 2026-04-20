@@ -3,6 +3,7 @@ import { auth } from "firebase-admin"
 import moment from "moment"
 import { getCollection } from "../../../modules/mongo"
 import { getUserConnections } from "../../../modules/socket"
+import { config } from "../../../modules/config"
 
 //-------------------------------//
 // Get a new valid uid that can be used for a user
@@ -48,11 +49,13 @@ export const getEmailForUser = async (uid: string): Promise<undefined | string> 
 
 	const user = await getCollection("accounts").findOne({ uid: uid })
 	if (!user) {
-		const firebaseUser = await auth()
-			.getUser(uid)
-			.catch((r) => undefined)
-		if (firebaseUser) {
-			email = firebaseUser.email
+		if (config().firebase) {
+			const firebaseUser = await auth()
+				.getUser(uid)
+				.catch((r) => undefined)
+			if (firebaseUser) {
+				email = firebaseUser.email
+			}
 		}
 	} else {
 		email = user.email

@@ -8,6 +8,7 @@ import assert from "node:assert"
 import accounting from "accounting"
 import getSymbolFromCurrency from "currency-symbol-map"
 import { stripePrices, stripePricesQuery } from "./subscriptions.utils"
+import { config } from "../../../modules/config"
 
 export const changeSubscription = async (req: Request, res: Response) => {
 	if (getStripe() === undefined) {
@@ -85,7 +86,7 @@ export const changeSubscription = async (req: Request, res: Response) => {
 		const currency = result.currency
 		emailTemplate = emailTemplate.replace("{{newPrice}}", `${accounting.formatMoney(priceValue, getSymbolFromCurrency(currency), 2)}`)
 
-		sendCustomizedEmail(res.locals.uid, emailTemplate, "Your Simply Plus subscription has changed")
+		sendCustomizedEmail(res.locals.uid, emailTemplate, `Your ${config().subscription!.name} subscription has changed`)
 	} else {
 		res.status(404).send()
 	}

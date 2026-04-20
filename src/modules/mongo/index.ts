@@ -1,11 +1,8 @@
 import * as MongoDb from "mongodb"
 import { ObjectId } from "mongodb"
 import { logger } from "../logger"
-import dotenv from "dotenv"
 import * as events from "../events/eventController"
-dotenv.config()
-
-const dbName = process.env.DBNAME
+import { config } from "../config"
 
 // utils
 let _db: MongoDb.Db | undefined = undefined
@@ -24,12 +21,10 @@ const wait = (time: number): Promise<void> => new Promise<void>((res) => setTime
 
 export const init = async (retry: boolean, url: string): Promise<void> => {
 	// init
+	const cfg = config().database
 
-	const maxPoolSize = process.env.DB_MAX_POOLSIZE ? Number.parseInt(process.env.DB_MAX_POOLSIZE) : 1000
-	const minPoolSize = process.env.DB_MIN_POOLSIZE ? Number.parseInt(process.env.DB_MIN_POOLSIZE) : 100
-
-	console.log(`Connecting Mongodb with max pool size [${maxPoolSize}] and min pool size [${minPoolSize}]`)
-	const _client = new MongoDb.MongoClient(url ?? "", { maxPoolSize, minPoolSize })
+	console.log(`Connecting Mongodb with max pool size [${cfg.maxPoolSize}] and min pool size [${cfg.minPoolSize}]`)
+	const _client = new MongoDb.MongoClient(url ?? "", { maxPoolSize: cfg.maxPoolSize, minPoolSize: cfg.minPoolSize })
 	_client.on("close", (...args: any) => {
 		console.log(args)
 	})
@@ -38,7 +33,7 @@ export const init = async (retry: boolean, url: string): Promise<void> => {
 
 	try {
 		await _client.connect().then((newDb: void | MongoDb.MongoClient) => {
-			_db = newDb?.db(dbName) ?? undefined
+			_db = newDb?.db(cfg.name) ?? undefined
 		})
 		logger.info("setup db connection")
 		console.log("setup db connection")

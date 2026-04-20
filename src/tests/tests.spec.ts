@@ -8,14 +8,23 @@ import { getTestUID, setTestToken } from "./utils"
 import { MongoMemoryServer } from "mongodb-memory-server"
 import { initStorageController, storageController } from "../modules/storage/storageController"
 import { StorageTargetNull } from "../modules/storage/storageTargetNull"
+import { config } from "../modules/config"
 
 process.env.UNITTEST = "true"
+process.env.BASE_URL = "http://localhost:3000"
+process.env.MAIL_HOST = "localhost"
+process.env.MAIL_PORT = "465"
+process.env.MAIL_USER = "test"
+process.env.MAIL_PASSWORD = "test"
+process.env.MAIL_SENDER = `"Apparyllis" <noreply@apparyllis.com>`
 
 const setupTest = async () => {
 	const mongod = await MongoMemoryServer.create()
 
 	console.log("fake mongo is started: ", mongod.getUri())
 	process.env["DATABASE_URI"] = mongod.getUri()
+
+	config()
 
 	const app = await initializeServer()
 

@@ -5,10 +5,10 @@
 	"scripts": {
 		"dev": "DEVELOPMENT=1 npm run start",
 		"start": "node --inspect=5859 -r ts-node/register src/index.ts",
-		"start:watch": "ts-node-dev --inspect=5859 --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config --inspect --nologs=true",
+		"start:watch": "NO_LOGS=true ts-node-dev --inspect=5859 --respawn  --cache-directory ./tmp  -- src/index.ts dotenv/config --inspect",
 		"build": "tsc",
 		"lint": "eslint src/**/**/*",
-		"test": "mocha --require ts-node/register 'src/tests/**/*spec.ts' --fail-zero --timeout=300000 --delay -r dotenv/config --exit --nologs=true --verbose --development=false --jwt_key=J2JaTklLcjhOQykhdCM9YG9LUU8ycHlLL0soOX0xeSN2RTUgNHU1SDYsZ19vTQ==, --without_google=true --messages_key=f9CYjd2dDE?UbH4tjRS2Ji_!SgA2!+Ky --password_key=jegjQ9HT9f3H3_r=2NM_zRKhqZEKLY?rjyawtKL5LpQsvput7vz4Fcj!wZvR  --password_seperator=_rxCcfxpFd=Jx9xiRu9FPTh2erP!bc4JTxgCYKewcT_zMMJwSZgd2FS94a5w --LOCALEVENTS=true",
+		"test": "NO_LOGS=true DEVELOPMENT=false BASE_URL=http://localhost:3000 JWT_KEY=J2JaTklLcjhOQykhdCM9YG9LUU8ycHlLL0soOX0xeSN2RTUgNHU1SDYsZ19vTQ==, MESSAGES_KEY=f9CYjd2dDE?UbH4tjRS2Ji_!SgA2!+Ky PASSWORD_KEY=jegjQ9HT9f3H3_r=2NM_zRKhqZEKLY?rjyawtKL5LpQsvput7vz4Fcj!wZvR PASSWORD_SEPARATOR=_rxCcfxpFd=Jx9xiRu9FPTh2erP!bc4JTxgCYKewcT_zMMJwSZgd2FS94a5w ENABLE_LOCAL_EVENTS=true mocha --require ts-node/register 'src/tests/**/*spec.ts' --fail-zero --timeout=300000 --delay -r dotenv/config --exit --verbose",
 		"test:watch": "mocha --require ts-node/register 'src/tests/**/*.ts' --watch --watch-files 'src/tests/**/*.ts' --delay -r dotenv/config --exit --nologs=true --verbose --development=false --without_google=true"
 	},
 	"dependencies": {
@@ -38,7 +38,6 @@
 		"@types/smtp-server": "^3.5.7",
 		"@types/valid-url": "^1.0.3",
 		"@types/ws": "^7.4.7",
-		"@types/yargs": "^17.0.13",
 		"@typescript-eslint/eslint-plugin": "^4.33.0",
 		"@typescript-eslint/parser": "^4.33.0",
 		"accounting": "^0.4.1",
@@ -89,8 +88,7 @@
 		"winston": "^3.13.0",
 		"winston-daily-rotate-file": "^5.0.0",
 		"ws": "^8.8.0",
-		"xss": "^1.0.13",
-		"yargs": "^17.6.0"
+		"xss": "^1.0.13"
 	},
 	"devDependencies": {
 		"@types/node": "^17.0.19",

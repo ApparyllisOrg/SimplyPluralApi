@@ -1,14 +1,9 @@
 import { auth } from "firebase-admin";
 import * as jwt from "jsonwebtoken";
 import { getCollection } from "../../../modules/mongo";
-import { namedArguments } from "../../../util/args";
-
-const jwtKey = process.env.JWT_KEY ?? namedArguments.jwt_key ?? "";
-if (jwtKey.length === 0) throw new Error("JWT_KEY needs to be defined!");
+import { config } from "../../../modules/config";
 
 const thirtyDays = 60 * 60 * 24 * 30;
-
-const GOOGLE_CLIENT_JWT_AUD = process.env.GOOGLE_CLIENT_JWT_AUD ?? "";
 
 //-------------------------------//
 // base64 decode the encoded string
@@ -32,8 +27,8 @@ export const jwtForUser = async (uid: string, fallbackEmail: string | undefined,
 
 	if (email === undefined) throw "Unable to fetch email for jwt";
 
-	const access = jwt.sign({ sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + 30 * 60, verified, email, oAuth2 }, jwtKey);
-	const refresh = jwt.sign({ sub: uid, iss: "Apparyllis", iat: now, exp: Math.floor(Date.now() / 1000) + thirtyDays, refresh: true, verified, email, oAuth2 }, jwtKey);
+	const access = jwt.sign({ sub: uid, iss: config().auth.jwtIssuer, iat: now, exp: Math.floor(Date.now() / 1000) + 30 * 60, verified, email, oAuth2 }, config().auth.jwtKey);
+	const refresh = jwt.sign({ sub: uid, iss: config().auth.jwtIssuer, iat: now, exp: Math.floor(Date.now() / 1000) + thirtyDays, refresh: true, verified, email, oAuth2 }, config().auth.jwtKey);
 	return { access, refresh };
 };
 
@@ -57,13 +52,15 @@ const isJwtValidIssueTime = async (uid: string, time: number): Promise<boolean> 
 //-------------------------------//
 export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean): Promise<{ valid: boolean; decoded: any; google: boolean; email: string }> => {
 	return new Promise<{ valid: boolean; decoded: any; google: boolean; email: string }>((resolve) => {
-		jwt.verify(jwtStr, jwtKey, async function (err, decoded) {
+		jwt.verify(jwtStr, config().auth.jwtKey, async function (err, decoded) {
 			const payload = decoded as jwt.JwtPayload;
-			if (err || !decoded) {
-				const result = await auth()
-					.verifyIdToken(jwtStr, true)
-					.catch(() => null);
-				if (result && result.aud === GOOGLE_CLIENT_JWT_AUD) {
+				if (err || !decoded) {
+				const result = config().firebase
+					? await auth()
+						.verifyIdToken(jwtStr, true)
+						.catch(() => null)
+					: null;
+				if (result && result.aud === (config().firebase?.googleClientJwtAud ?? "")) {
 					// Authing with a firebase token is only allowed when our account has not yet merged
 					const existingUser = await getCollection("accounts").findOne({ uid: result.uid });
 					if (existingUser) {
@@ -78,7 +75,7 @@ export const isJwtValid = async (jwtStr: string, wantsRefresh: boolean): Promise
 					resolve({ valid: false, decoded: "", google: false, email: "" });
 				}
 			} else if (payload) {
-				if (payload.iss !== "Apparyllis") {
+				if (payload.iss !== config().auth.jwtIssuer) {
 					resolve({ valid: false, decoded: "", google: false, email: "" });
 					return;
 				}

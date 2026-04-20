@@ -16,21 +16,27 @@ import { NextFunction, Request, Response } from "express-serve-static-core"
 import cors from "cors"
 import cluster from "cluster"
 import { initializeStripe } from "../api/v1/subscriptions/subscriptions.core"
-import { loadTemplates } from "./mail/mailTemplates"
+import { loadTemplates, pageTemplate_resetPassword } from "./mail/mailTemplates"
 import { setupV2routes } from "../api/v2/routes"
 import { initStorageController, storageController } from "./storage/storageController"
 import { StorageTargetS3 } from "./storage/storageTargetS3"
-import assert from "assert"
+import { StorageTargetLocal } from "./storage/storageTargetLocal"
 import { StorageTargetMinIO } from "./storage/storageTargetMinIO"
+import { config } from "./config"
+import { serveStatic } from "../util/static"
 
 export const initializeServer = async () => {
 	const app = express()
+	const cfg = config()
 
-	if (process.env.DEVELOPMENT) {
-		app.use(cors())
+	// Enable CORS if configured, or if in development mode (with `*` as the allowed origin)
+	if (cfg.server.cors || cfg.development) {
+		app.use(cors({
+			origin: cfg.server.cors ?? "*",
+		}))
 	}
 
-	if (!process.env.DEVELOPMENT) {
+	if (!cfg.development) {
 		app.use(helmet())
 	}
 
@@ -40,7 +46,7 @@ export const initializeServer = async () => {
 
 	app.use(express.json({ limit: "3mb" }))
 
-	if (process.env.DEVELOPMENT && process.env.UNITTEST !== "true") {
+	if (cfg.development && !cfg.unitTest) {
 		const logRequest = async (req: Request, res: Response, next: NextFunction) => {
 			console.log(`[START] ${req.method} => ${req.url}`)
 
@@ -80,48 +86,35 @@ export const initializeServer = async () => {
 
 	app.use(metricsMiddleware)
 
-	if (process.env.WITH_STORAGE === "true") {
+	const storageCfg = cfg.storage
+	if (storageCfg) {
 		initStorageController()
 
-		assert(process.env.PRIMARY_S3_BUCKET, "PRIMARY_S3_BUCKET is required")
-		assert(process.env.PRIMARY_S3_ENDPOINT, "PRIMARY_S3_ENDPOINT is required")
-		assert(process.env.PRIMARY_S3_REGION, "PRIMARY_S3_REGION is required")
-		assert(process.env.PRIMARY_S3_ACCESS_KEY, "PRIMARY_S3_ACCESS_KEY is required")
-		assert(process.env.PRIMARY_S3_ACCESS_SECRET, "PRIMARY_S3_ACCESS_SECRET is required")
+		if (storageCfg.local) {
+			const localTarget = new StorageTargetLocal(storageCfg.local.rootDir)
 
-		const primaryS3Target = new StorageTargetS3(process.env.PRIMARY_S3_BUCKET)
-		primaryS3Target.init(process.env.PRIMARY_S3_ENDPOINT, process.env.PRIMARY_S3_REGION, process.env.PRIMARY_S3_ACCESS_KEY, process.env.PRIMARY_S3_ACCESS_SECRET)
+			storageController?.registerStorageTarget(localTarget)
+			storageController?.setPrimaryTarget(localTarget)
+		} else if (storageCfg.s3) {
+			const primaryS3Target = new StorageTargetS3(storageCfg.s3.bucket)
+			primaryS3Target.init(storageCfg.s3.endpoint, storageCfg.s3.region, storageCfg.s3.accessKey, storageCfg.s3.accessSecret)
 
-		storageController?.registerStorageTarget(primaryS3Target)
-		storageController?.setPrimaryTarget(primaryS3Target)
+			storageController?.registerStorageTarget(primaryS3Target)
+			storageController?.setPrimaryTarget(primaryS3Target)
+		} else {
+			throw new Error("No primary storage target configured but storage is enabled.")
+		}
 
-		if (process.env.WITH_LEGACY_S3 === "true") {
-			assert(process.env.LEGACY_S3_BUCKET, "LEGACY_S3_BUCKET is required")
-			assert(process.env.LEGACY_S3_ENDPOINT, "LEGACY_S3_ENDPOINT is required")
-			assert(process.env.LEGACY_S3_REGION, "LEGACY_S3_REGION is required")
-			assert(process.env.LEGACY_S3_ACCESS_KEY, "LEGACY_S3_ACCESS_KEY is required")
-			assert(process.env.LEGACY_S3_ACCESS_SECRET, "LEGACY_S3_ACCESS_SECRET is required")
-
-			const legacyS3Target = new StorageTargetS3(process.env.LEGACY_S3_BUCKET)
-			legacyS3Target.init(process.env.LEGACY_S3_ENDPOINT, process.env.LEGACY_S3_REGION, process.env.LEGACY_S3_ACCESS_KEY, process.env.LEGACY_S3_ACCESS_SECRET)
+		if (storageCfg.legacyS3) {
+			const legacyS3Target = new StorageTargetS3(storageCfg.legacyS3.bucket)
+			legacyS3Target.init(storageCfg.legacyS3.endpoint, storageCfg.legacyS3.region, storageCfg.legacyS3.accessKey, storageCfg.legacyS3.accessSecret)
 
 			storageController?.registerStorageTarget(legacyS3Target)
 		}
 
-		if (process.env.WITH_LEGACY_MINIO === "true") {
-			assert(process.env.LEGACY_MINIO_BUCKET, "LEGACY_S3_BUCKET is required")
-			assert(process.env.LEGACY_MINIO_ENDPOINT, "LEGACY_S3_ENDPOINT is required")
-			assert(process.env.LEGACY_MINIO_PORT, "LEGACY_MINIO_PORT is required")
-
-			const legacyMinIOPort = Number(process.env.LEGACY_MINIO_PORT)
-			assert(!Number.isNaN(legacyMinIOPort), "LEGACY_MINIO_PORT must be a number")
-			assert(legacyMinIOPort >= 1024 && legacyMinIOPort <= 65534, "LEGACY_MINIO_PORT must be between 1024 and 66534")
-
-			assert(process.env.LEGACY_MINIO_ACCESS_KEY, "LEGACY_MINIO_ACCESS_KEY is required")
-			assert(process.env.LEGACY_MINIO_ACCESS_SECRET, "LEGACY_MINIO_ACCESS_SECRET is required")
-
-			const legacyMinIOTarget = new StorageTargetMinIO(process.env.LEGACY_MINIO_BUCKET)
-			legacyMinIOTarget.init(process.env.LEGACY_MINIO_ENDPOINT, legacyMinIOPort, process.env.LEGACY_MINIO_ACCESS_KEY, process.env.LEGACY_MINIO_ACCESS_SECRET)
+		if (storageCfg.legacyMinIO) {
+			const legacyMinIOTarget = new StorageTargetMinIO(storageCfg.legacyMinIO.bucket)
+			legacyMinIOTarget.init(storageCfg.legacyMinIO.endpoint, storageCfg.legacyMinIO.port, storageCfg.legacyMinIO.accessKey, storageCfg.legacyMinIO.accessSecret)
 
 			storageController?.registerStorageTarget(legacyMinIOTarget)
 		}
@@ -130,12 +123,17 @@ export const initializeServer = async () => {
 	// Verify the operation time of this request
 	app.use(validateOperationTime)
 
+	// Static pages
+	app.use("/auth/resetpassword.html", serveStatic(pageTemplate_resetPassword()))
+
 	setupV1routes(app)
 	setupV2routes(app)
 	setupBaseRoutes(app)
 
 	// Has to be *after* all controllers
-	Sentry.setupExpressErrorHandler(app)
+	if (cfg.sentry) {
+		Sentry.setupExpressErrorHandler(app)
+	}
 
 	console.log(`Starting server as ${cluster.isPrimary ? "Primary" : "Worker"}`)
 
@@ -150,11 +148,14 @@ export const startServer = async (app: any, mongourl: string) => {
 
 	await socket.init(server)
 
-	const port = process.env.PORT ?? 3000
-	server.listen(port, () => logger.info(`Initiating Apparyllis API at :${port}`))
+	const port = config().server.port
+	server.listen(port, () => logger.info(`Initiating API at :${port}`))
 	console.log(`Started server on port ${port.toString()}`)
 
-	startPkController()
+	if (config().pluralKit) {
+		startPkController()
+	}
+
 	startMailTransport()
 
 	return server

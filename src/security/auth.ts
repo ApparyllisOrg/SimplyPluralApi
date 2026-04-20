@@ -7,6 +7,7 @@ import { logUserUsage } from "../modules/usage"
 import { validateParams, validatePostId } from "../util/validation"
 import { isJwtValid } from "../api/v1/auth/auth.jwt"
 import { getCollection } from "../modules/mongo"
+import { config } from "../modules/config"
 
 // Test JWT and base 64 (token)
 const tokenRegexValidation = RegExp(/(^[\w-]*\.[\w-]*\.[\w-]*$)|(^(?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?$)/)
@@ -20,14 +21,19 @@ export const validateToken = async (tokenStr: string): Promise<{ uid: string | u
 	}
 
 	try {
-		const token = await auth().verifyIdToken(tokenStr)
+		if (config().firebase) {
+			const token = await auth().verifyIdToken(tokenStr)
 
-		const existingUser = await getCollection("accounts").findOne({ uid: token.uid })
-		if (existingUser) {
-			return { uid: undefined, accessType: 0x00, jwt: false }
+			const existingUser = await getCollection("accounts").findOne({ uid: token.uid })
+			if (existingUser) {
+				return { uid: undefined, accessType: 0x00, jwt: false }
+			}
+
+			return { uid: token.uid, accessType: FullApiAccess, jwt: true }
 		}
 
-		return { uid: token.uid, accessType: FullApiAccess, jwt: true }
+		// This throw is safe as we want to fall back to tokens.
+		throw new Error("Firebase not configured")
 	} catch (e) {
 		const result = await validateApiKey(tokenStr)
 		if (result.valid === true) {

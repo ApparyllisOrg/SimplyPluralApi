@@ -7,6 +7,7 @@ import Ajv, { ValidateFunction } from "ajv"
 import { ObjectId } from "mongodb"
 import moment from "moment"
 import { getCollection } from "../modules/mongo"
+import { config } from "../modules/config"
 
 import GraphemeSplitter = require("grapheme-splitter")
 
@@ -58,7 +59,7 @@ export const validateBody = (func: schemavalidation) => {
 
 		const result = func(req.body)
 		if (!result.success) {
-			if (process.env.UNITTEST === "true") {
+			if (config().unitTest) {
 				console.error(result.msg)
 			}
 
@@ -143,7 +144,7 @@ export const validateParamsSchema = (func: schemavalidation) => {
 	return async (req: Request, res: Response, next: any) => {
 		const result = func(req.params)
 		if (!result.success) {
-			if (process.env.UNITTEST === "true") {
+			if (config().unitTest) {
 				console.error(`URL Params error: ${result.msg}`)
 			}
 

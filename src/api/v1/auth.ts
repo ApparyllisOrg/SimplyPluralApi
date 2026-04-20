@@ -16,33 +16,47 @@ import { changePassword_Execution } from "./auth/auth.changePassword"
 import { isUserSuspended, logSecurityUserEvent } from "../../security"
 import { initializeApp } from "firebase/app"
 import { loginWithApple } from "./auth/auth.apple"
-import { namedArguments } from "../../util/args"
+
 import { requestEmail_Execution } from "./auth/auth.requestEmail"
 import { logOpenUsage as logDailyUsage } from "./events/open"
 import { migrateAccountFromFirebase } from "./auth/auth.migrate"
 import { fetchCollection } from "../../util"
 import { setupNewUser } from "./user"
+import { config } from "../../modules/config"
 
-initializeApp({ projectId: process.env.GOOGLE_CLIENT_JWT_AUD, apiKey: process.env.GOOGLE_API_KEY })
+let _firebaseClientInitialized = false
+const ensureFirebaseClient = () => {
+	if (_firebaseClientInitialized) return
+	_firebaseClientInitialized = true
+	const firebaseConfig = config().firebase
+	if (firebaseConfig) {
+		initializeApp({ projectId: firebaseConfig.googleClientJwtAud, apiKey: process.env.GOOGLE_API_KEY })
+	}
+}
 
 export const login = async (req: Request, res: Response) => {
 	let user = await getCollection("accounts").findOne({ email: getEmailRegex(req.body.email) })
 	if (!user) {
-		const result = await signInWithEmailAndPassword(getAuth(), req.body.email, req.body.password).catch(() => undefined)
-		if (result) {
-			const salt = randomBytes(16).toString("hex")
-			const hashedPasswd = await hash(req.body.password, salt)
-			await getCollection("accounts").insertOne({
-				uid: result.user.uid,
-				email: req.body.email,
-				verified: result.user.emailVerified,
-				salt,
-				password: hashedPasswd.hashed,
-				registeredAt: result.user.metadata.creationTime ?? moment.now(),
-			})
-			user = await getCollection("accounts").findOne({ email: getEmailRegex(req.body.email) })
-			migrateAccountFromFirebase(user.uid)
-		} else {
+		if (config().firebase) {
+			ensureFirebaseClient()
+			const result = await signInWithEmailAndPassword(getAuth(), req.body.email, req.body.password).catch(() => undefined)
+			if (result) {
+				const salt = randomBytes(16).toString("hex")
+				const hashedPasswd = await hash(req.body.password, salt)
+				await getCollection("accounts").insertOne({
+					uid: result.user.uid,
+					email: req.body.email,
+					verified: result.user.emailVerified,
+					salt,
+					password: hashedPasswd.hashed,
+					registeredAt: result.user.metadata.creationTime ?? moment.now(),
+				})
+				user = await getCollection("accounts").findOne({ email: getEmailRegex(req.body.email) })
+				migrateAccountFromFirebase(user.uid)
+			}
+		}
+
+		if (!user) {
 			res.status(401).send("Unknown user or password")
 			return
 		}
@@ -272,7 +286,7 @@ export const register = async (req: Request, res: Response) => {
 		return
 	}
 
-	if (namedArguments.without_google === false) {
+	if (config().firebase) {
 		const firebaseUser = await auth()
 			.getUserByEmail(req.body.email)
 			.catch(() => {
@@ -294,7 +308,8 @@ export const register = async (req: Request, res: Response) => {
 	const newUserId = await getNewUid()
 	const hashedPasswd = await hash(req.body.password, salt)
 	const verificationCode = getConfirmationKey()
-	await getCollection("accounts").insertOne({ uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode, verified: false, registeredAt: new Date() })
+	const mailEnabled = !!config().mail
+	await getCollection("accounts").insertOne({ uid: newUserId, email: req.body.email, password: hashedPasswd.hashed, salt, verificationCode, verified: !mailEnabled, registeredAt: new Date() })
 	const jwt = await jwtForUser(newUserId, undefined, undefined)
 	res.status(200).send(jwt)
 
@@ -304,7 +319,9 @@ export const register = async (req: Request, res: Response) => {
 
 	logSecurityUserEvent(newUserId, "Registered your user account", req)
 
-	sendConfirmationEmail(newUserId)
+	if (mailEnabled) {
+		sendConfirmationEmail(newUserId)
+	}
 }
 
 export const requestConfirmationEmail = async (req: Request, res: Response) => {
