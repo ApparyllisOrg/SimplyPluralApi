@@ -9,8 +9,12 @@ import { validateStoreAvatarSchema } from "../v1/storage"
 import { DeleteContentAvatar, StoreContentAvatar } from "./storage/storage.content"
 import { DeleteUserAvatar, StoreUserAvatar } from "./storage/storage.user"
 import { validateStoreAvatarParamsSchema } from "./storage/storage.utils"
+import { getApiConfig } from "./config"
 
 export const setupV2routes = (app: core.Express) => {
+	// Server config
+	app.get("/v2/config", getApiConfig)
+
 	// Groups
 	app.post("/v2/group/:id?", isUserAuthenticated(ApiKeyAccessType.Write), validateBody(validatePostGroupSchema), validateId, add)
 
