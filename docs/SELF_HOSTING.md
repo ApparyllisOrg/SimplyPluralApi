@@ -79,17 +79,38 @@ Set `MAIL_HOST` to enable email. When disabled, users are auto-verified on regis
 
 Set `WITH_STORAGE=true` to enable avatar uploads and report generation.
 
-| Variable                   | Description                              |
-| -------------------------- | ---------------------------------------- |
-| `WITH_STORAGE`             | Set to `true` to enable                  |
-| `STORAGE_BASE_URL`         | Public URL where stored files are served |
-| `PRIMARY_S3_BUCKET`        | S3 bucket name                           |
-| `PRIMARY_S3_ENDPOINT`      | S3 endpoint URL                          |
-| `PRIMARY_S3_REGION`        | S3 region                                |
-| `PRIMARY_S3_ACCESS_KEY`    | S3 access key                            |
-| `PRIMARY_S3_ACCESS_SECRET` | S3 secret key                            |
+| Variable                 | Default | Description                              |
+| ------------------------ | ------- | ---------------------------------------- |
+| `WITH_STORAGE`           | `false` | Set to `true` to enable                  |
+| `PRIMARY_STORAGE_TARGET` | `s3`    | Accepts `s3` or `local` (see below)      |
+| `STORAGE_BASE_URL`       | -       | Public URL where stored files are served |
 
-Legacy storage backends (`LEGACY_S3_*`, `LEGACY_MINIO_*`) are available for migration from older setups. Enable with `WITH_LEGACY_S3=true` or `WITH_LEGACY_MINIO=true`.
+
+#### Local storage
+
+Set `PRIMARY_STORAGE_TARGET=local` (or omit it, since it's the default) to store files on the local filesystem.
+
+| Variable            | Description                              |
+| ------------------- | ---------------------------------------- |
+| `LOCAL_STORAGE_DIR` | Absolute path to the storage directory   |
+
+Make sure the backend has read/write privileges for this directory.
+
+#### S3 storage
+
+Set `PRIMARY_STORAGE_TARGET=s3` to store files on S3.
+
+| Variable           | Description     |
+| ------------------ | --------------- |
+| `S3_BUCKET`        | S3 bucket name  |
+| `S3_ENDPOINT`      | S3 endpoint URL |
+| `S3_REGION`        | S3 region       |
+| `S3_ACCESS_KEY`    | S3 access key   |
+| `S3_ACCESS_SECRET` | S3 secret key   |
+
+#### Fallback storage targets
+
+Legacy storage backends (`LEGACY_S3_*`, `LEGACY_MINIO_*`) are available for migration from older setups. Enable with `WITH_LEGACY_S3=true` or `WITH_LEGACY_MINIO=true`. See configuration below.
 
 #### Legacy S3
 

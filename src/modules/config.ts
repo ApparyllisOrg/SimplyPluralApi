@@ -267,11 +267,18 @@ export interface MinIOConfig {
 	accessSecret: string
 }
 
+export interface LocalStorageConfig {
+	rootDir: string
+}
+
+export type StorageTarget = "s3" | "local";
+
 export interface StorageConfig {
-	// TODO: Add a way to serve reports directly from the backend if there's no CDN present
 	baseUrl: string
 	legacyBaseUrl: string | null
-	primaryS3: S3Config
+	primaryTarget: StorageTarget
+	s3: S3Config | null
+	local: LocalStorageConfig | null
 	legacyS3: S3Config | null
 	legacyMinIO: MinIOConfig | null
 }
@@ -301,13 +308,27 @@ function getMinIOConfig(prefix: string): MinIOConfig {
 	}
 }
 
+function getLocalStorageConfig(): LocalStorageConfig {
+	return {
+		rootDir: env.required("LOCAL_STORAGE_DIR"),
+	}
+}
+
 function getStorageConfig(): StorageConfig | null {
 	if (!env.bool("WITH_STORAGE")) return null
+
+	const primaryTarget = (env("PRIMARY_STORAGE_TARGET") ?? "local") as StorageTarget
+
+	if (!["local", "s3"].includes(primaryTarget)) {
+		throw new Error(`Invalid PRIMARY_STORAGE_TARGET="${primaryTarget}", must be either "s3" or "local"`)
+	}
 
 	return {
 		baseUrl: env.required("STORAGE_BASE_URL"),
 		legacyBaseUrl: env("LEGACY_REPORT_BASE_URL"),
-		primaryS3: getS3Config("PRIMARY_S3"),
+		primaryTarget,
+		s3: primaryTarget === "s3" ? getS3Config("S3") : null,
+		local: primaryTarget === "local" ? getLocalStorageConfig() : null,
 		legacyS3: env.bool("WITH_LEGACY_S3") ? getS3Config("LEGACY_S3") : null,
 		legacyMinIO: env.bool("WITH_LEGACY_MINIO") ? getMinIOConfig("LEGACY_MINIO") : null,
 	}
